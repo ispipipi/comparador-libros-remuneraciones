@@ -1,0 +1,2600 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comparador de Libros de Remuneraciones</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --panel: #ffffff;
+      --panel-soft: #eef7f5;
+      --text: #16201d;
+      --muted: #65736f;
+      --line: #dfe7e4;
+      --line-strong: #c8d5d0;
+      --primary: #0f766e;
+      --primary-dark: #0b5f59;
+      --primary-soft: #d9f2ed;
+      --accent: #4f46e5;
+      --accent-soft: #e5e7ff;
+      --warn: #b7791f;
+      --warn-soft: #fff4d8;
+      --danger: #b42318;
+      --danger-soft: #ffe4df;
+      --ok: #047857;
+      --ok-soft: #dcfce7;
+      --info: #2563eb;
+      --info-soft: #dbeafe;
+      --shadow: 0 8px 24px rgba(22, 32, 29, 0.08);
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      min-height: 100%;
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+      letter-spacing: 0;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    a { color: inherit; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      background: #173c38;
+      color: #edf7f5;
+      padding: 22px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 6px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #f97316;
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .brand-text strong {
+      display: block;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .brand-text span {
+      display: block;
+      color: #b7d5ce;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: transparent;
+      color: #d9ece7;
+      text-align: left;
+      font-weight: 650;
+    }
+
+    .nav-btn:hover,
+    .nav-btn.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .sidebar-note {
+      margin-top: auto;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      color: #cce3df;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: clamp(24px, 2.5vw, 34px);
+      line-height: 1.12;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    h3 {
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    .subtle {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 750;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+    }
+
+    .btn:hover { background: var(--primary-dark); }
+
+    .btn.secondary {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line-strong);
+      box-shadow: none;
+    }
+
+    .btn.secondary:hover { background: #f8fbfa; }
+
+    .btn.warning {
+      background: #f97316;
+    }
+
+    .btn.icon {
+      width: 38px;
+      padding: 0;
+      font-weight: 900;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .kpi {
+      min-height: 116px;
+      padding: 17px;
+      border-radius: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      display: grid;
+      align-content: space-between;
+      gap: 14px;
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+
+    .kpi .value {
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 850;
+    }
+
+    .kpi .hint {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stepper {
+      display: grid;
+      gap: 8px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 9px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .step.current {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .step.done {
+      border-color: #9bd4c8;
+    }
+
+    .step-index {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #e8efed;
+      color: #35514b;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .step.current .step-index {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .step.done .step-index {
+      background: var(--ok);
+      color: #fff;
+    }
+
+    .step-title {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .step-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #34423f;
+      text-transform: uppercase;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 10px;
+    }
+
+    textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    .upload-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .upload {
+      min-height: 190px;
+      border: 1.5px dashed var(--line-strong);
+      border-radius: 8px;
+      padding: 18px;
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      background: #fbfdfc;
+    }
+
+    .upload.ready {
+      border-color: var(--ok);
+      background: var(--ok-soft);
+    }
+
+    .upload.error {
+      border-color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .file-name {
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .banner {
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .banner.ok {
+      background: var(--ok-soft);
+      border-color: #9be4bc;
+      color: #064e3b;
+    }
+
+    .banner.warn {
+      background: var(--warn-soft);
+      border-color: #f5d38b;
+      color: #744210;
+    }
+
+    .banner.danger {
+      background: var(--danger-soft);
+      border-color: #ffb3a9;
+      color: var(--danger);
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filters select,
+    .filters input {
+      width: auto;
+      min-width: 180px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f4f8f7;
+      color: #33423f;
+      font-size: 12px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .num {
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      min-height: 24px;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.pending {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .badge.reviewed {
+      background: var(--ok-soft);
+      color: var(--ok);
+    }
+
+    .badge.justified {
+      background: var(--info-soft);
+      color: var(--info);
+    }
+
+    .badge.auto {
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .badge.manual {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .badge.excluded {
+      background: #eceff1;
+      color: #455a64;
+    }
+
+    .drill-layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .tree {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      max-height: 520px;
+      overflow: auto;
+    }
+
+    .tree button {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+      padding: 7px 9px;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      font-weight: 650;
+    }
+
+    .tree button:hover,
+    .tree button.active {
+      background: var(--panel-soft);
+    }
+
+    .tree .level-1 { padding-left: 18px; }
+    .tree .level-2 { padding-left: 30px; }
+    .tree .level-3 { padding-left: 42px; }
+    .tree .level-4 { padding-left: 54px; }
+
+    .empty {
+      min-height: 220px;
+      display: grid;
+      place-items: center;
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty strong {
+      display: block;
+      color: var(--text);
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 20;
+      max-width: min(420px, calc(100vw - 44px));
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: #14312e;
+      color: #fff;
+      box-shadow: var(--shadow);
+      font-weight: 700;
+    }
+
+    .inline-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .link-btn {
+      padding: 0;
+      min-height: auto;
+      color: var(--primary);
+      background: transparent;
+      font-weight: 800;
+    }
+
+    .progress {
+      width: 100%;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5ece9;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: var(--w, 0%);
+      background: var(--primary);
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 5px 8px 5px 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .chip button {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: #eef2f1;
+      color: var(--muted);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .mobile-list { display: none; }
+
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .split, .drill-layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; }
+      .app { grid-template-columns: 1fr; }
+      .sidebar-note { display: none; }
+      .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .nav-btn { justify-content: center; }
+      .nav-btn span:last-child { display: none; }
+    }
+
+    @media (max-width: 760px) {
+      .main { padding: 18px; }
+      .topline { display: grid; }
+      .actions { justify-content: stretch; }
+      .actions .btn { flex: 1 1 auto; }
+      .kpi-grid, .form-grid, .upload-grid { grid-template-columns: 1fr; }
+      .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filters select, .filters input { width: 100%; }
+      .toolbar { align-items: stretch; }
+      .filters { width: 100%; }
+      .table-wrap { display: none; }
+      .mobile-list {
+        display: grid;
+        gap: 10px;
+      }
+      .record {
+        padding: 13px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .record strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .record dl {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 6px 10px;
+        margin: 10px 0 0;
+        font-size: 13px;
+      }
+      .record dt {
+        color: var(--muted);
+        font-weight: 750;
+      }
+      .record dd {
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    const STORE = {
+      history: "clr_history_v1",
+      config: "clr_config_v1"
+    };
+
+    const STEPS = [
+      ["Carga", "Archivos y periodo"],
+      ["Validacion", "Estructura minima"],
+      ["Homologacion", "Conceptos"],
+      ["Mapeo", "Contratos"],
+      ["Resultados", "Drill down"],
+      ["Justificacion", "Documentacion"],
+      ["Exportacion", "Reporte Excel"]
+    ];
+
+    const TYPE_LABELS = {
+      monto: "Diferencia de monto",
+      concepto_faltante: "Concepto faltante",
+      trabajador_sin_par: "Trabajador sin par",
+      dato_trabajador: "Dato trabajador"
+    };
+
+    const STATUS_LABELS = {
+      pendiente: "Pendiente",
+      revisado: "Revisado",
+      justificado: "Justificado"
+    };
+
+    const REAL_SAMPLE_URL = "real-example-rg-2026-04.json";
+    const DISPLAY_LIMIT = 500;
+
+    const REQUIRED = {
+      visma: ["rut", "nombre", "sede", "area", "cargo", "numero_empleado_a", "concepto", "monto"],
+      rex: ["rut", "nombre", "sede", "area", "cargo", "numero_contrato_b", "concepto", "monto"]
+    };
+
+    const ALIASES = {
+      rut: ["rut", "run", "documento", "id trabajador", "identificador"],
+      nombre: ["nombre", "trabajador", "nombre trabajador", "empleado", "colaborador", "apellido y nombre"],
+      sede: ["sede", "ubicacion", "local", "centro", "centro costo", "centro de costo", "nombre c costo", "nombre c. costo"],
+      area: ["area", "departamento", "unidad", "division", "centro costo", "centro de costo"],
+      cargo: ["cargo", "puesto", "rol", "funcion"],
+      numero_empleado_a: ["numero empleado", "n empleado", "num empleado", "id empleado", "codigo empleado", "cod empleado", "empleado"],
+      numero_contrato_b: ["numero contrato", "n contrato", "num contrato", "id contrato", "contrato"],
+      concepto: ["concepto", "item", "glosa", "haber descuento", "nombre concepto"],
+      tipo_concepto: ["tipo concepto", "tipo", "clasificacion", "categoria concepto"],
+      monto: ["monto", "valor", "importe", "total", "haber", "descuento", "aporte"]
+    };
+
+    const WIDE_EXCLUDED = new Set([
+      "periodo", "periodo", "empleado", "apellido y nombre", "rut", "fecha de alta", "fecha de baja",
+      "afp", "isapre", "id centro de costo", "nombre c costo", "nombre c. costo", "cargo", "categoria",
+      "tipo de empleado", "departamento", "sap", "empresa", "nombre empresa", "rut empresa", "proceso",
+      "nombre", "contrato", "sede", "fecha inicio", "fecha termino", "fecha termino", "inst salud",
+      "inst. salud", "tipo contrato", "centro costo", "sindicato", "pauta contable", "agrupacion",
+      "plan uf", "alcance liquido", "liquido", "sueldo liquido", "total haberes", "total descuentos",
+      "tributable", "imponible topeado", "total imponible sin tope", "afecto afp", "afecto cesantia",
+      "haberes exentos", "suma haberes", "total rebajas", "afecto impuesto",
+      "imponible informado ley 21 227", "imponible cesantia ley 21 227", "dias trabajados",
+      "dias con licencia medica", "dias con licencia por accidente", "dias de falta", "minutos de atraso",
+      "cantidad horas no trabajadas", "cantidad horas extras 50%"
+    ]);
+
+    const KNOWN_CONCEPT_PAIRS = new Map([
+      ["sueldo ganado", "Sueldo Base"],
+      ["diferencia sueldo mes anterior", "DIFERENCIA SUELDO MES ANTERIOR"],
+      ["gratificacion", "Gratificación"],
+      ["horas extras normales al 50", "Horas Extras 50%"],
+      ["bono responsabilidad", "BONO RESPONSABILIDAD"],
+      ["bono aplicacion", "BONO APLICACION"],
+      ["bono asistencia", "BONO ASISTENCIA"],
+      ["bono desbrozadora", "BONO DESBROZADORA"],
+      ["bono escolaridad", "BONO ESCOLARIDAD"],
+      ["bono op maquinaria", "BONO OP MAQUINARIA"],
+      ["semana corrida informada", "SEMANA CORRIDA INFORMADA"],
+      ["bono termino de faena", "BONO TERMINO DE FAENA"],
+      ["bono asistencia contractual", "BONO ASISTENCIA CONTRACTUAL"],
+      ["bono especial", "BONO ESPECIAL"],
+      ["bono turno", "BONO TURNO"],
+      ["bono antiguedad", "BONO ANTIGUEDAD"],
+      ["bono domingos y festivos", "BONO DOMINGOS Y FESTIVOS"],
+      ["bono pernoctacion i", "BONO PERNOCTACION I"],
+      ["bono cosecha", "BONO COSECHA"],
+      ["bono soplador", "BONO SOPLADOR"],
+      ["asig colacion contractual", "ASIG. COLACION CONTRACTUAL"],
+      ["asignacion de movilizacion", "ASIGNACION DE MOVILIZACION"],
+      ["asig movilizacion contractual", "ASIG. MOVILIZACION CONTRACTUAL"],
+      ["asig colacion", "ASIGNACION DE COLACION"],
+      ["bono compensatorio", "BONO COMPENSATORIO"],
+      ["sala cuna", "SALA CUNA"],
+      ["dev descuento erroneo", "DEV DESCUENTO ERRONEO"],
+      ["diferencia de sueldo", "DIFERENCIA DE SUELDO"],
+      ["indemnizacion legal", "IAS Indemnizacion Legal"],
+      ["indem voluntaria exenta", "IAS Indemnizacion Voluntaria"],
+      ["vacaciones", "IAS Vacaciones Legales"],
+      ["asignacion familiar", "Cargas Familiares Simples"],
+      ["asignacion familiar retroact", "Asignacion Familiar Retroactiva"],
+      ["a f p", "Cotizacion AFP"],
+      ["salud", "Cotizacion SALUD"],
+      ["seguro de cesantia", "Seguro de Cesantia"],
+      ["desc anticipo de sueldo", "DESCUENTO ANTICIPO DE SUELDO"],
+      ["ahorro cuenta 2", "Ahorro AFP"],
+      ["cotizacion voluntaria t", "APVI Ahorro voluntario mensual"],
+      ["otros descuentos", "OTROS DESCUENTOS"],
+      ["seguro chilena consolidada", "SEGURO CHILENA CONSOLIDADA"],
+      ["full ahorro ccaf los andes", "Ahorro en CCAF"],
+      ["cuota sindicato san sebastian", "CUOTA SINDICATO SAN SEBASTIAN"],
+      ["cuota sindicato camarico", "CUOTA SINDICATO CAMARICO"],
+      ["cuota sindicato temuco", "CUOTA SINDICATO TEMUCO"],
+      ["prestamo empresa", "PRESTAMO EMPRESA"],
+      ["prestamo ccaf los andes", "Creditos personales CCAF"],
+      ["seguro ccaf los andes", "Descuentos por seguro de vida CCAF"],
+      ["impuesto unico", "Impuesto"],
+      ["aporte patronal mutual", "Mutual"],
+      ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
+      ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
+      ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
+      ["afp cap ind previred", "Aporte AFP Empleador"],
+      ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"]
+    ]);
+
+    const DEFAULT_CONFIG = {
+      sedes: ["Casa Matriz", "Santiago", "Valparaiso", "Concepcion"],
+      areas: ["Administracion", "Operaciones", "Finanzas", "Personas"],
+      cargos: ["Analista", "Supervisor", "Coordinador", "Administrativo"],
+      categorias: [
+        "Error de digitacion",
+        "Diferencia de sistema",
+        "Concepto no aplica",
+        "Pendiente de revision",
+        "Correccion en proceso",
+        "Diferencia aceptada",
+        "Otro"
+      ],
+      homologaciones: []
+    };
+
+    const app = document.getElementById("app");
+
+    let state = {
+      view: "dashboard",
+      step: 1,
+      period: new Date().toISOString().slice(0, 7),
+      files: { visma: null, rex: null },
+      rawRows: { visma: [], rex: [] },
+      rows: { visma: [], rex: [] },
+      availableConcepts: { visma: [], rex: [] },
+      validations: null,
+      homologations: [],
+      contractMappings: [],
+      differences: [],
+      selectedNode: "todos",
+      filters: { type: "todos", status: "todos", q: "" },
+      exportDone: false,
+      history: loadJson(STORE.history, seedHistory()),
+      config: loadJson(STORE.config, DEFAULT_CONFIG)
+    };
+
+    function loadJson(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : structuredClone(fallback);
+      } catch {
+        return structuredClone(fallback);
+      }
+    }
+
+    function saveJson(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function seedHistory() {
+      const now = new Date();
+      return [{
+        id: "cmp-demo-001",
+        periodo: "2026-05",
+        fecha_creacion: new Date(now.getTime() - 86400000 * 8).toISOString(),
+        fecha_completado: new Date(now.getTime() - 86400000 * 8 + 540000).toISOString(),
+        estado: "completado",
+        sistema_a: "Visma",
+        sistema_b: "REX+",
+        total_trabajadores_a: 84,
+        total_trabajadores_b: 83,
+        total_diferencias: 9,
+        diferencias_monto: 5,
+        diferencias_concepto_faltante: 2,
+        diferencias_trabajador_sin_par: 1,
+        diferencias_datos_trabajador: 1,
+        diferencias: sampleDifferences(),
+        reporte_url: "",
+        created_at: new Date(now.getTime() - 86400000 * 8).toISOString(),
+        updated_at: new Date(now.getTime() - 86400000 * 8 + 540000).toISOString()
+      }];
+    }
+
+    function sampleRows() {
+      const visma = [
+        row("11111111-1", "Ana Rojas", "Santiago", "Personas", "Analista", "1001", "Sueldo Base", 1200000),
+        row("11111111-1", "Ana Rojas", "Santiago", "Personas", "Analista", "1001", "Gratificacion", 180000),
+        row("11111111-1", "Ana Rojas", "Santiago", "Personas", "Analista", "1001", "AFP", -135000),
+        row("22222222-2", "Bruno Silva", "Valparaiso", "Operaciones", "Supervisor", "1002", "Sueldo Base", 1450000),
+        row("22222222-2", "Bruno Silva", "Valparaiso", "Operaciones", "Supervisor", "1002", "Colacion", 80000),
+        row("33333333-3", "Camila Perez", "Concepcion", "Finanzas", "Coordinador", "1003", "Sueldo Base", 1300000),
+        row("33333333-3", "Camila Perez", "Concepcion", "Finanzas", "Coordinador", "1004", "Sueldo Base", 420000),
+        row("44444444-4", "Diego Soto", "Santiago", "Administracion", "Administrativo", "1005", "Seguro Cesantia", -22000)
+      ];
+      const rex = [
+        row("11111111-1", "Ana Rojas", "Santiago", "Personas", "Analista", "1", "Sueldo base", 1200000, true),
+        row("11111111-1", "Ana Rojas", "Santiago", "Personas", "Analista", "1", "Gratificacion legal", 175000, true),
+        row("11111111-1", "Ana Rojas", "Santiago", "Personas", "Analista", "1", "AFP", -135000, true),
+        row("22222222-2", "Bruno Silva", "Valparaiso", "Operaciones", "Jefe turno", "1", "Sueldo base", 1450000, true),
+        row("22222222-2", "Bruno Silva", "Valparaiso", "Operaciones", "Jefe turno", "1", "Colacion", 70000, true),
+        row("33333333-3", "Camila Perez", "Concepcion", "Finanzas", "Coordinador", "1", "Sueldo base", 1300000, true),
+        row("55555555-5", "Elena Castro", "Santiago", "Finanzas", "Analista", "1", "Sueldo base", 1100000, true)
+      ];
+      return { visma, rex };
+    }
+
+    function row(rut, nombre, sede, area, cargo, id, concepto, monto, rex) {
+      return {
+        rut, nombre, sede, area, cargo,
+        numero_empleado_a: rex ? "" : id,
+        numero_contrato_b: rex ? id : "",
+        concepto,
+        tipo_concepto: monto < 0 ? "descuento" : "haber",
+        monto
+      };
+    }
+
+    function sampleDifferences() {
+      return [
+        diff("monto", "11111111-1", "Ana Rojas", "Santiago", "Personas", "Analista", "Gratificacion", "Gratificacion legal", 180000, 175000, "1001", "1"),
+        diff("monto", "22222222-2", "Bruno Silva", "Valparaiso", "Operaciones", "Supervisor", "Colacion", "Colacion", 80000, 70000, "1002", "1"),
+        diff("dato_trabajador", "22222222-2", "Bruno Silva", "Valparaiso", "Operaciones", "Supervisor", "", "", 0, 0, "1002", "1", "cargo", "Supervisor", "Jefe turno"),
+        diff("trabajador_sin_par", "44444444-4", "Diego Soto", "Santiago", "Administracion", "Administrativo", "Seguro Cesantia", "", -22000, 0, "1005", ""),
+        diff("trabajador_sin_par", "55555555-5", "Elena Castro", "Santiago", "Finanzas", "Analista", "", "Sueldo base", 0, 1100000, "", "1")
+      ];
+    }
+
+    function diff(tipo, rut, nombre, sede, area, cargo, conceptoA, conceptoB, valorA, valorB, empleado, contrato, campo, campoA, campoB) {
+      return {
+        id: crypto.randomUUID(),
+        tipo,
+        rut,
+        nombre_trabajador: nombre,
+        sede,
+        area,
+        cargo,
+        numero_empleado_a: empleado || "",
+        numero_contrato_b: contrato || "",
+        concepto_a: conceptoA || "",
+        concepto_b: conceptoB || "",
+        valor_a: Number(valorA || 0),
+        valor_b: Number(valorB || 0),
+        diferencia_absoluta: Number(valorA || 0) - Number(valorB || 0),
+        diferencia_porcentual: percent(valorA, valorB),
+        campo_diferente: campo || "",
+        valor_campo_a: campoA || "",
+        valor_campo_b: campoB || "",
+        estado_revision: "pendiente",
+        categoria_justificacion: "",
+        comentario_justificacion: "",
+        fecha_justificacion: ""
+      };
+    }
+
+    function render() {
+      app.innerHTML = `
+        <div class="app">
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="brand-mark">NPR</div>
+              <div class="brand-text">
+                <strong>Comparador RRHH</strong>
+                <span>Visma - REX+</span>
+              </div>
+            </div>
+            <nav class="nav">
+              ${navButton("dashboard", "DB", "Dashboard")}
+              ${navButton("new", "NC", "Nueva comparacion")}
+              ${navButton("history", "HI", "Historial")}
+              ${navButton("config", "CF", "Configuracion")}
+            </nav>
+            <div class="sidebar-note">
+              Flujo interno sin login. Los archivos se procesan en memoria y no se almacenan.
+            </div>
+          </aside>
+          <main class="main">
+            ${viewMarkup()}
+          </main>
+        </div>
+      `;
+      bindEvents();
+    }
+
+    function navButton(view, icon, label) {
+      const active = navView() === view ? "active" : "";
+      return `<button class="nav-btn ${active}" data-nav="${view}"><span class="nav-icon">${icon}</span><span>${label}</span></button>`;
+    }
+
+    function navView() {
+      return state.view === "wizard" ? "new" : state.view;
+    }
+
+    function viewMarkup() {
+      if (state.view === "wizard") return wizardMarkup();
+      if (state.view === "history") return historyMarkup();
+      if (state.view === "config") return configMarkup();
+      return dashboardMarkup();
+    }
+
+    function dashboardMarkup() {
+      const recent = [...state.history].sort((a, b) => b.fecha_creacion.localeCompare(a.fecha_creacion)).slice(0, 6);
+      const pending = state.history.reduce((sum, cmp) => sum + (cmp.diferencias || []).filter(d => d.estado_revision === "pendiente").length, 0);
+      const last = recent[0];
+      return `
+        <section class="topline">
+          <div>
+            <h1>Dashboard principal</h1>
+            <p class="subtle">Estado general, comparaciones recientes y acceso rapido al flujo operativo.</p>
+          </div>
+          <div class="actions">
+            <button class="btn secondary" data-nav="config">Configuracion</button>
+            <button class="btn" data-action="start">Nueva comparacion</button>
+          </div>
+        </section>
+        <section class="kpi-grid">
+          ${kpi("Total comparaciones", state.history.length, "Historial disponible")}
+          ${kpi("Pendientes revision", pending, "Diferencias abiertas")}
+          ${kpi("Ultima comparacion", last ? last.periodo : "-", last ? fmtDate(last.fecha_completado || last.fecha_creacion) : "Sin historial")}
+          ${kpi("Diferencias ultima", last ? last.total_diferencias : 0, last ? byTypeText(last) : "Sin datos")}
+        </section>
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Comparaciones recientes</h2>
+              <p class="subtle">Trazabilidad completa del proceso y sus justificaciones.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            ${recent.length ? historyTable(recent) : empty("No hay comparaciones anteriores.", "Inicia tu primera comparacion.")}
+          </div>
+        </section>
+      `;
+    }
+
+    function kpi(label, value, hint) {
+      return `<article class="kpi"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div><div class="hint">${esc(hint)}</div></article>`;
+    }
+
+    function wizardMarkup() {
+      return `
+        <section class="topline">
+          <div>
+            <h1>Nueva comparacion</h1>
+            <p class="subtle">Proceso secuencial obligatorio para comparar libros Visma y REX+.</p>
+          </div>
+          <div class="actions">
+            <button class="btn secondary" data-action="reset-wizard">Reiniciar</button>
+            <button class="btn secondary" data-nav="dashboard">Volver</button>
+          </div>
+        </section>
+        <section class="split">
+          <aside class="stepper">${STEPS.map((s, i) => stepMarkup(i + 1, s)).join("")}</aside>
+          <div class="panel">
+            <div class="panel-body">
+              ${stepContent()}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function stepMarkup(index, data) {
+      const cls = index === state.step ? "current" : index < state.step ? "done" : "";
+      return `
+        <div class="step ${cls}">
+          <div class="step-index">${index < state.step ? "OK" : index}</div>
+          <div>
+            <div class="step-title">${esc(data[0])}</div>
+            <div class="step-meta">${esc(data[1])}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function stepContent() {
+      if (state.step === 1) return stepUpload();
+      if (state.step === 2) return stepValidation();
+      if (state.step === 3) return stepHomologation();
+      if (state.step === 4) return stepContracts();
+      if (state.step === 5) return stepResults();
+      if (state.step === 6) return stepJustify();
+      return stepExport();
+    }
+
+    function stepUpload() {
+      return `
+        <div class="stack">
+          <div>
+            <h2>Paso 1: Carga de archivos</h2>
+            <p class="subtle">Carga ambos libros Excel o usa la muestra para validar el flujo completo.</p>
+          </div>
+          ${window.XLSX ? "" : `<div class="banner warn">SheetJS no esta cargado. La app puede usar CSV/TSV o la muestra; la exportacion usara formato XLS compatible con Excel.</div>`}
+          <div class="form-grid">
+            <div class="field">
+              <label for="period">Periodo</label>
+              <input id="period" type="month" value="${esc(state.period)}">
+            </div>
+          </div>
+          <div class="upload-grid">
+            ${uploadBox("visma", "Libro Visma", state.files.visma)}
+            ${uploadBox("rex", "Libro REX+", state.files.rex)}
+          </div>
+          <div class="actions">
+            <button class="btn secondary" data-action="load-sample">Cargar muestra</button>
+            <button class="btn secondary" data-action="load-real-sample">Cargar libros RG 2026-04</button>
+            <button class="btn" data-action="validate" ${state.files.visma && state.files.rex ? "" : "disabled"}>Validar y continuar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function uploadBox(system, label, file) {
+      const ready = file ? "ready" : "";
+      return `
+        <label class="upload ${ready}" for="file-${system}">
+          <h3>${esc(label)}</h3>
+          <p class="subtle">Arrastra el archivo o seleccionalo desde tu equipo.</p>
+          <input id="file-${system}" data-file="${system}" type="file" accept=".xlsx,.xls,.csv,.tsv" hidden>
+          <div class="file-name">${file ? esc(file.name) : "Sin archivo"}</div>
+          <span class="badge ${file ? "reviewed" : "excluded"}">${file ? "Listo" : "Pendiente"}</span>
+        </label>
+      `;
+    }
+
+    function stepValidation() {
+      const v = state.validations;
+      if (!v) return `<div class="banner warn">Ejecuta la validacion desde el paso anterior.</div>`;
+      const blocked = v.visma.errors.length || v.rex.errors.length;
+      return `
+        <div class="stack">
+          <div>
+            <h2>Paso 2: Validacion de estructura</h2>
+            <p class="subtle">Resultado por archivo con errores bloqueantes y advertencias.</p>
+          </div>
+          ${blocked ? `<div class="banner danger">El archivo no tiene el formato requerido. Corrige antes de continuar.</div>` : `<div class="banner ok">Estructura valida. Puedes continuar con homologacion.</div>`}
+          <div class="form-grid">
+            ${validationCard("Visma", v.visma)}
+            ${validationCard("REX+", v.rex)}
+          </div>
+          <div class="actions">
+            <button class="btn secondary" data-action="prev">Volver</button>
+            <button class="btn" data-action="to-homologation" ${blocked ? "disabled" : ""}>Continuar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function validationCard(title, data) {
+      return `
+        <article class="panel">
+          <div class="panel-head"><h3>${esc(title)}</h3><span class="badge ${data.errors.length ? "pending" : "reviewed"}">${data.errors.length ? "Bloqueado" : "OK"}</span></div>
+          <div class="panel-body stack">
+            <p class="subtle">${data.rows} filas procesadas. ${data.extra.length} columnas adicionales detectadas.</p>
+            ${data.errors.length ? `<div class="banner danger">${data.errors.map(esc).join("<br>")}</div>` : ""}
+            ${data.warnings.length ? `<div class="banner warn">${data.warnings.map(esc).join("<br>")}</div>` : ""}
+          </div>
+        </article>
+      `;
+    }
+
+    function stepHomologation() {
+      const rows = state.homologations;
+      return `
+        <div class="stack">
+          <div>
+            <h2>Paso 3: Homologacion de conceptos</h2>
+            <p class="subtle">Propuesta automatica por similitud de texto. Puedes editar, excluir o dejar sin par.</p>
+          </div>
+          <div class="toolbar">
+            <div class="filters">
+              <select data-filter-homologation>
+                <option value="todos">Todos los estados</option>
+                <option value="automatico">Automatico</option>
+                <option value="manual">Manual</option>
+                <option value="sin_par">Sin par</option>
+                <option value="excluido">Excluido</option>
+              </select>
+            </div>
+            <div class="actions">
+              <button class="btn secondary" data-action="prev">Volver</button>
+              <button class="btn secondary" data-action="save-homologation">Grabar</button>
+              <button class="btn secondary" data-action="confirm-all-homologation">Confirmar todos</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Concepto Visma</th><th>Concepto REX+</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody>${rows.map(homologationRow).join("")}</tbody>
+            </table>
+          </div>
+          ${mobileHomologations(rows)}
+          <div class="actions">
+            <button class="btn secondary" data-action="prev">Volver</button>
+            <button class="btn secondary" data-action="save-homologation">Grabar</button>
+            <button class="btn" data-action="confirm-homologation">Grabar y continuar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function homologationRow(h) {
+      const rexConcepts = conceptCatalog("rex");
+      return `
+        <tr data-hstate="${esc(h.estado)}">
+          <td><strong>${esc(h.concepto_a)}</strong></td>
+          <td>
+            <select data-hselect="${esc(h.id)}">
+              <option value="">Sin par</option>
+              ${rexConcepts.map(c => `<option value="${esc(c)}" ${c === h.concepto_b ? "selected" : ""}>${esc(c)}</option>`).join("")}
+            </select>
+          </td>
+          <td>${esc(h.tipo_concepto || "haber")}</td>
+          <td>${badgeForHomologation(h.estado)}</td>
+          <td>
+            <div class="inline-actions">
+              <button class="link-btn" data-action="no-pair" data-id="${esc(h.id)}">Sin par</button>
+              <button class="link-btn" data-action="exclude-concept" data-id="${esc(h.id)}">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function mobileHomologations(rows) {
+      return `<div class="mobile-list">${rows.map(h => `
+        <article class="record">
+          <strong>${esc(h.concepto_a)}</strong>
+          ${badgeForHomologation(h.estado)}
+          <dl><dt>REX+</dt><dd>${esc(h.concepto_b || "Sin par")}</dd><dt>Tipo</dt><dd>${esc(h.tipo_concepto || "haber")}</dd></dl>
+        </article>
+      `).join("")}</div>`;
+    }
+
+    function badgeForHomologation(status) {
+      const map = { automatico: "auto", manual: "manual", sin_par: "pending", excluido: "excluded" };
+      const label = { automatico: "Automatico", manual: "Manual", sin_par: "Sin par", excluido: "Excluido" };
+      return `<span class="badge ${map[status] || "excluded"}">${label[status] || status}</span>`;
+    }
+
+    function stepContracts() {
+      const inconsistent = state.contractMappings.filter(m => m.warning);
+      return `
+        <div class="stack">
+          <div>
+            <h2>Paso 4: Mapeo de contratos</h2>
+            <p class="subtle">El mapeo se infiere por orden ascendente. Revisa casos con cantidades distintas.</p>
+          </div>
+          ${inconsistent.length ? `<div class="banner warn">La cantidad de contratos no coincide en ${inconsistent.length} trabajador(es). Revisa el mapeo antes de continuar.</div>` : `<div class="banner ok">Mapeo propuesto sin inconsistencias de cantidad.</div>`}
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>RUT</th><th>Trabajador</th><th>Visma</th><th>REX+</th><th>Mapeo propuesto</th><th>Estado</th></tr></thead>
+              <tbody>${state.contractMappings.map(contractRow).join("")}</tbody>
+            </table>
+          </div>
+          <div class="mobile-list">${state.contractMappings.map(contractRecord).join("")}</div>
+          <div class="actions">
+            <button class="btn secondary" data-action="prev">Volver</button>
+            <button class="btn" data-action="confirm-contracts">Confirmar mapeo y comparar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function contractRow(m) {
+      return `
+        <tr>
+          <td>${esc(m.rut)}</td>
+          <td><strong>${esc(m.nombre)}</strong></td>
+          <td>${esc(m.empleados.join(", ") || "-")}</td>
+          <td>${esc(m.contratos.join(", ") || "-")}</td>
+          <td>${m.pairs.map((p, idx) => pairSelect(m.rut, idx, p, m.contratos)).join("")}</td>
+          <td>${m.warning ? `<span class="badge pending">Revisar</span>` : `<span class="badge reviewed">OK</span>`}</td>
+        </tr>
+      `;
+    }
+
+    function contractRecord(m) {
+      return `
+        <article class="record">
+          <strong>${esc(m.nombre)}</strong>
+          ${m.warning ? `<span class="badge pending">Revisar</span>` : `<span class="badge reviewed">OK</span>`}
+          <dl><dt>RUT</dt><dd>${esc(m.rut)}</dd><dt>Visma</dt><dd>${esc(m.empleados.join(", ") || "-")}</dd><dt>REX+</dt><dd>${esc(m.contratos.join(", ") || "-")}</dd></dl>
+        </article>
+      `;
+    }
+
+    function pairSelect(rut, idx, pair, contratos) {
+      return `
+        <div class="field" style="margin-bottom:8px">
+          <label>${esc(pair.empleado || "Sin empleado")}</label>
+          <select data-contract-rut="${esc(rut)}" data-contract-index="${idx}">
+            <option value="">Sin par</option>
+            ${contratos.map(c => `<option value="${esc(c)}" ${c === pair.contrato ? "selected" : ""}>${esc(c)}</option>`).join("")}
+          </select>
+        </div>
+      `;
+    }
+
+    function stepResults() {
+      const diffs = filteredDifferences();
+      const totals = summarizeDiffs(state.differences);
+      const justified = state.differences.filter(d => d.estado_revision === "justificado").length;
+      const compliance = state.differences.length ? Math.round(justified / state.differences.length * 100) : 100;
+      return `
+        <div class="stack">
+          <div>
+            <h2>Paso 5: Resultados</h2>
+            <p class="subtle">Diferencias agrupadas por Sede, Area, Cargo, Concepto y Persona.</p>
+          </div>
+          ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
+          <section class="kpi-grid">
+            ${kpi("Total diferencias", state.differences.length, "Resultado completo")}
+            ${kpi("Monto", totals.monto || 0, "Diferencias numericas")}
+            ${kpi("Conceptos faltantes", totals.concepto_faltante || 0, "Sin par o ausentes")}
+            ${kpi("Cumplimiento revision", compliance + "%", "Justificadas / total")}
+          </section>
+          <div class="progress" aria-label="Cumplimiento revision"><span style="--w:${compliance}%"></span></div>
+          <div class="toolbar">
+            <div class="filters">
+              <select id="filter-type">
+                <option value="todos">Todos los tipos</option>
+                ${Object.entries(TYPE_LABELS).map(([k, v]) => `<option value="${k}" ${state.filters.type === k ? "selected" : ""}>${esc(v)}</option>`).join("")}
+              </select>
+              <select id="filter-status">
+                <option value="todos">Todos los estados</option>
+                ${Object.entries(STATUS_LABELS).map(([k, v]) => `<option value="${k}" ${state.filters.status === k ? "selected" : ""}>${esc(v)}</option>`).join("")}
+              </select>
+              <input id="filter-q" placeholder="Buscar trabajador o concepto" value="${esc(state.filters.q)}">
+            </div>
+            <div class="actions">
+              <button class="btn secondary" data-action="go-justify">Justificar</button>
+              <button class="btn" data-action="go-export">Exportar</button>
+            </div>
+          </div>
+          <div class="drill-layout">
+            <div class="tree">${treeMarkup()}</div>
+            <div>
+              ${diffs.length ? diffTable(diffs) : empty("Sin diferencias para estos filtros.", "Ajusta los filtros o vuelve al nivel completo.")}
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn secondary" data-action="prev">Volver</button>
+            <button class="btn" data-action="go-justify">Continuar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function treeMarkup() {
+      const nodes = [{ key: "todos", label: "Todas", count: state.differences.length, level: 0 }];
+      const grouped = {};
+      state.differences.forEach(d => {
+        const parts = [d.sede || "Sin sede", d.area || "Sin area", d.cargo || "Sin cargo", d.concepto_a || d.concepto_b || d.campo_diferente || "Sin concepto", d.nombre_trabajador || d.rut];
+        let path = "";
+        parts.forEach((part, idx) => {
+          path += (idx ? ">" : "") + part;
+          if (!grouped[path]) grouped[path] = { key: path, label: part, count: 0, level: idx };
+          grouped[path].count++;
+        });
+      });
+      nodes.push(...Object.values(grouped).sort((a, b) => a.key.localeCompare(b.key)));
+      return nodes.map(n => `
+        <button class="level-${n.level} ${state.selectedNode === n.key ? "active" : ""}" data-tree="${esc(n.key)}">
+          <span>${esc(n.label)}</span><span class="badge excluded">${n.count}</span>
+        </button>
+      `).join("");
+    }
+
+    function diffTable(diffs) {
+      const shown = diffs.slice(0, DISPLAY_LIMIT);
+      return `
+        ${diffs.length > DISPLAY_LIMIT ? `<div class="banner warn" style="margin-bottom:12px">Mostrando ${DISPLAY_LIMIT.toLocaleString("es-CL")} de ${diffs.length.toLocaleString("es-CL")} diferencias filtradas. La exportacion incluye el detalle completo.</div>` : ""}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tipo</th><th>Persona</th><th>Concepto / Campo</th><th>Sistema A</th><th>Sistema B</th><th>Diferencia</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>${shown.map(diffRow).join("")}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">${shown.map(diffRecord).join("")}</div>
+      `;
+    }
+
+    function diffRow(d) {
+      return `
+        <tr>
+          <td>${esc(TYPE_LABELS[d.tipo])}</td>
+          <td><strong>${esc(d.nombre_trabajador || "-")}</strong><br><span class="subtle">${esc(d.rut)}</span></td>
+          <td>${esc(d.concepto_a || d.concepto_b || d.campo_diferente || "-")}</td>
+          <td>${valueA(d)}</td>
+          <td>${valueB(d)}</td>
+          <td class="num">${money(d.diferencia_absoluta)}</td>
+          <td>${statusBadge(d.estado_revision)}</td>
+          <td><div class="inline-actions"><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div></td>
+        </tr>
+      `;
+    }
+
+    function diffRecord(d) {
+      return `
+        <article class="record">
+          <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
+          ${statusBadge(d.estado_revision)}
+          <dl><dt>Tipo</dt><dd>${esc(TYPE_LABELS[d.tipo])}</dd><dt>Concepto</dt><dd>${esc(d.concepto_a || d.concepto_b || d.campo_diferente || "-")}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd></dl>
+        </article>
+      `;
+    }
+
+    function valueA(d) {
+      if (d.tipo === "dato_trabajador") return esc(d.valor_campo_a || "-");
+      return `<span class="num">${money(d.valor_a)}</span>`;
+    }
+
+    function valueB(d) {
+      if (d.tipo === "dato_trabajador") return esc(d.valor_campo_b || "-");
+      return `<span class="num">${money(d.valor_b)}</span>`;
+    }
+
+    function statusBadge(status) {
+      const cls = status === "justificado" ? "justified" : status === "revisado" ? "reviewed" : "pending";
+      return `<span class="badge ${cls}">${esc(STATUS_LABELS[status] || status)}</span>`;
+    }
+
+    function stepJustify() {
+      const pending = state.differences.filter(d => d.estado_revision !== "justificado");
+      return `
+        <div class="stack">
+          <div>
+            <h2>Paso 6: Justificacion de diferencias</h2>
+            <p class="subtle">Selecciona categoria y registra comentario libre cuando aplique.</p>
+          </div>
+          ${pending.length ? diffTableForJustification(pending) : empty("No hay diferencias pendientes.", "Todas las diferencias estan justificadas.")}
+          <div class="actions">
+            <button class="btn secondary" data-action="prev">Volver</button>
+            <button class="btn" data-action="go-export">Exportar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function diffTableForJustification(diffs) {
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Diferencia</th><th>Detalle</th><th>Categoria</th><th>Comentario</th><th>Accion</th></tr></thead>
+            <tbody>${diffs.map(d => `
+              <tr>
+                <td>${esc(TYPE_LABELS[d.tipo])}<br><strong>${esc(d.nombre_trabajador || d.rut)}</strong></td>
+                <td>${esc(d.concepto_a || d.concepto_b || d.campo_diferente || "-")}<br><span class="subtle">${money(d.diferencia_absoluta)}</span></td>
+                <td><select data-just-cat="${esc(d.id)}">${state.config.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></td>
+                <td><textarea data-just-comment="${esc(d.id)}" placeholder="Comentario opcional"></textarea></td>
+                <td><button class="btn secondary" data-action="save-justification" data-id="${esc(d.id)}">Guardar</button></td>
+              </tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">${diffs.map(d => `
+          <article class="record">
+            <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
+            <p class="subtle">${esc(TYPE_LABELS[d.tipo])} - ${esc(d.concepto_a || d.concepto_b || d.campo_diferente || "-")}</p>
+          </article>
+        `).join("")}</div>
+      `;
+    }
+
+    function stepExport() {
+      const totals = summarizeDiffs(state.differences);
+      return `
+        <div class="stack">
+          <div>
+            <h2>Paso 7: Exportacion</h2>
+            <p class="subtle">El reporte refleja el estado actual de revision y justificaciones.</p>
+          </div>
+          <section class="kpi-grid">
+            ${kpi("Trabajadores Visma", unique(state.rows.visma.map(r => r.rut)).length, "Sistema A")}
+            ${kpi("Trabajadores REX+", unique(state.rows.rex.map(r => r.rut)).length, "Sistema B")}
+            ${kpi("Total diferencias", state.differences.length, "Todas las hojas")}
+            ${kpi("Pendientes", state.differences.filter(d => d.estado_revision === "pendiente").length, "Sin justificar")}
+          </section>
+          <div class="panel">
+            <div class="panel-head"><h3>Contenido del reporte</h3></div>
+            <div class="panel-body">
+              <div class="chips">
+                <span class="chip">Resumen ejecutivo</span>
+                <span class="chip">Diferencias de monto: ${totals.monto || 0}</span>
+                <span class="chip">Conceptos faltantes: ${totals.concepto_faltante || 0}</span>
+                <span class="chip">Trabajadores sin par: ${totals.trabajador_sin_par || 0}</span>
+                <span class="chip">Diferencias en datos: ${totals.dato_trabajador || 0}</span>
+              </div>
+            </div>
+          </div>
+          ${state.exportDone ? `<div class="banner ok">Reporte generado y comparacion guardada en historial.</div>` : ""}
+          <div class="actions">
+            <button class="btn secondary" data-action="prev">Volver</button>
+            <button class="btn" data-action="download-report">Descargar Excel</button>
+            <button class="btn secondary" data-nav="dashboard">Volver al dashboard</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function historyMarkup() {
+      const filtered = [...state.history].sort((a, b) => b.fecha_creacion.localeCompare(a.fecha_creacion));
+      return `
+        <section class="topline">
+          <div>
+            <h1>Historial de comparaciones</h1>
+            <p class="subtle">Consulta detalle completo y descarga reportes anteriores.</p>
+          </div>
+          <div class="actions"><button class="btn" data-action="start">Nueva comparacion</button></div>
+        </section>
+        <section class="panel">
+          <div class="panel-body">
+            ${filtered.length ? historyTable(filtered) : empty("No hay comparaciones anteriores.", "Inicia tu primera comparacion.")}
+          </div>
+        </section>
+      `;
+    }
+
+    function historyTable(rows) {
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Periodo</th><th>Fecha</th><th>Estado</th><th>Trabajadores</th><th>Diferencias</th><th>Resumen</th><th>Acciones</th></tr></thead>
+            <tbody>${rows.map(c => `
+              <tr>
+                <td><strong>${esc(c.periodo)}</strong></td>
+                <td>${fmtDate(c.fecha_completado || c.fecha_creacion)}</td>
+                <td><span class="badge reviewed">${esc(c.estado)}</span></td>
+                <td>${c.total_trabajadores_a || 0} / ${c.total_trabajadores_b || 0}</td>
+                <td class="num">${c.total_diferencias || 0}</td>
+                <td>${esc(byTypeText(c))}</td>
+                <td><div class="inline-actions"><button class="link-btn" data-action="open-history" data-id="${esc(c.id)}">Ver detalle</button><button class="link-btn" data-action="export-history" data-id="${esc(c.id)}">Descargar</button></div></td>
+              </tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">${rows.map(c => `
+          <article class="record">
+            <strong>${esc(c.periodo)}</strong>
+            <span class="badge reviewed">${esc(c.estado)}</span>
+            <dl><dt>Fecha</dt><dd>${fmtDate(c.fecha_completado || c.fecha_creacion)}</dd><dt>Diferencias</dt><dd>${c.total_diferencias || 0}</dd><dt>Resumen</dt><dd>${esc(byTypeText(c))}</dd></dl>
+          </article>
+        `).join("")}</div>
+      `;
+    }
+
+    function configMarkup() {
+      return `
+        <section class="topline">
+          <div>
+            <h1>Configuracion</h1>
+            <p class="subtle">Gestiona estructura organizacional, categorias y homologaciones globales.</p>
+          </div>
+          <div class="actions"><button class="btn" data-action="save-config">Guardar cambios</button></div>
+        </section>
+        <section class="stack">
+          ${configSection("sedes", "Sedes")}
+          ${configSection("areas", "Areas")}
+          ${configSection("cargos", "Cargos")}
+          ${configSection("categorias", "Categorias de justificacion")}
+          <div class="panel">
+            <div class="panel-head"><h2>Homologaciones guardadas</h2></div>
+            <div class="panel-body">
+              ${state.config.homologaciones.length ? `
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Par</th><th>Empresa</th><th>Concepto A</th><th>Concepto B</th><th>Origen</th><th>Estado</th></tr></thead>
+                    <tbody>${state.config.homologaciones.map(h => `
+                      <tr><td>${esc(h.par_sistemas)}</td><td>${esc(h.empresa || "Global")}</td><td>${esc(h.concepto_a)}</td><td>${esc(h.concepto_b || "Sin par")}</td><td>${esc(h.origen)}</td><td>${esc(h.estado)}</td></tr>
+                    `).join("")}</tbody>
+                  </table>
+                </div>
+              ` : empty("Sin homologaciones guardadas.", "Confirma una homologacion para reutilizarla.")}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function configSection(key, title) {
+      return `
+        <div class="panel">
+          <div class="panel-head"><h2>${esc(title)}</h2></div>
+          <div class="panel-body stack">
+            <div class="chips">${state.config[key].map(v => `<span class="chip">${esc(v)} <button data-action="remove-config" data-key="${esc(key)}" data-value="${esc(v)}">x</button></span>`).join("")}</div>
+            <div class="form-grid">
+              <input placeholder="Nuevo valor" data-config-input="${esc(key)}">
+              <button class="btn secondary" data-action="add-config" data-key="${esc(key)}">Agregar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function bindEvents() {
+      document.querySelectorAll("[data-nav]").forEach(btn => {
+        btn.addEventListener("click", () => navigate(btn.dataset.nav));
+      });
+      document.querySelectorAll("[data-action]").forEach(btn => {
+        btn.addEventListener("click", () => handleAction(btn.dataset.action, btn.dataset));
+      });
+      document.querySelectorAll("[data-file]").forEach(input => {
+        input.addEventListener("change", event => handleFile(event.target.dataset.file, event.target.files[0]));
+      });
+      const period = document.getElementById("period");
+      if (period) period.addEventListener("input", e => state.period = e.target.value);
+      document.querySelectorAll("[data-hselect]").forEach(sel => {
+        sel.addEventListener("change", e => updateHomologation(e.target.dataset.hselect, e.target.value));
+      });
+      document.querySelectorAll("[data-contract-rut]").forEach(sel => {
+        sel.addEventListener("change", e => updateContract(e.target.dataset.contractRut, Number(e.target.dataset.contractIndex), e.target.value));
+      });
+      const type = document.getElementById("filter-type");
+      if (type) type.addEventListener("change", e => { state.filters.type = e.target.value; render(); });
+      const status = document.getElementById("filter-status");
+      if (status) status.addEventListener("change", e => { state.filters.status = e.target.value; render(); });
+      const q = document.getElementById("filter-q");
+      if (q) q.addEventListener("input", e => { state.filters.q = e.target.value; render(); });
+      document.querySelectorAll("[data-tree]").forEach(btn => {
+        btn.addEventListener("click", () => { state.selectedNode = btn.dataset.tree; render(); });
+      });
+    }
+
+    function navigate(view) {
+      if (view === "new") {
+        state.view = "wizard";
+        state.step = Math.max(1, state.step);
+      } else {
+        state.view = view;
+      }
+      render();
+    }
+
+    async function handleAction(action, data) {
+      if (action === "start") return resetWizard(true);
+      if (action === "reset-wizard") return resetWizard(false);
+      if (action === "load-sample") return loadSample();
+      if (action === "load-real-sample") return loadRealSample();
+      if (action === "validate") return validateAndContinue();
+      if (action === "prev") return prevStep();
+      if (action === "to-homologation") return prepareHomologations();
+      if (action === "confirm-all-homologation") return confirmAllHomologations();
+      if (action === "save-homologation") return saveHomologation();
+      if (action === "confirm-homologation") return prepareContracts();
+      if (action === "no-pair") return setNoPair(data.id);
+      if (action === "exclude-concept") return excludeConcept(data.id);
+      if (action === "confirm-contracts") return runComparison();
+      if (action === "review") return markReviewed(data.id);
+      if (action === "justify-one") return goJustifyOne(data.id);
+      if (action === "go-justify") return goStep(6);
+      if (action === "go-export") return goStep(7);
+      if (action === "save-justification") return saveJustification(data.id);
+      if (action === "download-report") return downloadReport();
+      if (action === "open-history") return openHistory(data.id);
+      if (action === "export-history") return exportHistory(data.id);
+      if (action === "add-config") return addConfigValue(data.key);
+      if (action === "remove-config") return removeConfigValue(data.key, data.value);
+      if (action === "save-config") return saveConfig();
+    }
+
+    function resetWizard(andStart) {
+      state.step = 1;
+      state.period = new Date().toISOString().slice(0, 7);
+      state.files = { visma: null, rex: null };
+      state.rawRows = { visma: [], rex: [] };
+      state.rows = { visma: [], rex: [] };
+      state.availableConcepts = { visma: [], rex: [] };
+      state.validations = null;
+      state.homologations = [];
+      state.contractMappings = [];
+      state.differences = [];
+      state.selectedNode = "todos";
+      state.filters = { type: "todos", status: "todos", q: "" };
+      state.exportDone = false;
+      state.view = andStart ? "wizard" : state.view;
+      render();
+      toast("Flujo reiniciado.");
+    }
+
+    function loadSample() {
+      const sample = sampleRows();
+      state.files = {
+        visma: { name: "visma_muestra.xlsx" },
+        rex: { name: "rex_muestra.xlsx" }
+      };
+      state.rawRows = sample;
+      state.rows = sample;
+      state.availableConcepts = {
+        visma: unique(sample.visma.map(r => r.concepto)).sort(),
+        rex: unique(sample.rex.map(r => r.concepto)).sort()
+      };
+      state.validations = {
+        visma: validateRows("visma", sample.visma, Object.keys(sample.visma[0] || {})),
+        rex: validateRows("rex", sample.rex, Object.keys(sample.rex[0] || {}))
+      };
+      state.step = 2;
+      render();
+      toast("Muestra cargada y validada.");
+    }
+
+    async function loadRealSample() {
+      try {
+        const response = await fetch(REAL_SAMPLE_URL);
+        if (!response.ok) throw new Error("No se pudo cargar el dataset real.");
+        const payload = await response.json();
+        state.period = payload.period || "2026-04";
+        state.files = {
+          visma: { name: "Libro de remuneraciones RG 2026 04_VF Visma.xlsx" },
+          rex: { name: "Libro de remuneraciones RG 2026 04_VF Rex+.xlsx" }
+        };
+        state.rawRows = { visma: payload.rows.visma, rex: payload.rows.rex };
+        state.rows = { visma: payload.rows.visma, rex: payload.rows.rex };
+        state.availableConcepts = {
+          visma: (payload.concepts && payload.concepts.visma ? payload.concepts.visma : unique(payload.rows.visma.map(r => r.concepto))).sort(),
+          rex: (payload.concepts && payload.concepts.rex ? payload.concepts.rex : unique(payload.rows.rex.map(r => r.concepto))).sort()
+        };
+        state.validations = {
+          visma: {
+            rows: payload.sources.visma.source_rows,
+            errors: [],
+            warnings: [`Encabezado detectado en fila ${payload.sources.visma.header_row}. ${payload.rows.visma.length.toLocaleString("es-CL")} filas concepto generadas.`],
+            extra: []
+          },
+          rex: {
+            rows: payload.sources.rex.source_rows,
+            errors: [],
+            warnings: [`Encabezado detectado en fila ${payload.sources.rex.header_row}. ${payload.rows.rex.length.toLocaleString("es-CL")} filas concepto generadas.`],
+            extra: []
+          }
+        };
+        state.step = 2;
+        render();
+        toast("Libros reales RG 2026-04 cargados como ejemplo.");
+      } catch (error) {
+        toast("No se pudo cargar el ejemplo real desde el servidor local.");
+      }
+    }
+
+    async function handleFile(system, file) {
+      if (!file) return;
+      state.files[system] = { name: file.name, size: file.size };
+      try {
+        const parsed = await parseFile(file);
+        state.rawRows[system] = parsed.rows;
+        state.rows[system] = normalizeRows(system, parsed.rows);
+        state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
+        toast(`${file.name} cargado.`);
+      } catch (error) {
+        state.rawRows[system] = [];
+        state.rows[system] = [];
+        toast("No se pudo leer el archivo. Revisa el formato.");
+      }
+      render();
+    }
+
+    async function parseFile(file) {
+      const ext = file.name.split(".").pop().toLowerCase();
+      if ((ext === "xlsx" || ext === "xls") && window.XLSX) {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        const rows = rowsFromMatrix(matrix);
+        return { rows, concepts: extractWideConcepts(rows) };
+      }
+      const text = await file.text();
+      return { rows: parseDelimited(text, ext === "tsv" ? "\t" : ",") };
+    }
+
+    function rowsFromMatrix(matrix) {
+      const headerIndex = detectHeaderIndex(matrix);
+      const headers = (matrix[headerIndex] || []).map(h => String(h || "").trim());
+      return matrix.slice(headerIndex + 1).map(row => {
+        const out = {};
+        headers.forEach((header, i) => {
+          if (header) out[header] = row[i] ?? "";
+        });
+        return out;
+      }).filter(row => Object.values(row).some(present));
+    }
+
+    function detectHeaderIndex(matrix) {
+      const limit = Math.min(30, matrix.length);
+      let bestIndex = 0;
+      let bestScore = -1;
+      for (let i = 0; i < limit; i++) {
+        const row = matrix[i] || [];
+        const filled = row.filter(present).length;
+        const text = row.map(normalizeText).join(" ");
+        const keywordScore = ["rut", "cargo", "contrato", "empleado", "sueldo", "nombre"].filter(k => text.includes(k)).length * 10;
+        const score = filled + keywordScore;
+        if (score > bestScore) {
+          bestScore = score;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    }
+
+    function extractWideConcepts(rows) {
+      if (!rows.length) return [];
+      return Object.keys(rows[0])
+        .filter(header => isWideConceptColumn("", header))
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    function parseDelimited(text, delimiter) {
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const headers = splitDelimitedLine(lines.shift() || "", delimiter);
+      return lines.map(line => {
+        const cells = splitDelimitedLine(line, delimiter);
+        const out = {};
+        headers.forEach((h, i) => out[h] = cells[i] || "");
+        return out;
+      });
+    }
+
+    function splitDelimitedLine(line, delimiter) {
+      const cells = [];
+      let current = "";
+      let quoted = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') quoted = !quoted;
+        else if (ch === delimiter && !quoted) {
+          cells.push(current.trim());
+          current = "";
+        } else current += ch;
+      }
+      cells.push(current.trim());
+      return cells;
+    }
+
+    function validateAndContinue() {
+      if (!state.files.visma || !state.files.rex) return toast("Debes cargar ambos archivos.");
+      state.validations = {
+        visma: validateRows("visma", state.rows.visma, Object.keys(state.rawRows.visma[0] || state.rows.visma[0] || {})),
+        rex: validateRows("rex", state.rows.rex, Object.keys(state.rawRows.rex[0] || state.rows.rex[0] || {}))
+      };
+      state.step = 2;
+      render();
+    }
+
+    function validateRows(system, rows, originalHeaders) {
+      const errors = [];
+      const warnings = [];
+      const wide = hasWideConcepts(system, rows);
+      if (!rows.length) errors.push("Archivo vacio o sin filas legibles.");
+      REQUIRED[system].forEach(col => {
+        if ((col === "concepto" || col === "monto") && wide) return;
+        const hasValue = rows.some(r => col === "monto" ? Number.isFinite(r[col]) : present(r[col]));
+        if (!hasValue) errors.push(`Columna obligatoria faltante o vacia: ${labelCol(col)}.`);
+      });
+      if (wide) warnings.push("Formato ancho detectado: los conceptos en columnas se convertiran a filas comparables.");
+      const canonicalHeaders = new Set(Object.keys(ALIASES).map(normalizeText));
+      const mappedOriginal = originalHeaders.map(normalizeText);
+      const knownOriginal = new Set(Object.values(ALIASES).flat().map(normalizeText));
+      const extra = mappedOriginal.filter(h => h && !knownOriginal.has(h) && !canonicalHeaders.has(h));
+      if (extra.length) warnings.push("Se detectaron columnas adicionales que no se incluiran en la comparacion.");
+      const badAmounts = rows.filter(r => present(r.monto) && Number.isNaN(toNumber(r.monto))).length;
+      if (badAmounts) errors.push(`Monto invalido en ${badAmounts} fila(s).`);
+      return { rows: rows.length, errors, warnings, extra };
+    }
+
+    function normalizeRows(system, rows) {
+      if (hasWideConcepts(system, rows)) return normalizeWideRows(system, rows);
+      return rows.map(source => {
+        const out = {};
+        Object.keys(ALIASES).forEach(key => {
+          out[key] = valueByAliases(source, key);
+        });
+        if (system === "visma" && !out.numero_empleado_a) out.numero_empleado_a = valueByAliases(source, "numero_contrato_b");
+        if (system === "rex" && !out.numero_contrato_b) out.numero_contrato_b = valueByAliases(source, "numero_empleado_a");
+        out.rut = cleanRut(out.rut);
+        out.nombre = String(out.nombre || "").trim();
+        out.sede = String(out.sede || "Sin sede").trim();
+        out.area = String(out.area || "Sin area").trim();
+        out.cargo = String(out.cargo || "Sin cargo").trim();
+        out.concepto = String(out.concepto || "").trim();
+        out.tipo_concepto = String(out.tipo_concepto || (toNumber(out.monto) < 0 ? "descuento" : "haber")).trim().toLowerCase();
+        out.monto = present(out.monto) ? toNumber(out.monto) : NaN;
+        return out;
+      }).filter(r => Object.values(r).some(present));
+    }
+
+    function normalizeWideRows(system, rows) {
+      const normalized = [];
+      rows.forEach(source => {
+        const rut = cleanRut(valueByAliases(source, "rut"));
+        if (!rut) return;
+        const base = {
+          rut,
+          nombre: String(valueByAliases(source, "nombre") || "").trim(),
+          sede: String(valueByAliases(source, "sede") || "Sin sede").trim(),
+          area: String(valueByAliases(source, "area") || "Sin area").trim(),
+          cargo: String(valueByAliases(source, "cargo") || "Sin cargo").trim(),
+          numero_empleado_a: system === "visma" ? String(valueByAliases(source, "numero_empleado_a") || "").trim() : "",
+          numero_contrato_b: system === "rex" ? String(valueByAliases(source, "numero_contrato_b") || "").trim() : ""
+        };
+        Object.keys(source).forEach(header => {
+          if (!isWideConceptColumn(system, header)) return;
+          const monto = toNumber(source[header]);
+          if (!Number.isFinite(monto) || Math.abs(monto) < 0.000001) return;
+          normalized.push({
+            ...base,
+            concepto: header.trim(),
+            tipo_concepto: inferConceptType(system, header),
+            monto
+          });
+        });
+      });
+      return normalized;
+    }
+
+    function hasWideConcepts(system, rows) {
+      if (!rows.length) return false;
+      const hasLong = rows.some(r => present(valueByAliases(r, "concepto")) && Number.isFinite(toNumber(valueByAliases(r, "monto"))));
+      if (hasLong) return false;
+      return rows.some(row => Object.keys(row).some(header => isWideConceptColumn(system, header) && Number.isFinite(toNumber(row[header])) && Math.abs(toNumber(row[header])) > 0.000001));
+    }
+
+    function isWideConceptColumn(system, header) {
+      const key = normalizeText(header);
+      if (!key || WIDE_EXCLUDED.has(key)) return false;
+      const aliasKeys = Object.entries(ALIASES).flatMap(([k, aliases]) => [k, ...aliases]).map(normalizeText);
+      if (aliasKeys.includes(key)) return false;
+      return true;
+    }
+
+    function inferConceptType(system, header) {
+      const key = normalizeText(header);
+      if (system === "rex") {
+        if (key.includes("aporte") || key === "mutual" || key.includes("sobrevivencia")) return "aporte_patronal";
+        if (["cotizacion", "seguro de cesantia", "impuesto", "credito", "descuento", "cuota", "prestamo", "ahorro", "apv", "anticipo"].some(token => key.includes(token))) return "descuento";
+        return "haber";
+      }
+      if (key.startsWith("aporte") || key.startsWith("sis ") || key.includes("solidario") || key.includes("prov idem") || key.includes("expect de vida")) return "aporte_patronal";
+      if (["a f p", "salud", "pension", "seguro de cesantia", "desc", "ahorro", "cotizacion", "otros descuentos", "apv", "cuota", "prestamo", "impuesto"].some(token => key.includes(token))) return "descuento";
+      return "haber";
+    }
+
+    function valueByAliases(source, key) {
+      const wanted = new Set([key, ...ALIASES[key]].map(normalizeText));
+      const found = Object.keys(source).find(k => wanted.has(normalizeText(k)));
+      return found ? source[found] : "";
+    }
+
+    function prepareHomologations() {
+      const conceptsA = conceptCatalog("visma");
+      const conceptsB = conceptCatalog("rex");
+      const saved = state.config.homologaciones.filter(h => h.par_sistemas === "visma_rex");
+      state.homologations = conceptsA.map(conceptA => {
+        const stored = saved.find(h => normalizeText(h.concepto_a) === normalizeText(conceptA));
+        if (stored) return {
+          id: crypto.randomUUID(),
+          concepto_a: conceptA,
+          concepto_b: stored.concepto_b || "",
+          tipo_concepto: stored.tipo_concepto || conceptType(conceptA, state.rows.visma),
+          estado: stored.estado === "excluido" ? "excluido" : stored.concepto_b ? "manual" : "sin_par",
+          origen: stored.origen || "manual"
+        };
+        const known = KNOWN_CONCEPT_PAIRS.get(normalizeText(conceptA));
+        if (known) {
+          const exactKnown = conceptsB.find(c => normalizeText(c) === normalizeText(known));
+          if (exactKnown) return {
+            id: crypto.randomUUID(),
+            concepto_a: conceptA,
+            concepto_b: exactKnown,
+            tipo_concepto: conceptType(conceptA, state.rows.visma),
+            estado: "automatico",
+            origen: "automatico"
+          };
+        }
+        const match = bestMatch(conceptA, conceptsB);
+        return {
+          id: crypto.randomUUID(),
+          concepto_a: conceptA,
+          concepto_b: match.score >= 0.58 ? match.value : "",
+          tipo_concepto: conceptType(conceptA, state.rows.visma),
+          estado: match.score >= 0.58 ? "automatico" : "sin_par",
+          origen: match.score >= 0.58 ? "automatico" : "manual"
+        };
+      });
+      state.step = 3;
+      render();
+      toast("Propuesta de homologacion generada.");
+    }
+
+    function conceptType(concept, rows) {
+      const row = rows.find(r => r.concepto === concept);
+      return row ? row.tipo_concepto : "haber";
+    }
+
+    function conceptCatalog(system) {
+      const fromCatalog = state.availableConcepts[system] || [];
+      const fromRows = unique(state.rows[system].map(r => r.concepto));
+      return unique([...fromCatalog, ...fromRows]).sort((a, b) => a.localeCompare(b));
+    }
+
+    function updateHomologation(id, conceptB) {
+      const h = state.homologations.find(x => x.id === id);
+      if (!h) return;
+      h.concepto_b = conceptB;
+      h.estado = conceptB ? "manual" : "sin_par";
+      h.origen = "manual";
+      render();
+    }
+
+    function confirmAllHomologations() {
+      state.homologations.forEach(h => {
+        if (h.estado === "sin_par" && h.concepto_b) h.estado = "manual";
+      });
+      toast("Homologaciones confirmadas.");
+    }
+
+    function saveHomologation() {
+      persistHomologations();
+      render();
+      toast("Homologacion grabada.");
+    }
+
+    function setNoPair(id) {
+      const h = state.homologations.find(x => x.id === id);
+      if (!h) return;
+      h.concepto_b = "";
+      h.estado = "sin_par";
+      h.origen = "manual";
+      render();
+    }
+
+    function excludeConcept(id) {
+      const h = state.homologations.find(x => x.id === id);
+      if (!h) return;
+      h.estado = "excluido";
+      h.concepto_b = "";
+      h.origen = "manual";
+      render();
+    }
+
+    function prepareContracts() {
+      persistHomologations();
+      const ruts = unique([...state.rows.visma.map(r => r.rut), ...state.rows.rex.map(r => r.rut)].filter(Boolean)).sort();
+      state.contractMappings = ruts.map(rut => {
+        const a = state.rows.visma.filter(r => r.rut === rut);
+        const b = state.rows.rex.filter(r => r.rut === rut);
+        const empleados = unique(a.map(r => String(r.numero_empleado_a || "").trim()).filter(Boolean)).sort(smartSort);
+        const contratos = unique(b.map(r => String(r.numero_contrato_b || "").trim()).filter(Boolean)).sort(smartSort);
+        const pairs = empleados.length ? empleados.map((empleado, i) => ({ empleado, contrato: contratos[i] || "" })) : [{ empleado: "", contrato: contratos[0] || "" }];
+        return {
+          rut,
+          nombre: (a[0] || b[0] || {}).nombre || "",
+          empleados,
+          contratos,
+          pairs,
+          warning: empleados.length !== contratos.length
+        };
+      });
+      state.step = 4;
+      render();
+      toast("Mapeo de contratos propuesto.");
+    }
+
+    function updateContract(rut, idx, value) {
+      const mapping = state.contractMappings.find(m => m.rut === rut);
+      if (!mapping || !mapping.pairs[idx]) return;
+      mapping.pairs[idx].contrato = value;
+    }
+
+    function runComparison() {
+      const diffs = [];
+      const mapByRutEmployee = new Map();
+      state.contractMappings.forEach(m => {
+        m.pairs.forEach(p => mapByRutEmployee.set(`${m.rut}|${p.empleado}`, p.contrato || ""));
+      });
+      const rutsA = new Set(state.rows.visma.map(r => r.rut).filter(Boolean));
+      const rutsB = new Set(state.rows.rex.map(r => r.rut).filter(Boolean));
+      unique([...rutsA, ...rutsB]).forEach(rut => {
+        const aRows = state.rows.visma.filter(r => r.rut === rut);
+        const bRows = state.rows.rex.filter(r => r.rut === rut);
+        const aFirst = aRows[0];
+        const bFirst = bRows[0];
+        if (!aRows.length || !bRows.length) {
+          const base = aFirst || bFirst;
+          diffs.push(diff("trabajador_sin_par", rut, base.nombre, base.sede, base.area, base.cargo, aFirst ? (aFirst.concepto || "") : "", bFirst ? (bFirst.concepto || "") : "", aFirst ? sumRows(aRows) : 0, bFirst ? sumRows(bRows) : 0, aFirst ? aFirst.numero_empleado_a : "", bFirst ? bFirst.numero_contrato_b : ""));
+          return;
+        }
+        ["nombre", "sede", "area", "cargo"].forEach(field => {
+          if (normalizeText(aFirst[field]) !== normalizeText(bFirst[field])) {
+            diffs.push(diff("dato_trabajador", rut, aFirst.nombre || bFirst.nombre, aFirst.sede || bFirst.sede, aFirst.area || bFirst.area, aFirst.cargo || bFirst.cargo, "", "", 0, 0, aFirst.numero_empleado_a, bFirst.numero_contrato_b, field, aFirst[field], bFirst[field]));
+          }
+        });
+      });
+
+      state.rows.visma.forEach(a => {
+        if (!rutsB.has(a.rut)) return;
+        const hom = state.homologations.find(h => normalizeText(h.concepto_a) === normalizeText(a.concepto));
+        if (hom && hom.estado === "excluido") return;
+        const contractKey = `${a.rut}|${a.numero_empleado_a}`;
+        const contractB = mapByRutEmployee.get(contractKey) || "";
+        if (!contractB) {
+          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom ? hom.concepto_b : "", a.monto, 0, a.numero_empleado_a, ""));
+          return;
+        }
+        if (!hom || !hom.concepto_b) {
+          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, "", a.monto, 0, a.numero_empleado_a, contractB));
+          return;
+        }
+        const bMatches = state.rows.rex.filter(b => b.rut === a.rut && normalizeText(b.concepto) === normalizeText(hom.concepto_b) && String(b.numero_contrato_b) === String(contractB));
+        if (!bMatches.length) {
+          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, a.monto, 0, a.numero_empleado_a, contractB));
+          return;
+        }
+        const bTotal = sumRows(bMatches);
+        if (Math.round(a.monto) !== Math.round(bTotal)) {
+          diffs.push(diff("monto", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, a.monto, bTotal, a.numero_empleado_a, contractB));
+        }
+      });
+
+      const mappedB = new Set(state.homologations.map(h => normalizeText(h.concepto_b)).filter(Boolean));
+      state.rows.rex.forEach(b => {
+        if (!rutsA.has(b.rut)) return;
+        if (!mappedB.has(normalizeText(b.concepto))) {
+          const aRows = state.rows.visma.filter(a => a.rut === b.rut);
+          if (aRows.length) diffs.push(diff("concepto_faltante", b.rut, b.nombre, b.sede, b.area, b.cargo, "", b.concepto, 0, b.monto, "", b.numero_contrato_b));
+        }
+      });
+
+      state.differences = diffs;
+      state.step = 5;
+      state.selectedNode = "todos";
+      render();
+      saveCurrentComparison(false);
+      toast(`Comparacion completada. Se detectaron ${diffs.length} diferencias.`);
+    }
+
+    function persistHomologations() {
+      const now = new Date().toISOString();
+      const withoutPair = state.config.homologaciones.filter(h => h.par_sistemas !== "visma_rex");
+      const current = state.homologations.map(h => ({
+        id: crypto.randomUUID(),
+        par_sistemas: "visma_rex",
+        empresa: null,
+        concepto_a: h.concepto_a,
+        concepto_b: h.concepto_b,
+        tipo_concepto: h.tipo_concepto || "haber",
+        estado: h.estado === "excluido" ? "excluido" : "activo",
+        origen: h.origen || h.estado,
+        created_at: now,
+        updated_at: now
+      }));
+      state.config.homologaciones = [...withoutPair, ...current];
+      saveJson(STORE.config, state.config);
+    }
+
+    function saveCurrentComparison(exported) {
+      const existing = state.history.find(c => c.periodo === state.period && c.id.startsWith("cmp-live-"));
+      const totals = summarizeDiffs(state.differences);
+      const now = new Date().toISOString();
+      const cmp = {
+        id: existing ? existing.id : `cmp-live-${Date.now()}`,
+        periodo: state.period,
+        fecha_creacion: existing ? existing.fecha_creacion : now,
+        fecha_completado: now,
+        estado: "completado",
+        sistema_a: "Visma",
+        sistema_b: "REX+",
+        total_trabajadores_a: unique(state.rows.visma.map(r => r.rut)).length,
+        total_trabajadores_b: unique(state.rows.rex.map(r => r.rut)).length,
+        total_diferencias: state.differences.length,
+        diferencias_monto: totals.monto || 0,
+        diferencias_concepto_faltante: totals.concepto_faltante || 0,
+        diferencias_trabajador_sin_par: totals.trabajador_sin_par || 0,
+        diferencias_datos_trabajador: totals.dato_trabajador || 0,
+        diferencias: state.differences,
+        reporte_url: exported ? "descargado_localmente" : "",
+        created_at: existing ? existing.created_at : now,
+        updated_at: now
+      };
+      state.history = [cmp, ...state.history.filter(c => c.id !== cmp.id)];
+      saveJson(STORE.history, state.history);
+    }
+
+    function filteredDifferences() {
+      return state.differences.filter(d => {
+        if (state.filters.type !== "todos" && d.tipo !== state.filters.type) return false;
+        if (state.filters.status !== "todos" && d.estado_revision !== state.filters.status) return false;
+        const q = normalizeText(state.filters.q);
+        if (q && !normalizeText([d.rut, d.nombre_trabajador, d.concepto_a, d.concepto_b, d.campo_diferente].join(" ")).includes(q)) return false;
+        if (state.selectedNode !== "todos") {
+          const path = [d.sede || "Sin sede", d.area || "Sin area", d.cargo || "Sin cargo", d.concepto_a || d.concepto_b || d.campo_diferente || "Sin concepto", d.nombre_trabajador || d.rut].join(">");
+          if (!path.startsWith(state.selectedNode)) return false;
+        }
+        return true;
+      });
+    }
+
+    function markReviewed(id) {
+      const d = state.differences.find(x => x.id === id);
+      if (!d) return;
+      d.estado_revision = "revisado";
+      saveCurrentComparison(false);
+      render();
+      toast("Diferencia marcada como revisada.");
+    }
+
+    function goJustifyOne(id) {
+      state.step = 6;
+      render();
+      setTimeout(() => {
+        const el = document.querySelector(`[data-just-cat="${CSS.escape(id)}"]`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
+    }
+
+    function saveJustification(id) {
+      const d = state.differences.find(x => x.id === id);
+      if (!d) return;
+      const cat = document.querySelector(`[data-just-cat="${CSS.escape(id)}"]`);
+      const comment = document.querySelector(`[data-just-comment="${CSS.escape(id)}"]`);
+      d.categoria_justificacion = cat ? cat.value : state.config.categorias[0];
+      d.comentario_justificacion = comment ? comment.value : "";
+      d.estado_revision = "justificado";
+      d.fecha_justificacion = new Date().toISOString();
+      saveCurrentComparison(false);
+      render();
+      toast("Justificacion guardada.");
+    }
+
+    function goStep(step) {
+      state.step = step;
+      render();
+    }
+
+    function prevStep() {
+      state.step = Math.max(1, state.step - 1);
+      render();
+    }
+
+    function downloadReport() {
+      exportComparison({
+        periodo: state.period,
+        diferencias: state.differences,
+        total_trabajadores_a: unique(state.rows.visma.map(r => r.rut)).length,
+        total_trabajadores_b: unique(state.rows.rex.map(r => r.rut)).length
+      });
+      state.exportDone = true;
+      saveCurrentComparison(true);
+      render();
+    }
+
+    function openHistory(id) {
+      const cmp = state.history.find(c => c.id === id);
+      if (!cmp) return;
+      state.period = cmp.periodo;
+      state.differences = cmp.diferencias || [];
+      state.rows = { visma: [], rex: [] };
+      state.step = 5;
+      state.view = "wizard";
+      render();
+    }
+
+    function exportHistory(id) {
+      const cmp = state.history.find(c => c.id === id);
+      if (!cmp) return;
+      exportComparison(cmp);
+    }
+
+    function exportComparison(cmp) {
+      const diffs = cmp.diferencias || [];
+      const summary = [{
+        periodo: cmp.periodo,
+        fecha_exportacion: new Date().toISOString(),
+        trabajadores_visma: cmp.total_trabajadores_a || "",
+        trabajadores_rex: cmp.total_trabajadores_b || "",
+        total_diferencias: diffs.length,
+        monto: diffs.filter(d => d.tipo === "monto").length,
+        conceptos_faltantes: diffs.filter(d => d.tipo === "concepto_faltante").length,
+        trabajadores_sin_par: diffs.filter(d => d.tipo === "trabajador_sin_par").length,
+        datos_trabajador: diffs.filter(d => d.tipo === "dato_trabajador").length
+      }];
+      const sheets = {
+        "Resumen ejecutivo": summary,
+        "Diferencias de monto": rowsForExport(diffs.filter(d => d.tipo === "monto")),
+        "Conceptos faltantes": rowsForExport(diffs.filter(d => d.tipo === "concepto_faltante")),
+        "Trabajadores sin par": rowsForExport(diffs.filter(d => d.tipo === "trabajador_sin_par")),
+        "Diferencias en datos": rowsForExport(diffs.filter(d => d.tipo === "dato_trabajador"))
+      };
+      if (window.XLSX) {
+        const wb = XLSX.utils.book_new();
+        Object.entries(sheets).forEach(([name, rows]) => {
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{}]), name.slice(0, 31));
+        });
+        XLSX.writeFile(wb, `comparacion_remuneraciones_${cmp.periodo || state.period}.xlsx`);
+      } else {
+        downloadBlob(spreadsheetXml(sheets), `comparacion_remuneraciones_${cmp.periodo || state.period}.xls`, "application/vnd.ms-excel");
+      }
+      toast("Reporte generado.");
+    }
+
+    function rowsForExport(diffs) {
+      return diffs.map(d => ({
+        tipo: TYPE_LABELS[d.tipo] || d.tipo,
+        rut: d.rut,
+        nombre: d.nombre_trabajador,
+        sede: d.sede,
+        area: d.area,
+        cargo: d.cargo,
+        numero_empleado_visma: d.numero_empleado_a,
+        numero_contrato_rex: d.numero_contrato_b,
+        concepto_visma: d.concepto_a,
+        concepto_rex: d.concepto_b,
+        valor_visma: d.valor_a,
+        valor_rex: d.valor_b,
+        diferencia_absoluta: d.diferencia_absoluta,
+        diferencia_porcentual: d.diferencia_porcentual,
+        campo_diferente: d.campo_diferente,
+        valor_campo_visma: d.valor_campo_a,
+        valor_campo_rex: d.valor_campo_b,
+        estado_revision: d.estado_revision,
+        categoria_justificacion: d.categoria_justificacion,
+        comentario_justificacion: d.comentario_justificacion,
+        fecha_justificacion: d.fecha_justificacion
+      }));
+    }
+
+    function downloadBlob(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function spreadsheetXml(sheets) {
+      const worksheets = Object.entries(sheets).map(([name, rows]) => {
+        const safeRows = rows.length ? rows : [{}];
+        const headers = unique(safeRows.flatMap(row => Object.keys(row)));
+        const headerXml = `<Row>${headers.map(h => `<Cell><Data ss:Type="String">${xmlEsc(h)}</Data></Cell>`).join("")}</Row>`;
+        const bodyXml = safeRows.map(row => `<Row>${headers.map(h => {
+          const value = row[h] ?? "";
+          const isNumber = typeof value === "number" && Number.isFinite(value);
+          return `<Cell><Data ss:Type="${isNumber ? "Number" : "String"}">${xmlEsc(value)}</Data></Cell>`;
+        }).join("")}</Row>`).join("");
+        return `<Worksheet ss:Name="${xmlEsc(name.slice(0, 31))}"><Table>${headerXml}${bodyXml}</Table></Worksheet>`;
+      }).join("");
+      return `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${worksheets}</Workbook>`;
+    }
+
+    function addConfigValue(key) {
+      const input = document.querySelector(`[data-config-input="${CSS.escape(key)}"]`);
+      const value = input ? input.value.trim() : "";
+      if (!value) return toast("Ingresa un valor.");
+      if (!state.config[key].includes(value)) state.config[key].push(value);
+      saveJson(STORE.config, state.config);
+      render();
+    }
+
+    function removeConfigValue(key, value) {
+      state.config[key] = state.config[key].filter(v => v !== value);
+      saveJson(STORE.config, state.config);
+      render();
+    }
+
+    function saveConfig() {
+      saveJson(STORE.config, state.config);
+      toast("Configuracion guardada.");
+    }
+
+    function bestMatch(value, options) {
+      let best = { value: "", score: 0 };
+      options.forEach(option => {
+        const score = similarity(value, option);
+        if (score > best.score) best = { value: option, score };
+      });
+      return best;
+    }
+
+    function similarity(a, b) {
+      const left = normalizeText(a);
+      const right = normalizeText(b);
+      if (!left || !right) return 0;
+      if (left === right) return 1;
+      if (left.includes(right) || right.includes(left)) return 0.82;
+      const leftTokens = new Set(left.split(" ").filter(Boolean));
+      const rightTokens = new Set(right.split(" ").filter(Boolean));
+      const intersection = [...leftTokens].filter(t => rightTokens.has(t)).length;
+      const union = new Set([...leftTokens, ...rightTokens]).size || 1;
+      const tokenScore = intersection / union;
+      const distanceScore = 1 - levenshtein(left, right) / Math.max(left.length, right.length);
+      return Math.max(tokenScore, distanceScore * 0.82);
+    }
+
+    function levenshtein(a, b) {
+      const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+      for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+      for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+      for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+          dp[i][j] = Math.min(
+            dp[i - 1][j] + 1,
+            dp[i][j - 1] + 1,
+            dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+          );
+        }
+      }
+      return dp[a.length][b.length];
+    }
+
+    function summarizeDiffs(diffs) {
+      return diffs.reduce((acc, d) => {
+        acc[d.tipo] = (acc[d.tipo] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function byTypeText(cmp) {
+      return `Monto ${cmp.diferencias_monto || 0}, conceptos ${cmp.diferencias_concepto_faltante || 0}, trabajadores ${cmp.diferencias_trabajador_sin_par || 0}, datos ${cmp.diferencias_datos_trabajador || 0}`;
+    }
+
+    function sumRows(rows) {
+      return rows.reduce((sum, r) => sum + (Number.isFinite(toNumber(r.monto)) ? toNumber(r.monto) : 0), 0);
+    }
+
+    function unique(values) {
+      return [...new Set(values.filter(v => v !== undefined && v !== null && String(v).trim() !== ""))];
+    }
+
+    function smartSort(a, b) {
+      const na = Number(String(a).replace(/\D/g, ""));
+      const nb = Number(String(b).replace(/\D/g, ""));
+      if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na - nb;
+      return String(a).localeCompare(String(b));
+    }
+
+    function normalizeText(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[*()]+/g, " ")
+        .replace(/[_\-./]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function cleanRut(value) {
+      return String(value || "").trim().replace(/\./g, "").toUpperCase();
+    }
+
+    function toNumber(value) {
+      if (typeof value === "number") return value;
+      if (value === "" || value === null || value === undefined) return NaN;
+      const cleaned = String(value).replace(/\$/g, "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
+      const n = Number(cleaned);
+      return Number.isNaN(n) ? NaN : n;
+    }
+
+    function present(value) {
+      return value !== undefined && value !== null && String(value).trim() !== "";
+    }
+
+    function percent(a, b) {
+      const left = Number(a || 0);
+      const right = Number(b || 0);
+      if (!right) return left ? 100 : 0;
+      return Math.round(((left - right) / Math.abs(right)) * 10000) / 100;
+    }
+
+    function labelCol(col) {
+      const labels = {
+        rut: "RUT",
+        nombre: "Nombre",
+        sede: "Sede",
+        area: "Area",
+        cargo: "Cargo",
+        numero_empleado_a: "Numero empleado Visma",
+        numero_contrato_b: "Numero contrato REX+",
+        concepto: "Concepto",
+        monto: "Monto"
+      };
+      return labels[col] || col;
+    }
+
+    function money(value) {
+      if (value === "" || value === null || value === undefined || Number.isNaN(Number(value))) return "-";
+      return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(Number(value));
+    }
+
+    function fmtDate(value) {
+      if (!value) return "-";
+      return new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+    }
+
+    function csvCell(value) {
+      return `"${String(value ?? "").replace(/"/g, '""')}"`;
+    }
+
+    function xmlEsc(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function empty(title, text) {
+      return `<div class="empty"><div><strong>${esc(title)}</strong><p>${esc(text)}</p></div></div>`;
+    }
+
+    function toast(message) {
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2400);
+    }
+
+    function esc(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    render();
+  </script>
+</body>
+</html>
