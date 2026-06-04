@@ -1007,6 +1007,7 @@
       differences: [],
       selectedNode: "todos",
       filters: { type: "todos", status: "todos", q: "" },
+      homologationFilter: "todos",
       exportDone: false,
       history: loadJson(STORE.history, seedHistory()),
       config: loadJson(STORE.config, DEFAULT_CONFIG)
@@ -1394,21 +1395,49 @@
     }
 
     function stepHomologation() {
-      const rows = state.homologations;
+      const allRows = [...state.homologations].sort(homologationSort);
+      const rows = allRows.filter(h => state.homologationFilter === "todos" ? true : h.estado === state.homologationFilter);
+      const counts = {
+        total: allRows.length,
+        automatico: allRows.filter(h => h.estado === "automatico").length,
+        manual: allRows.filter(h => h.estado === "manual").length,
+        sin_par: allRows.filter(h => h.estado === "sin_par").length,
+        excluido: allRows.filter(h => h.estado === "excluido").length
+      };
       return `
         <div class="stack">
           <div>
-            <h2>Paso 3: Homologacion de conceptos</h2>
-            <p class="subtle">Propuesta automatica por similitud de texto. Puedes editar, excluir o dejar sin par.</p>
+            <h2>Homologacion de conceptos</h2>
+            <p class="subtle">Resuelve primero los conceptos sin par o manuales; el resto puede quedar automático.</p>
+          </div>
+          <div class="ops-grid">
+            <div class="ops-column">
+              <div class="ops-card">
+                <div class="ops-list">
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Total conceptos</span><strong>${counts.total}</strong></div><span class="badge excluded">Visma</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Sin par</span><strong>${counts.sin_par}</strong></div><span class="badge pending">Prioridad</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Manual</span><strong>${counts.manual}</strong></div><span class="badge manual">Editable</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="ops-column">
+              <div class="ops-card">
+                <div class="ops-list">
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Automatico</span><strong>${counts.automatico}</strong></div><span class="badge auto">Propuesto</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Excluido</span><strong>${counts.excluido}</strong></div><span class="badge excluded">Fuera</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Mostrando</span><strong>${rows.length}</strong></div><span class="badge reviewed">Filtro</span></div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="toolbar">
             <div class="filters">
               <select data-filter-homologation>
-                <option value="todos">Todos los estados</option>
-                <option value="automatico">Automatico</option>
-                <option value="manual">Manual</option>
-                <option value="sin_par">Sin par</option>
-                <option value="excluido">Excluido</option>
+                <option value="todos" ${state.homologationFilter === "todos" ? "selected" : ""}>Todos los estados</option>
+                <option value="sin_par" ${state.homologationFilter === "sin_par" ? "selected" : ""}>Sin par</option>
+                <option value="manual" ${state.homologationFilter === "manual" ? "selected" : ""}>Manual</option>
+                <option value="automatico" ${state.homologationFilter === "automatico" ? "selected" : ""}>Automatico</option>
+                <option value="excluido" ${state.homologationFilter === "excluido" ? "selected" : ""}>Excluido</option>
               </select>
             </div>
             <div class="actions">
@@ -1472,22 +1501,50 @@
       return `<span class="badge ${map[status] || "excluded"}">${label[status] || status}</span>`;
     }
 
+    function homologationSort(a, b) {
+      const rank = { sin_par: 0, manual: 1, automatico: 2, excluido: 3 };
+      const diff = (rank[a.estado] ?? 9) - (rank[b.estado] ?? 9);
+      if (diff) return diff;
+      return a.concepto_a.localeCompare(b.concepto_a);
+    }
+
     function stepContracts() {
-      const inconsistent = state.contractMappings.filter(m => m.warning);
+      const mappings = [...state.contractMappings].sort(contractMappingSort);
+      const inconsistent = mappings.filter(m => m.warning);
+      const unmatchedEmployees = mappings.reduce((sum, m) => sum + m.pairs.filter(p => p.empleado && !p.contrato).length, 0);
+      const unmatchedContracts = mappings.reduce((sum, m) => sum + m.pairs.filter(p => !p.empleado && p.contrato).length, 0);
       return `
         <div class="stack">
           <div>
             <h2>Mapeo de contratos</h2>
             <p class="subtle">Ajusta manualmente los pares cuando falte match o el orden ascendente no alcance.</p>
           </div>
+          <div class="ops-grid">
+            <div class="ops-column">
+              <div class="ops-card">
+                <div class="ops-list">
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Trabajadores con alerta</span><strong>${inconsistent.length}</strong></div><span class="badge pending">Revisar</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Empleado sin contrato</span><strong>${unmatchedEmployees}</strong></div><span class="badge manual">Editar</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="ops-column">
+              <div class="ops-card">
+                <div class="ops-list">
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Contrato sin empleado</span><strong>${unmatchedContracts}</strong></div><span class="badge manual">Editar</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Total trabajadores</span><strong>${mappings.length}</strong></div><span class="badge excluded">Base</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
           ${inconsistent.length ? `<div class="banner warn">La cantidad de contratos no coincide en ${inconsistent.length} trabajador(es). Revisa el mapeo antes de continuar.</div>` : `<div class="banner ok">Mapeo propuesto sin inconsistencias de cantidad.</div>`}
           <div class="table-wrap">
             <table>
               <thead><tr><th>RUT</th><th>Trabajador</th><th>Visma</th><th>REX+</th><th>Relacion editable</th><th>Estado</th></tr></thead>
-              <tbody>${state.contractMappings.map(contractRow).join("")}</tbody>
+              <tbody>${mappings.map(contractRow).join("")}</tbody>
             </table>
           </div>
-          <div class="mobile-list">${state.contractMappings.map(contractRecord).join("")}</div>
+          <div class="mobile-list">${mappings.map(contractRecord).join("")}</div>
           <div class="actions">
             <button class="btn secondary" data-action="prev">Volver</button>
             <button class="btn" data-action="confirm-contracts">Confirmar mapeo y comparar</button>
@@ -1524,6 +1581,14 @@
           <dl><dt>RUT</dt><dd>${esc(m.rut)}</dd><dt>Visma</dt><dd>${esc(m.empleados.join(", ") || "-")}</dd><dt>REX+</dt><dd>${esc(m.contratos.join(", ") || "-")}</dd></dl>
         </article>
       `;
+    }
+
+    function contractMappingSort(a, b) {
+      if (a.warning !== b.warning) return a.warning ? -1 : 1;
+      const aMissing = a.pairs.filter(p => !p.empleado || !p.contrato).length;
+      const bMissing = b.pairs.filter(p => !p.empleado || !p.contrato).length;
+      if (aMissing !== bMissing) return bMissing - aMissing;
+      return a.nombre.localeCompare(b.nombre);
     }
 
     function pairSelect(rut, idx, pair, empleados, contratos) {
@@ -1847,6 +1912,12 @@
       });
       document.querySelectorAll("[data-file]").forEach(input => {
         input.addEventListener("change", event => handleFile(event.target.dataset.file, event.target.files[0]));
+      });
+      document.querySelectorAll("[data-filter-homologation]").forEach(sel => {
+        sel.addEventListener("change", e => {
+          state.homologationFilter = e.target.value;
+          render();
+        });
       });
       const period = document.getElementById("period");
       if (period) period.addEventListener("input", e => state.period = e.target.value);
