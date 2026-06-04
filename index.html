@@ -907,12 +907,24 @@
       config: loadJson(STORE.config, DEFAULT_CONFIG)
     };
 
+    function cloneValue(value) {
+      if (typeof structuredClone === "function") return structuredClone(value);
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function uid() {
+      if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+        return globalThis.crypto.randomUUID();
+      }
+      return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+
     function loadJson(key, fallback) {
       try {
         const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : structuredClone(fallback);
+        return raw ? JSON.parse(raw) : cloneValue(fallback);
       } catch {
-        return structuredClone(fallback);
+        return cloneValue(fallback);
       }
     }
 
@@ -990,7 +1002,7 @@
 
     function diff(tipo, rut, nombre, sede, area, cargo, conceptoA, conceptoB, valorA, valorB, empleado, contrato, campo, campoA, campoB) {
       return {
-        id: crypto.randomUUID(),
+        id: uid(),
         tipo,
         rut,
         nombre_trabajador: nombre,
@@ -2015,7 +2027,7 @@
       state.homologations = conceptsA.map(conceptA => {
         const stored = saved.find(h => normalizeText(h.concepto_a) === normalizeText(conceptA));
         if (stored) return {
-          id: crypto.randomUUID(),
+          id: uid(),
           concepto_a: conceptA,
           concepto_b: stored.concepto_b || "",
           tipo_concepto: stored.tipo_concepto || conceptType(conceptA, state.rows.visma),
@@ -2026,7 +2038,7 @@
         if (known) {
           const exactKnown = conceptsB.find(c => normalizeText(c) === normalizeText(known));
           if (exactKnown) return {
-            id: crypto.randomUUID(),
+            id: uid(),
             concepto_a: conceptA,
             concepto_b: exactKnown,
             tipo_concepto: conceptType(conceptA, state.rows.visma),
@@ -2036,7 +2048,7 @@
         }
         const match = bestMatch(conceptA, conceptsB);
         return {
-          id: crypto.randomUUID(),
+          id: uid(),
           concepto_a: conceptA,
           concepto_b: match.score >= 0.58 ? match.value : "",
           tipo_concepto: conceptType(conceptA, state.rows.visma),
@@ -2200,7 +2212,7 @@
       const now = new Date().toISOString();
       const withoutPair = state.config.homologaciones.filter(h => h.par_sistemas !== "visma_rex");
       const current = state.homologations.map(h => ({
-        id: crypto.randomUUID(),
+        id: uid(),
         par_sistemas: "visma_rex",
         empresa: null,
         concepto_a: h.concepto_a,
