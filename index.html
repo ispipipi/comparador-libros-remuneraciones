@@ -295,7 +295,7 @@
 
     .split {
       display: grid;
-      grid-template-columns: 320px minmax(0, 1fr);
+      grid-template-columns: 224px minmax(0, 1fr);
       gap: 18px;
       align-items: start;
     }
@@ -303,37 +303,39 @@
     .stepper {
       display: grid;
       gap: 8px;
+      position: sticky;
+      top: 28px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: var(--shadow);
     }
 
     .step {
       display: grid;
-      grid-template-columns: 30px minmax(0, 1fr);
-      gap: 10px;
+      grid-template-columns: 26px minmax(0, 1fr);
+      gap: 8px;
       align-items: center;
-      padding: 9px;
+      padding: 8px;
       border-radius: 8px;
-      border: 1px solid var(--line);
-      background: #fff;
+      border: 0;
+      background: transparent;
     }
 
     .step.current {
-      border-color: var(--primary);
       background: var(--primary-soft);
     }
 
-    .step.done {
-      border-color: #9bd4c8;
-    }
-
     .step-index {
-      width: 30px;
-      height: 30px;
+      width: 26px;
+      height: 26px;
       display: grid;
       place-items: center;
-      border-radius: 8px;
+      border-radius: 999px;
       background: #e8efed;
       color: #35514b;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 850;
     }
 
@@ -348,14 +350,87 @@
     }
 
     .step-title {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 800;
     }
 
     .step-meta {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       margin-top: 2px;
+    }
+
+    .stepper-kicker {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .workspace {
+      background: linear-gradient(180deg, #f7fbfa 0%, #ffffff 100%);
+    }
+
+    .ops-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.75fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .ops-column {
+      display: grid;
+      gap: 16px;
+    }
+
+    .ops-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .ops-card h3 {
+      margin-bottom: 6px;
+    }
+
+    .ops-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ops-list-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .ops-list-item:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .ops-stat {
+      display: grid;
+      gap: 2px;
+    }
+
+    .ops-stat strong {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .ops-chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
     }
 
     .form-grid {
@@ -395,7 +470,6 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
-      margin-top: 16px;
     }
 
     .upload {
@@ -692,15 +766,46 @@
 
     .mobile-list { display: none; }
 
+    .mapping-editor {
+      display: grid;
+      gap: 8px;
+      min-width: 260px;
+    }
+
+    .mapping-pair {
+      display: grid;
+      grid-template-columns: minmax(110px, 1fr) 22px minmax(110px, 1fr);
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdfc;
+    }
+
+    .mapping-pair span {
+      text-align: center;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .mapping-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
     @media (max-width: 1100px) {
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .split, .drill-layout { grid-template-columns: 1fr; }
+      .ops-grid { grid-template-columns: 1fr; }
       .sidebar { position: static; height: auto; }
       .app { grid-template-columns: 1fr; }
       .sidebar-note { display: none; }
       .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .nav-btn { justify-content: center; }
       .nav-btn span:last-child { display: none; }
+      .stepper { position: static; }
     }
 
     @media (max-width: 760px) {
@@ -1124,8 +1229,11 @@
           </div>
         </section>
         <section class="split">
-          <aside class="stepper">${STEPS.map((s, i) => stepMarkup(i + 1, s)).join("")}</aside>
-          <div class="panel">
+          <aside class="stepper">
+            <div class="stepper-kicker">Avance</div>
+            ${STEPS.map((s, i) => stepMarkup(i + 1, s)).join("")}
+          </aside>
+          <div class="panel workspace">
             <div class="panel-body">
               ${stepContent()}
             </div>
@@ -1158,27 +1266,79 @@
     }
 
     function stepUpload() {
+      const vismaConcepts = state.availableConcepts.visma.length;
+      const rexConcepts = state.availableConcepts.rex.length;
       return `
         <div class="stack">
           <div>
-            <h2>Paso 1: Carga de archivos</h2>
-            <p class="subtle">Carga ambos libros Excel o usa la muestra para validar el flujo completo.</p>
+            <h2>Carga de archivos</h2>
+            <p class="subtle">Prepara ambos libros del mismo periodo para iniciar la comparación.</p>
           </div>
           ${window.XLSX ? "" : `<div class="banner warn">SheetJS no esta cargado. La app puede usar CSV/TSV o la muestra; la exportacion usara formato XLS compatible con Excel.</div>`}
-          <div class="form-grid">
-            <div class="field">
-              <label for="period">Periodo</label>
-              <input id="period" type="month" value="${esc(state.period)}">
+          <div class="ops-grid">
+            <div class="ops-column">
+              <div class="ops-card stack">
+                <div class="field">
+                  <label for="period">Periodo</label>
+                  <input id="period" type="month" value="${esc(state.period)}">
+                </div>
+                <div class="upload-grid">
+                  ${uploadBox("visma", "Libro Visma", state.files.visma)}
+                  ${uploadBox("rex", "Libro REX+", state.files.rex)}
+                </div>
+                <div class="actions">
+                  <button class="btn secondary" data-action="load-sample">Cargar muestra</button>
+                  <button class="btn secondary" data-action="load-real-sample">Cargar libros RG 2026-04</button>
+                  <button class="btn" data-action="validate" ${state.files.visma && state.files.rex ? "" : "disabled"}>Validar y continuar</button>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="upload-grid">
-            ${uploadBox("visma", "Libro Visma", state.files.visma)}
-            ${uploadBox("rex", "Libro REX+", state.files.rex)}
-          </div>
-          <div class="actions">
-            <button class="btn secondary" data-action="load-sample">Cargar muestra</button>
-            <button class="btn secondary" data-action="load-real-sample">Cargar libros RG 2026-04</button>
-            <button class="btn" data-action="validate" ${state.files.visma && state.files.rex ? "" : "disabled"}>Validar y continuar</button>
+            <div class="ops-column">
+              <div class="ops-card">
+                <h3>Estado de preparación</h3>
+                <div class="ops-list">
+                  <div class="ops-list-item">
+                    <div>
+                      <strong>Origen Visma</strong>
+                      <div class="subtle">${state.files.visma ? esc(state.files.visma.name) : "Pendiente de carga"}</div>
+                    </div>
+                    <span class="badge ${state.files.visma ? "reviewed" : "excluded"}">${state.files.visma ? "Listo" : "Pendiente"}</span>
+                  </div>
+                  <div class="ops-list-item">
+                    <div>
+                      <strong>Destino REX+</strong>
+                      <div class="subtle">${state.files.rex ? esc(state.files.rex.name) : "Pendiente de carga"}</div>
+                    </div>
+                    <span class="badge ${state.files.rex ? "reviewed" : "excluded"}">${state.files.rex ? "Listo" : "Pendiente"}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ops-card">
+                <h3>Lectura esperada</h3>
+                <div class="ops-list">
+                  <div class="ops-list-item">
+                    <div class="ops-stat">
+                      <span class="subtle">Conceptos Visma</span>
+                      <strong>${vismaConcepts || 0}</strong>
+                    </div>
+                    <span class="badge excluded">Catalogo</span>
+                  </div>
+                  <div class="ops-list-item">
+                    <div class="ops-stat">
+                      <span class="subtle">Conceptos REX+</span>
+                      <strong>${rexConcepts || 0}</strong>
+                    </div>
+                    <span class="badge excluded">Catalogo</span>
+                  </div>
+                </div>
+                <div class="ops-chip-grid">
+                  <span class="chip">1. Cargar</span>
+                  <span class="chip">2. Validar</span>
+                  <span class="chip">3. Homologar</span>
+                  <span class="chip">4. Mapear</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       `;
@@ -1317,13 +1477,13 @@
       return `
         <div class="stack">
           <div>
-            <h2>Paso 4: Mapeo de contratos</h2>
-            <p class="subtle">El mapeo se infiere por orden ascendente. Revisa casos con cantidades distintas.</p>
+            <h2>Mapeo de contratos</h2>
+            <p class="subtle">Ajusta manualmente los pares cuando falte match o el orden ascendente no alcance.</p>
           </div>
           ${inconsistent.length ? `<div class="banner warn">La cantidad de contratos no coincide en ${inconsistent.length} trabajador(es). Revisa el mapeo antes de continuar.</div>` : `<div class="banner ok">Mapeo propuesto sin inconsistencias de cantidad.</div>`}
           <div class="table-wrap">
             <table>
-              <thead><tr><th>RUT</th><th>Trabajador</th><th>Visma</th><th>REX+</th><th>Mapeo propuesto</th><th>Estado</th></tr></thead>
+              <thead><tr><th>RUT</th><th>Trabajador</th><th>Visma</th><th>REX+</th><th>Relacion editable</th><th>Estado</th></tr></thead>
               <tbody>${state.contractMappings.map(contractRow).join("")}</tbody>
             </table>
           </div>
@@ -1343,7 +1503,14 @@
           <td><strong>${esc(m.nombre)}</strong></td>
           <td>${esc(m.empleados.join(", ") || "-")}</td>
           <td>${esc(m.contratos.join(", ") || "-")}</td>
-          <td>${m.pairs.map((p, idx) => pairSelect(m.rut, idx, p, m.contratos)).join("")}</td>
+          <td>
+            <div class="mapping-editor">
+              ${m.pairs.map((p, idx) => pairSelect(m.rut, idx, p, m.empleados, m.contratos)).join("")}
+              <div class="mapping-actions">
+                <button class="btn secondary" data-action="add-contract-pair" data-rut="${esc(m.rut)}">Agregar relacion</button>
+              </div>
+            </div>
+          </td>
           <td>${m.warning ? `<span class="badge pending">Revisar</span>` : `<span class="badge reviewed">OK</span>`}</td>
         </tr>
       `;
@@ -1359,12 +1526,16 @@
       `;
     }
 
-    function pairSelect(rut, idx, pair, contratos) {
+    function pairSelect(rut, idx, pair, empleados, contratos) {
       return `
-        <div class="field" style="margin-bottom:8px">
-          <label>${esc(pair.empleado || "Sin empleado")}</label>
+        <div class="mapping-pair">
+          <select data-employee-rut="${esc(rut)}" data-employee-index="${idx}">
+            <option value="">Sin empleado</option>
+            ${empleados.map(e => `<option value="${esc(e)}" ${e === pair.empleado ? "selected" : ""}>${esc(e)}</option>`).join("")}
+          </select>
+          <span>→</span>
           <select data-contract-rut="${esc(rut)}" data-contract-index="${idx}">
-            <option value="">Sin par</option>
+            <option value="">Sin contrato</option>
             ${contratos.map(c => `<option value="${esc(c)}" ${c === pair.contrato ? "selected" : ""}>${esc(c)}</option>`).join("")}
           </select>
         </div>
@@ -1685,6 +1856,9 @@
       document.querySelectorAll("[data-contract-rut]").forEach(sel => {
         sel.addEventListener("change", e => updateContract(e.target.dataset.contractRut, Number(e.target.dataset.contractIndex), e.target.value));
       });
+      document.querySelectorAll("[data-employee-rut]").forEach(sel => {
+        sel.addEventListener("change", e => updateContractEmployee(e.target.dataset.employeeRut, Number(e.target.dataset.employeeIndex), e.target.value));
+      });
       const type = document.getElementById("filter-type");
       if (type) type.addEventListener("change", e => { state.filters.type = e.target.value; render(); });
       const status = document.getElementById("filter-status");
@@ -1719,6 +1893,7 @@
       if (action === "confirm-homologation") return prepareContracts();
       if (action === "no-pair") return setNoPair(data.id);
       if (action === "exclude-concept") return excludeConcept(data.id);
+      if (action === "add-contract-pair") return addContractPair(data.rut);
       if (action === "confirm-contracts") return runComparison();
       if (action === "review") return markReviewed(data.id);
       if (action === "justify-one") return goJustifyOne(data.id);
@@ -2120,7 +2295,11 @@
         const b = state.rows.rex.filter(r => r.rut === rut);
         const empleados = unique(a.map(r => String(r.numero_empleado_a || "").trim()).filter(Boolean)).sort(smartSort);
         const contratos = unique(b.map(r => String(r.numero_contrato_b || "").trim()).filter(Boolean)).sort(smartSort);
-        const pairs = empleados.length ? empleados.map((empleado, i) => ({ empleado, contrato: contratos[i] || "" })) : [{ empleado: "", contrato: contratos[0] || "" }];
+        const pairCount = Math.max(empleados.length, contratos.length, 1);
+        const pairs = Array.from({ length: pairCount }, (_, i) => ({
+          empleado: empleados[i] || "",
+          contrato: contratos[i] || ""
+        }));
         return {
           rut,
           nombre: (a[0] || b[0] || {}).nombre || "",
@@ -2139,6 +2318,19 @@
       const mapping = state.contractMappings.find(m => m.rut === rut);
       if (!mapping || !mapping.pairs[idx]) return;
       mapping.pairs[idx].contrato = value;
+    }
+
+    function updateContractEmployee(rut, idx, value) {
+      const mapping = state.contractMappings.find(m => m.rut === rut);
+      if (!mapping || !mapping.pairs[idx]) return;
+      mapping.pairs[idx].empleado = value;
+    }
+
+    function addContractPair(rut) {
+      const mapping = state.contractMappings.find(m => m.rut === rut);
+      if (!mapping) return;
+      mapping.pairs.push({ empleado: "", contrato: "" });
+      render();
     }
 
     function runComparison() {
