@@ -889,7 +889,7 @@
     const app = document.getElementById("app");
 
     let state = {
-      view: "dashboard",
+      view: "wizard",
       step: 1,
       period: new Date().toISOString().slice(0, 7),
       files: { visma: null, rex: null },
@@ -1027,8 +1027,8 @@
               </div>
             </div>
             <nav class="nav">
+              ${navButton("new", "CP", "Comparacion")}
               ${navButton("dashboard", "DB", "Dashboard")}
-              ${navButton("new", "NC", "Nueva comparacion")}
               ${navButton("history", "HI", "Historial")}
               ${navButton("config", "CF", "Configuracion")}
             </nav>
@@ -1103,8 +1103,8 @@
       return `
         <section class="topline">
           <div>
-            <h1>Nueva comparacion</h1>
-            <p class="subtle">Proceso secuencial obligatorio para comparar libros Visma y REX+.</p>
+            <h1>Comparacion Visma vs REX+</h1>
+            <p class="subtle">Carga, homologa, mapea y compara los libros de remuneraciones en un flujo operativo unico.</p>
           </div>
           <div class="actions">
             <button class="btn secondary" data-action="reset-wizard">Reiniciar</button>
