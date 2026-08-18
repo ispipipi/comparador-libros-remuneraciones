@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Comparador de Libros de Remuneraciones</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="./vendor/xlsx-browser-0.18.5.js" onload="window.__xlsxLoadStatus='loaded'" onerror="window.__xlsxLoadStatus='error'"></script>
   <style>
     :root {
       --bg: #f5f7f8;
@@ -321,6 +321,15 @@
       border-radius: 8px;
       border: 0;
       background: transparent;
+    }
+
+    .step.back-link {
+      width: 100%;
+      text-align: left;
+    }
+
+    .step.back-link:hover {
+      background: #eef7f5;
     }
 
     .step.current {
@@ -861,7 +870,6 @@
 
     const STEPS = [
       ["Carga", "Archivos y periodo"],
-      ["Validacion", "Estructura minima"],
       ["Homologacion", "Conceptos"],
       ["Mapeo", "Contratos"],
       ["Resultados", "Drill down"],
@@ -883,7 +891,34 @@
     };
 
     const REAL_SAMPLE_URL = "real-example-rg-2026-04.json";
+    const LOCAL_APP_URL = "http://127.0.0.1:8077/index.html";
     const DISPLAY_LIMIT = 500;
+    const PROFILE_OPTIONS = {
+      meta4_rex_finning: {
+        id: "meta4_rex_finning",
+        label: "Meta4 -> Rex+",
+        subtitle: "Finning",
+        sourceName: "Meta4",
+        targetName: "Rex+",
+        sourceFileLabel: "Libro Meta4",
+        targetFileLabel: "Libro Rex+",
+        sourceIdLabel: "Contrato Meta4",
+        targetIdLabel: "ID empleado Rex+",
+        summaryLabel: "Base Finning"
+      },
+      visma_rex: {
+        id: "visma_rex",
+        label: "Visma -> Rex+",
+        subtitle: "Flujo general",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Catalogo"
+      }
+    };
 
     const REQUIRED = {
       visma: ["rut", "nombre", "sede", "area", "cargo", "numero_empleado_a", "concepto", "monto"],
@@ -891,13 +926,13 @@
     };
 
     const ALIASES = {
-      rut: ["rut", "run", "documento", "id trabajador", "identificador"],
+      rut: ["rut", "run", "documento", "id trabajador", "identificador", "ci"],
       nombre: ["nombre", "trabajador", "nombre trabajador", "empleado", "colaborador", "apellido y nombre"],
-      sede: ["sede", "ubicacion", "local", "centro", "centro costo", "centro de costo", "nombre c costo", "nombre c. costo"],
-      area: ["area", "departamento", "unidad", "division", "centro costo", "centro de costo"],
-      cargo: ["cargo", "puesto", "rol", "funcion"],
-      numero_empleado_a: ["numero empleado", "n empleado", "num empleado", "id empleado", "codigo empleado", "cod empleado", "empleado"],
-      numero_contrato_b: ["numero contrato", "n contrato", "num contrato", "id contrato", "contrato"],
+      sede: ["sede", "ubicacion", "ubicacion workday", "local", "centro", "centro costo", "centro de costo", "nombre c costo", "nombre c. costo"],
+      area: ["area", "departamento", "unidad", "unidad de negocios", "division", "centro costo", "centro de costo"],
+      cargo: ["cargo", "puesto", "rol", "funcion", "posicion", "job code"],
+      numero_empleado_a: ["numero empleado", "n empleado", "num empleado", "id empleado", "codigo empleado", "cod empleado", "empleado", "contrato"],
+      numero_contrato_b: ["numero contrato", "n contrato", "num contrato", "id contrato", "contrato", "id empleado", "nombre contrato"],
       concepto: ["concepto", "item", "glosa", "haber descuento", "nombre concepto"],
       tipo_concepto: ["tipo concepto", "tipo", "clasificacion", "categoria concepto"],
       monto: ["monto", "valor", "importe", "total", "haber", "descuento", "aporte"]
@@ -910,70 +945,87 @@
       "nombre", "contrato", "sede", "fecha inicio", "fecha termino", "fecha termino", "inst salud",
       "inst. salud", "tipo contrato", "centro costo", "sindicato", "pauta contable", "agrupacion",
       "plan uf", "alcance liquido", "liquido", "sueldo liquido", "total haberes", "total descuentos",
-      "tributable", "imponible topeado", "total imponible sin tope", "afecto afp", "afecto cesantia",
+      "tributable", "total imponible", "total imponible topado", "total imponible sin tope", "total de haberes sc", "base tributable", "afecto afp", "afecto cesantia",
       "haberes exentos", "suma haberes", "total rebajas", "afecto impuesto",
       "imponible informado ley 21 227", "imponible cesantia ley 21 227", "dias trabajados",
       "dias con licencia medica", "dias con licencia por accidente", "dias de falta", "minutos de atraso",
       "cantidad horas no trabajadas", "cantidad horas extras 50%"
     ]);
 
-    const KNOWN_CONCEPT_PAIRS = new Map([
-      ["sueldo ganado", "Sueldo Base"],
-      ["diferencia sueldo mes anterior", "DIFERENCIA SUELDO MES ANTERIOR"],
-      ["gratificacion", "Gratificación"],
-      ["horas extras normales al 50", "Horas Extras 50%"],
-      ["bono responsabilidad", "BONO RESPONSABILIDAD"],
-      ["bono aplicacion", "BONO APLICACION"],
-      ["bono asistencia", "BONO ASISTENCIA"],
-      ["bono desbrozadora", "BONO DESBROZADORA"],
-      ["bono escolaridad", "BONO ESCOLARIDAD"],
-      ["bono op maquinaria", "BONO OP MAQUINARIA"],
-      ["semana corrida informada", "SEMANA CORRIDA INFORMADA"],
-      ["bono termino de faena", "BONO TERMINO DE FAENA"],
-      ["bono asistencia contractual", "BONO ASISTENCIA CONTRACTUAL"],
-      ["bono especial", "BONO ESPECIAL"],
-      ["bono turno", "BONO TURNO"],
-      ["bono antiguedad", "BONO ANTIGUEDAD"],
-      ["bono domingos y festivos", "BONO DOMINGOS Y FESTIVOS"],
-      ["bono pernoctacion i", "BONO PERNOCTACION I"],
-      ["bono cosecha", "BONO COSECHA"],
-      ["bono soplador", "BONO SOPLADOR"],
-      ["asig colacion contractual", "ASIG. COLACION CONTRACTUAL"],
-      ["asignacion de movilizacion", "ASIGNACION DE MOVILIZACION"],
-      ["asig movilizacion contractual", "ASIG. MOVILIZACION CONTRACTUAL"],
-      ["asig colacion", "ASIGNACION DE COLACION"],
-      ["bono compensatorio", "BONO COMPENSATORIO"],
-      ["sala cuna", "SALA CUNA"],
-      ["dev descuento erroneo", "DEV DESCUENTO ERRONEO"],
-      ["diferencia de sueldo", "DIFERENCIA DE SUELDO"],
-      ["indemnizacion legal", "IAS Indemnizacion Legal"],
-      ["indem voluntaria exenta", "IAS Indemnizacion Voluntaria"],
-      ["vacaciones", "IAS Vacaciones Legales"],
-      ["asignacion familiar", "Cargas Familiares Simples"],
-      ["asignacion familiar retroact", "Asignacion Familiar Retroactiva"],
-      ["a f p", "Cotizacion AFP"],
-      ["salud", "Cotizacion SALUD"],
-      ["seguro de cesantia", "Seguro de Cesantia"],
-      ["desc anticipo de sueldo", "DESCUENTO ANTICIPO DE SUELDO"],
-      ["ahorro cuenta 2", "Ahorro AFP"],
-      ["cotizacion voluntaria t", "APVI Ahorro voluntario mensual"],
-      ["otros descuentos", "OTROS DESCUENTOS"],
-      ["seguro chilena consolidada", "SEGURO CHILENA CONSOLIDADA"],
-      ["full ahorro ccaf los andes", "Ahorro en CCAF"],
-      ["cuota sindicato san sebastian", "CUOTA SINDICATO SAN SEBASTIAN"],
-      ["cuota sindicato camarico", "CUOTA SINDICATO CAMARICO"],
-      ["cuota sindicato temuco", "CUOTA SINDICATO TEMUCO"],
-      ["prestamo empresa", "PRESTAMO EMPRESA"],
-      ["prestamo ccaf los andes", "Creditos personales CCAF"],
-      ["seguro ccaf los andes", "Descuentos por seguro de vida CCAF"],
-      ["impuesto unico", "Impuesto"],
-      ["aporte patronal mutual", "Mutual"],
-      ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
-      ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
-      ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
-      ["afp cap ind previred", "Aporte AFP Empleador"],
-      ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"]
-    ]);
+    const PRESET_CONCEPT_PAIRS = {
+      meta4_rex_finning: new Map([
+        ["sueldo base", "SUELDO BASE"],
+        ["gratificacion", "GRATIFICACION"],
+        ["compensacion sobregiro", "SOBREGIRO LIQUIDACION SUELDO"],
+        ["cotizacion afp", "CAPITALIZACIÓN INDIVIDUAL"],
+        ["cotizacion salud", "COTIZACION SALUD OBLIGATORIA"],
+        ["seguro de cesantia", "SEGURO CESANTIA"],
+        ["trabajo pesado empleado", "TRABAJO PESADO DESC. TRABAJADOR"],
+        ["impuesto", "IMPUESTO"],
+        ["anticipo", "DESCUENTO ANTICIPO QUINCENAL"],
+        ["fundacion arturo lopez", "FUNDACION ARTURO LOPEZ"],
+        ["trabajo pesado", "APORTE EMPRESA TRABAJO PESADO"],
+        ["mutual", "APORTE EMPRESA MUTUAL"],
+        ["seguro invalidez y sobrevivencia", "SEGURO SOBREV. E INVALIDEZ"]
+      ]),
+      visma_rex: new Map([
+        ["sueldo ganado", "Sueldo Base"],
+        ["diferencia sueldo mes anterior", "DIFERENCIA SUELDO MES ANTERIOR"],
+        ["gratificacion", "Gratificación"],
+        ["horas extras normales al 50", "Horas Extras 50%"],
+        ["bono responsabilidad", "BONO RESPONSABILIDAD"],
+        ["bono aplicacion", "BONO APLICACION"],
+        ["bono asistencia", "BONO ASISTENCIA"],
+        ["bono desbrozadora", "BONO DESBROZADORA"],
+        ["bono escolaridad", "BONO ESCOLARIDAD"],
+        ["bono op maquinaria", "BONO OP MAQUINARIA"],
+        ["semana corrida informada", "SEMANA CORRIDA INFORMADA"],
+        ["bono termino de faena", "BONO TERMINO DE FAENA"],
+        ["bono asistencia contractual", "BONO ASISTENCIA CONTRACTUAL"],
+        ["bono especial", "BONO ESPECIAL"],
+        ["bono turno", "BONO TURNO"],
+        ["bono antiguedad", "BONO ANTIGUEDAD"],
+        ["bono domingos y festivos", "BONO DOMINGOS Y FESTIVOS"],
+        ["bono pernoctacion i", "BONO PERNOCTACION I"],
+        ["bono cosecha", "BONO COSECHA"],
+        ["bono soplador", "BONO SOPLADOR"],
+        ["asig colacion contractual", "ASIG. COLACION CONTRACTUAL"],
+        ["asignacion de movilizacion", "ASIGNACION DE MOVILIZACION"],
+        ["asig movilizacion contractual", "ASIG. MOVILIZACION CONTRACTUAL"],
+        ["asig colacion", "ASIGNACION DE COLACION"],
+        ["bono compensatorio", "BONO COMPENSATORIO"],
+        ["sala cuna", "SALA CUNA"],
+        ["dev descuento erroneo", "DEV DESCUENTO ERRONEO"],
+        ["diferencia de sueldo", "DIFERENCIA DE SUELDO"],
+        ["indemnizacion legal", "IAS Indemnizacion Legal"],
+        ["indem voluntaria exenta", "IAS Indemnizacion Voluntaria"],
+        ["vacaciones", "IAS Vacaciones Legales"],
+        ["asignacion familiar", "Cargas Familiares Simples"],
+        ["asignacion familiar retroact", "Asignacion Familiar Retroactiva"],
+        ["a f p", "Cotizacion AFP"],
+        ["salud", "Cotizacion SALUD"],
+        ["seguro de cesantia", "Seguro de Cesantia"],
+        ["desc anticipo de sueldo", "DESCUENTO ANTICIPO DE SUELDO"],
+        ["ahorro cuenta 2", "Ahorro AFP"],
+        ["cotizacion voluntaria t", "APVI Ahorro voluntario mensual"],
+        ["otros descuentos", "OTROS DESCUENTOS"],
+        ["seguro chilena consolidada", "SEGURO CHILENA CONSOLIDADA"],
+        ["full ahorro ccaf los andes", "Ahorro en CCAF"],
+        ["cuota sindicato san sebastian", "CUOTA SINDICATO SAN SEBASTIAN"],
+        ["cuota sindicato camarico", "CUOTA SINDICATO CAMARICO"],
+        ["cuota sindicato temuco", "CUOTA SINDICATO TEMUCO"],
+        ["prestamo empresa", "PRESTAMO EMPRESA"],
+        ["prestamo ccaf los andes", "Creditos personales CCAF"],
+        ["seguro ccaf los andes", "Descuentos por seguro de vida CCAF"],
+        ["impuesto unico", "Impuesto"],
+        ["aporte patronal mutual", "Mutual"],
+        ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
+        ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
+        ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
+        ["afp cap ind previred", "Aporte AFP Empleador"],
+        ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"]
+      ])
+    };
 
     const DEFAULT_CONFIG = {
       sedes: ["Casa Matriz", "Santiago", "Valparaiso", "Concepcion"],
@@ -995,23 +1047,46 @@
 
     let state = {
       view: "wizard",
+      profile: "meta4_rex_finning",
       step: 1,
       period: new Date().toISOString().slice(0, 7),
       files: { visma: null, rex: null },
       rawRows: { visma: [], rex: [] },
       rows: { visma: [], rex: [] },
+      conceptHeaders: { visma: [], rex: [] },
       availableConcepts: { visma: [], rex: [] },
+      sourceLabel: "",
+      fileErrors: { visma: "", rex: "" },
       validations: null,
       homologations: [],
       contractMappings: [],
       differences: [],
       selectedNode: "todos",
       filters: { type: "todos", status: "todos", q: "" },
-      homologationFilter: "todos",
       exportDone: false,
       history: loadJson(STORE.history, seedHistory()),
       config: loadJson(STORE.config, DEFAULT_CONFIG)
     };
+
+    function activeProfile() {
+      return PROFILE_OPTIONS[state.profile] || PROFILE_OPTIONS.meta4_rex_finning;
+    }
+
+    function sourceSystemName() {
+      return activeProfile().sourceName;
+    }
+
+    function targetSystemName() {
+      return activeProfile().targetName;
+    }
+
+    function pairStorageKey() {
+      return activeProfile().id;
+    }
+
+    function conceptPairPresets() {
+      return PRESET_CONCEPT_PAIRS[pairStorageKey()] || new Map();
+    }
 
     function cloneValue(value) {
       if (typeof structuredClone === "function") return structuredClone(value);
@@ -1042,6 +1117,7 @@
       const now = new Date();
       return [{
         id: "cmp-demo-001",
+        pair_profile: "visma_rex",
         periodo: "2026-05",
         fecha_creacion: new Date(now.getTime() - 86400000 * 8).toISOString(),
         fecha_completado: new Date(now.getTime() - 86400000 * 8 + 540000).toISOString(),
@@ -1134,6 +1210,7 @@
     }
 
     function render() {
+      const profile = activeProfile();
       app.innerHTML = `
         <div class="app">
           <aside class="sidebar">
@@ -1141,7 +1218,7 @@
               <div class="brand-mark">NPR</div>
               <div class="brand-text">
                 <strong>Comparador RRHH</strong>
-                <span>Visma - REX+</span>
+                <span>${esc(profile.sourceName)} - ${esc(profile.targetName)}</span>
               </div>
             </div>
             <nav class="nav">
@@ -1218,11 +1295,12 @@
     }
 
     function wizardMarkup() {
+      const profile = activeProfile();
       return `
         <section class="topline">
           <div>
-            <h1>Comparacion Visma vs REX+</h1>
-            <p class="subtle">Carga, homologa, mapea y compara los libros de remuneraciones en un flujo operativo unico.</p>
+            <h1>Comparacion ${esc(profile.sourceName)} vs ${esc(profile.targetName)}</h1>
+            <p class="subtle">Carga, homologa, mapea y compara los libros de remuneraciones en un flujo operativo unico para ${esc(profile.subtitle)}.</p>
           </div>
           <div class="actions">
             <button class="btn secondary" data-action="reset-wizard">Reiniciar</button>
@@ -1245,52 +1323,63 @@
 
     function stepMarkup(index, data) {
       const cls = index === state.step ? "current" : index < state.step ? "done" : "";
-      return `
-        <div class="step ${cls}">
+      const body = `
           <div class="step-index">${index < state.step ? "OK" : index}</div>
           <div>
             <div class="step-title">${esc(data[0])}</div>
             <div class="step-meta">${esc(data[1])}</div>
           </div>
-        </div>
       `;
+      if (index < state.step) {
+        return `<button class="step back-link ${cls}" data-step-nav="${index}">${body}</button>`;
+      }
+      return `<div class="step ${cls}">${body}</div>`;
     }
 
     function stepContent() {
       if (state.step === 1) return stepUpload();
-      if (state.step === 2) return stepValidation();
-      if (state.step === 3) return stepHomologation();
-      if (state.step === 4) return stepContracts();
-      if (state.step === 5) return stepResults();
-      if (state.step === 6) return stepJustify();
+      if (state.step === 2) return stepHomologation();
+      if (state.step === 3) return stepContracts();
+      if (state.step === 4) return stepResults();
+      if (state.step === 5) return stepJustify();
       return stepExport();
     }
 
     function stepUpload() {
+      const profile = activeProfile();
       const vismaConcepts = state.availableConcepts.visma.length;
       const rexConcepts = state.availableConcepts.rex.length;
       return `
         <div class="stack">
           <div>
             <h2>Carga de archivos</h2>
-            <p class="subtle">Prepara ambos libros del mismo periodo para iniciar la comparación.</p>
+            <p class="subtle">Prepara ambos libros del mismo periodo para iniciar la comparacion.</p>
           </div>
+          ${location.protocol === "file:" ? `<div class="banner warn">Esta vista abierta con <strong>file://</strong> puede fallar al cargar libros Excel en este navegador. Usa la version local por HTTP: <a href="${LOCAL_APP_URL}" target="_blank" rel="noreferrer">${LOCAL_APP_URL}</a></div>` : ""}
           ${window.XLSX ? "" : `<div class="banner warn">SheetJS no esta cargado. La app puede usar CSV/TSV o la muestra; la exportacion usara formato XLS compatible con Excel.</div>`}
+          ${state.sourceLabel ? `<div class="banner ok">${esc(state.sourceLabel)}. ${esc(profile.sourceName)}: ${vismaConcepts} conceptos. ${esc(profile.targetName)}: ${rexConcepts} conceptos.</div>` : ""}
+          ${uploadValidationBanner()}
           <div class="ops-grid">
             <div class="ops-column">
               <div class="ops-card stack">
+                <div class="field">
+                  <label for="profile">Dupla</label>
+                  <select id="profile">
+                    ${Object.values(PROFILE_OPTIONS).map(option => `<option value="${esc(option.id)}" ${option.id === state.profile ? "selected" : ""}>${esc(option.label)} · ${esc(option.subtitle)}</option>`).join("")}
+                  </select>
+                </div>
                 <div class="field">
                   <label for="period">Periodo</label>
                   <input id="period" type="month" value="${esc(state.period)}">
                 </div>
                 <div class="upload-grid">
-                  ${uploadBox("visma", "Libro Visma", state.files.visma)}
-                  ${uploadBox("rex", "Libro REX+", state.files.rex)}
+                  ${uploadBox("visma", profile.sourceFileLabel, state.files.visma, state.fileErrors.visma)}
+                  ${uploadBox("rex", profile.targetFileLabel, state.files.rex, state.fileErrors.rex)}
                 </div>
                 <div class="actions">
-                  <button class="btn secondary" data-action="load-sample">Cargar muestra</button>
-                  <button class="btn secondary" data-action="load-real-sample">Cargar libros RG 2026-04</button>
-                  <button class="btn" data-action="validate" ${state.files.visma && state.files.rex ? "" : "disabled"}>Validar y continuar</button>
+                  ${state.profile === "visma_rex" ? `<button class="btn secondary" data-action="load-sample">Cargar muestra demo</button>` : ""}
+                  ${state.profile === "visma_rex" ? `<button class="btn secondary" data-action="load-real-sample">Cargar libros RG 2026-04</button>` : ""}
+                  <button class="btn" data-action="validate" ${state.files.visma && state.files.rex ? "" : "disabled"}>Continuar a homologacion</button>
                 </div>
               </div>
             </div>
@@ -1300,17 +1389,19 @@
                 <div class="ops-list">
                   <div class="ops-list-item">
                     <div>
-                      <strong>Origen Visma</strong>
+                      <strong>Origen ${esc(profile.sourceName)}</strong>
                       <div class="subtle">${state.files.visma ? esc(state.files.visma.name) : "Pendiente de carga"}</div>
+                      ${state.fileErrors.visma ? `<div class="subtle" style="color:#b42318;margin-top:4px">${esc(state.fileErrors.visma)}</div>` : ""}
                     </div>
-                    <span class="badge ${state.files.visma ? "reviewed" : "excluded"}">${state.files.visma ? "Listo" : "Pendiente"}</span>
+                    <span class="badge ${state.fileErrors.visma ? "pending" : state.files.visma ? "reviewed" : "excluded"}">${state.fileErrors.visma ? "Error" : state.files.visma ? "Listo" : "Pendiente"}</span>
                   </div>
                   <div class="ops-list-item">
                     <div>
-                      <strong>Destino REX+</strong>
+                      <strong>Destino ${esc(profile.targetName)}</strong>
                       <div class="subtle">${state.files.rex ? esc(state.files.rex.name) : "Pendiente de carga"}</div>
+                      ${state.fileErrors.rex ? `<div class="subtle" style="color:#b42318;margin-top:4px">${esc(state.fileErrors.rex)}</div>` : ""}
                     </div>
-                    <span class="badge ${state.files.rex ? "reviewed" : "excluded"}">${state.files.rex ? "Listo" : "Pendiente"}</span>
+                    <span class="badge ${state.fileErrors.rex ? "pending" : state.files.rex ? "reviewed" : "excluded"}">${state.fileErrors.rex ? "Error" : state.files.rex ? "Listo" : "Pendiente"}</span>
                   </div>
                 </div>
               </div>
@@ -1319,24 +1410,24 @@
                 <div class="ops-list">
                   <div class="ops-list-item">
                     <div class="ops-stat">
-                      <span class="subtle">Conceptos Visma</span>
+                      <span class="subtle">Conceptos ${esc(profile.sourceName)}</span>
                       <strong>${vismaConcepts || 0}</strong>
                     </div>
-                    <span class="badge excluded">Catalogo</span>
+                    <span class="badge excluded">${esc(profile.summaryLabel)}</span>
                   </div>
                   <div class="ops-list-item">
                     <div class="ops-stat">
-                      <span class="subtle">Conceptos REX+</span>
+                      <span class="subtle">Conceptos ${esc(profile.targetName)}</span>
                       <strong>${rexConcepts || 0}</strong>
                     </div>
-                    <span class="badge excluded">Catalogo</span>
+                    <span class="badge excluded">${esc(profile.summaryLabel)}</span>
                   </div>
                 </div>
                 <div class="ops-chip-grid">
                   <span class="chip">1. Cargar</span>
-                  <span class="chip">2. Validar</span>
-                  <span class="chip">3. Homologar</span>
-                  <span class="chip">4. Mapear</span>
+                  <span class="chip">2. Homologar</span>
+                  <span class="chip">3. Mapear</span>
+                  <span class="chip">4. Comparar</span>
                 </div>
               </div>
             </div>
@@ -1345,60 +1436,51 @@
       `;
     }
 
-    function uploadBox(system, label, file) {
-      const ready = file ? "ready" : "";
+    function uploadValidationBanner() {
+      if (!state.validations) return "";
+      const issues = [
+        ...state.validations.visma.errors,
+        ...state.validations.rex.errors
+      ];
+      const warnings = [
+        ...state.validations.visma.warnings,
+        ...state.validations.rex.warnings
+      ];
+      if (issues.length) {
+        return `<div class="banner danger">${issues.map(esc).join("<br>")}</div>`;
+      }
+      if (warnings.length) {
+        return `<div class="banner warn">${warnings.map(esc).join("<br>")}</div>`;
+      }
+      return `<div class="banner ok">Estructura lista. Al continuar pasas directo a la homologacion.</div>`;
+    }
+
+    function uploadBox(system, label, file, error) {
+      const ready = error ? "error" : file ? "ready" : "";
       return `
         <label class="upload ${ready}" for="file-${system}">
           <h3>${esc(label)}</h3>
           <p class="subtle">Arrastra el archivo o seleccionalo desde tu equipo.</p>
           <input id="file-${system}" data-file="${system}" type="file" accept=".xlsx,.xls,.csv,.tsv" hidden>
           <div class="file-name">${file ? esc(file.name) : "Sin archivo"}</div>
-          <span class="badge ${file ? "reviewed" : "excluded"}">${file ? "Listo" : "Pendiente"}</span>
+          ${error ? `<div class="subtle" style="color:#b42318">${esc(error)}</div>` : ""}
+          <span class="badge ${error ? "pending" : file ? "reviewed" : "excluded"}">${error ? "Error" : file ? "Listo" : "Pendiente"}</span>
         </label>
       `;
     }
 
-    function stepValidation() {
-      const v = state.validations;
-      if (!v) return `<div class="banner warn">Ejecuta la validacion desde el paso anterior.</div>`;
-      const blocked = v.visma.errors.length || v.rex.errors.length;
-      return `
-        <div class="stack">
-          <div>
-            <h2>Paso 2: Validacion de estructura</h2>
-            <p class="subtle">Resultado por archivo con errores bloqueantes y advertencias.</p>
-          </div>
-          ${blocked ? `<div class="banner danger">El archivo no tiene el formato requerido. Corrige antes de continuar.</div>` : `<div class="banner ok">Estructura valida. Puedes continuar con homologacion.</div>`}
-          <div class="form-grid">
-            ${validationCard("Visma", v.visma)}
-            ${validationCard("REX+", v.rex)}
-          </div>
-          <div class="actions">
-            <button class="btn secondary" data-action="prev">Volver</button>
-            <button class="btn" data-action="to-homologation" ${blocked ? "disabled" : ""}>Continuar</button>
-          </div>
-        </div>
-      `;
-    }
-
-    function validationCard(title, data) {
-      return `
-        <article class="panel">
-          <div class="panel-head"><h3>${esc(title)}</h3><span class="badge ${data.errors.length ? "pending" : "reviewed"}">${data.errors.length ? "Bloqueado" : "OK"}</span></div>
-          <div class="panel-body stack">
-            <p class="subtle">${data.rows} filas procesadas. ${data.extra.length} columnas adicionales detectadas.</p>
-            ${data.errors.length ? `<div class="banner danger">${data.errors.map(esc).join("<br>")}</div>` : ""}
-            ${data.warnings.length ? `<div class="banner warn">${data.warnings.map(esc).join("<br>")}</div>` : ""}
-          </div>
-        </article>
-      `;
-    }
-
     function stepHomologation() {
+      const profile = activeProfile();
       const allRows = [...state.homologations].sort(homologationSort);
-      const rows = allRows.filter(h => state.homologationFilter === "todos" ? true : h.estado === state.homologationFilter);
+      const pendingRows = allRows.filter(h => h.estado === "sin_par");
+      const groupedRows = [
+        { key: "manual", title: "Pareados manualmente", hint: "Conceptos con ajuste manual ya definido.", rows: allRows.filter(h => h.estado === "manual") },
+        { key: "automatico", title: "Pareados automaticamente", hint: "Propuestas aceptadas por similitud o catalogo conocido.", rows: allRows.filter(h => h.estado === "automatico") },
+        { key: "excluido", title: "Excluidos", hint: "Conceptos marcados fuera de comparacion.", rows: allRows.filter(h => h.estado === "excluido") }
+      ].filter(group => group.rows.length);
       const counts = {
         total: allRows.length,
+        homologados: allRows.filter(h => h.estado === "automatico" || h.estado === "manual").length,
         automatico: allRows.filter(h => h.estado === "automatico").length,
         manual: allRows.filter(h => h.estado === "manual").length,
         sin_par: allRows.filter(h => h.estado === "sin_par").length,
@@ -1408,13 +1490,15 @@
         <div class="stack">
           <div>
             <h2>Homologacion de conceptos</h2>
-            <p class="subtle">Resuelve primero los conceptos sin par o manuales; el resto puede quedar automático.</p>
+            <p class="subtle">Primero resuelve solo los conceptos sin par. Los que ya estan pareados quedan agrupados mas abajo.</p>
           </div>
+          ${state.sourceLabel ? `<div class="banner ok">${esc(state.sourceLabel)}. Catalogo detectado: ${counts.total} conceptos ${esc(profile.sourceName)}.</div>` : ""}
           <div class="ops-grid">
             <div class="ops-column">
               <div class="ops-card">
                 <div class="ops-list">
-                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Total conceptos</span><strong>${counts.total}</strong></div><span class="badge excluded">Visma</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Total conceptos</span><strong>${counts.total}</strong></div><span class="badge excluded">${esc(profile.sourceName)}</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Homologados</span><strong>${counts.homologados}</strong></div><span class="badge reviewed">Listos</span></div>
                   <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Sin par</span><strong>${counts.sin_par}</strong></div><span class="badge pending">Prioridad</span></div>
                   <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Manual</span><strong>${counts.manual}</strong></div><span class="badge manual">Editable</span></div>
                 </div>
@@ -1425,34 +1509,37 @@
                 <div class="ops-list">
                   <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Automatico</span><strong>${counts.automatico}</strong></div><span class="badge auto">Propuesto</span></div>
                   <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Excluido</span><strong>${counts.excluido}</strong></div><span class="badge excluded">Fuera</span></div>
-                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Mostrando</span><strong>${rows.length}</strong></div><span class="badge reviewed">Filtro</span></div>
+                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Pendientes visibles</span><strong>${pendingRows.length}</strong></div><span class="badge reviewed">Foco</span></div>
                 </div>
               </div>
             </div>
           </div>
-          <div class="toolbar">
-            <div class="filters">
-              <select data-filter-homologation>
-                <option value="todos" ${state.homologationFilter === "todos" ? "selected" : ""}>Todos los estados</option>
-                <option value="sin_par" ${state.homologationFilter === "sin_par" ? "selected" : ""}>Sin par</option>
-                <option value="manual" ${state.homologationFilter === "manual" ? "selected" : ""}>Manual</option>
-                <option value="automatico" ${state.homologationFilter === "automatico" ? "selected" : ""}>Automatico</option>
-                <option value="excluido" ${state.homologationFilter === "excluido" ? "selected" : ""}>Excluido</option>
-              </select>
+          ${pendingRows.length ? `
+            <div class="panel" id="homologation-pending-section">
+              <div class="panel-head">
+                <div>
+                  <h3>Sin par</h3>
+                  <p class="subtle">Estos son los conceptos que necesitan definicion ahora.</p>
+                </div>
+                <span class="badge pending">${pendingRows.length}</span>
+              </div>
+              <div class="panel-body stack">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Concepto ${esc(profile.sourceName)}</th><th>Concepto ${esc(profile.targetName)}</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody>${pendingRows.map(homologationRow).join("")}</tbody>
+                  </table>
+                </div>
+                ${mobileHomologations(pendingRows)}
+              </div>
             </div>
-            <div class="actions">
-              <button class="btn secondary" data-action="prev">Volver</button>
-              <button class="btn secondary" data-action="save-homologation">Grabar</button>
-              <button class="btn secondary" data-action="confirm-all-homologation">Confirmar todos</button>
-            </div>
+          ` : `<div class="banner ok">No quedan conceptos sin par. Debajo tienes los pareados agrupados para una revision rapida.</div>`}
+          <div class="actions">
+            <button class="btn secondary" data-action="prev">Volver</button>
+            <button class="btn secondary" data-action="save-homologation">Grabar</button>
+            <button class="btn secondary" data-action="confirm-all-homologation">Confirmar todos</button>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Concepto Visma</th><th>Concepto REX+</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody>${rows.map(homologationRow).join("")}</tbody>
-            </table>
-          </div>
-          ${mobileHomologations(rows)}
+          ${groupedRows.map(group => homologationGroup(group)).join("")}
           <div class="actions">
             <button class="btn secondary" data-action="prev">Volver</button>
             <button class="btn secondary" data-action="save-homologation">Grabar</button>
@@ -1462,13 +1549,37 @@
       `;
     }
 
+    function homologationGroup(group) {
+      return `
+        <div class="panel" id="homologation-${esc(group.key)}-section">
+          <div class="panel-head">
+            <div>
+              <h3>${esc(group.title)}</h3>
+              <p class="subtle">${esc(group.hint)}</p>
+            </div>
+            ${badgeForHomologation(group.key)}
+          </div>
+          <div class="panel-body stack">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Concepto ${esc(profile.sourceName)}</th><th>Concepto ${esc(profile.targetName)}</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody>${group.rows.map(homologationRow).join("")}</tbody>
+              </table>
+            </div>
+            ${mobileHomologations(group.rows)}
+          </div>
+        </div>
+      `;
+    }
+
     function homologationRow(h) {
+      const profile = activeProfile();
       const rexConcepts = conceptCatalog("rex");
       return `
         <tr data-hstate="${esc(h.estado)}">
           <td><strong>${esc(h.concepto_a)}</strong></td>
           <td>
-            <select data-hselect="${esc(h.id)}">
+            <select data-hselect="${esc(h.id)}" onchange="window.__codexSetHomologation && window.__codexSetHomologation('${esc(h.id)}', this.value)">
               <option value="">Sin par</option>
               ${rexConcepts.map(c => `<option value="${esc(c)}" ${c === h.concepto_b ? "selected" : ""}>${esc(c)}</option>`).join("")}
             </select>
@@ -1477,8 +1588,8 @@
           <td>${badgeForHomologation(h.estado)}</td>
           <td>
             <div class="inline-actions">
-              <button class="link-btn" data-action="no-pair" data-id="${esc(h.id)}">Sin par</button>
-              <button class="link-btn" data-action="exclude-concept" data-id="${esc(h.id)}">Excluir</button>
+              <button type="button" class="link-btn" data-action="no-pair" data-id="${esc(h.id)}" onclick="window.__codexHomologationAction && window.__codexHomologationAction('no-pair', '${esc(h.id)}')">Sin par</button>
+              <button type="button" class="link-btn" data-action="exclude-concept" data-id="${esc(h.id)}" onclick="window.__codexHomologationAction && window.__codexHomologationAction('exclude-concept', '${esc(h.id)}')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -1486,11 +1597,12 @@
     }
 
     function mobileHomologations(rows) {
+      const profile = activeProfile();
       return `<div class="mobile-list">${rows.map(h => `
         <article class="record">
           <strong>${esc(h.concepto_a)}</strong>
           ${badgeForHomologation(h.estado)}
-          <dl><dt>REX+</dt><dd>${esc(h.concepto_b || "Sin par")}</dd><dt>Tipo</dt><dd>${esc(h.tipo_concepto || "haber")}</dd></dl>
+          <dl><dt>${esc(profile.targetName)}</dt><dd>${esc(h.concepto_b || "Sin par")}</dd><dt>Tipo</dt><dd>${esc(h.tipo_concepto || "haber")}</dd></dl>
         </article>
       `).join("")}</div>`;
     }
@@ -1509,6 +1621,7 @@
     }
 
     function stepContracts() {
+      const profile = activeProfile();
       const mappings = [...state.contractMappings].sort(contractMappingSort);
       const inconsistent = mappings.filter(m => m.warning);
       const unmatchedEmployees = mappings.reduce((sum, m) => sum + m.pairs.filter(p => p.empleado && !p.contrato).length, 0);
@@ -1540,7 +1653,7 @@
           ${inconsistent.length ? `<div class="banner warn">La cantidad de contratos no coincide en ${inconsistent.length} trabajador(es). Revisa el mapeo antes de continuar.</div>` : `<div class="banner ok">Mapeo propuesto sin inconsistencias de cantidad.</div>`}
           <div class="table-wrap">
             <table>
-              <thead><tr><th>RUT</th><th>Trabajador</th><th>Visma</th><th>REX+</th><th>Relacion editable</th><th>Estado</th></tr></thead>
+              <thead><tr><th>RUT</th><th>Trabajador</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Relacion editable</th><th>Estado</th></tr></thead>
               <tbody>${mappings.map(contractRow).join("")}</tbody>
             </table>
           </div>
@@ -1574,11 +1687,12 @@
     }
 
     function contractRecord(m) {
+      const profile = activeProfile();
       return `
         <article class="record">
           <strong>${esc(m.nombre)}</strong>
           ${m.warning ? `<span class="badge pending">Revisar</span>` : `<span class="badge reviewed">OK</span>`}
-          <dl><dt>RUT</dt><dd>${esc(m.rut)}</dd><dt>Visma</dt><dd>${esc(m.empleados.join(", ") || "-")}</dd><dt>REX+</dt><dd>${esc(m.contratos.join(", ") || "-")}</dd></dl>
+          <dl><dt>RUT</dt><dd>${esc(m.rut)}</dd><dt>${esc(profile.sourceName)}</dt><dd>${esc(m.empleados.join(", ") || "-")}</dd><dt>${esc(profile.targetName)}</dt><dd>${esc(m.contratos.join(", ") || "-")}</dd></dl>
         </article>
       `;
     }
@@ -1615,7 +1729,7 @@
       return `
         <div class="stack">
           <div>
-            <h2>Paso 5: Resultados</h2>
+            <h2>Resultados</h2>
             <p class="subtle">Diferencias agrupadas por Sede, Area, Cargo, Concepto y Persona.</p>
           </div>
           ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
@@ -1678,12 +1792,13 @@
     }
 
     function diffTable(diffs) {
+      const profile = activeProfile();
       const shown = diffs.slice(0, DISPLAY_LIMIT);
       return `
         ${diffs.length > DISPLAY_LIMIT ? `<div class="banner warn" style="margin-bottom:12px">Mostrando ${DISPLAY_LIMIT.toLocaleString("es-CL")} de ${diffs.length.toLocaleString("es-CL")} diferencias filtradas. La exportacion incluye el detalle completo.</div>` : ""}
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Tipo</th><th>Persona</th><th>Concepto / Campo</th><th>Sistema A</th><th>Sistema B</th><th>Diferencia</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Tipo</th><th>Persona</th><th>Concepto / Campo</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Diferencia</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>${shown.map(diffRow).join("")}</tbody>
           </table>
         </div>
@@ -1736,7 +1851,7 @@
       return `
         <div class="stack">
           <div>
-            <h2>Paso 6: Justificacion de diferencias</h2>
+            <h2>Justificacion de diferencias</h2>
             <p class="subtle">Selecciona categoria y registra comentario libre cuando aplique.</p>
           </div>
           ${pending.length ? diffTableForJustification(pending) : empty("No hay diferencias pendientes.", "Todas las diferencias estan justificadas.")}
@@ -1774,16 +1889,17 @@
     }
 
     function stepExport() {
+      const profile = activeProfile();
       const totals = summarizeDiffs(state.differences);
       return `
         <div class="stack">
           <div>
-            <h2>Paso 7: Exportacion</h2>
+            <h2>Exportacion</h2>
             <p class="subtle">El reporte refleja el estado actual de revision y justificaciones.</p>
           </div>
           <section class="kpi-grid">
-            ${kpi("Trabajadores Visma", unique(state.rows.visma.map(r => r.rut)).length, "Sistema A")}
-            ${kpi("Trabajadores REX+", unique(state.rows.rex.map(r => r.rut)).length, "Sistema B")}
+            ${kpi(`Trabajadores ${profile.sourceName}`, unique(state.rows.visma.map(r => r.rut)).length, "Sistema A")}
+            ${kpi(`Trabajadores ${profile.targetName}`, unique(state.rows.rex.map(r => r.rut)).length, "Sistema B")}
             ${kpi("Total diferencias", state.differences.length, "Todas las hojas")}
             ${kpi("Pendientes", state.differences.filter(d => d.estado_revision === "pendiente").length, "Sin justificar")}
           </section>
@@ -1907,20 +2023,19 @@
       document.querySelectorAll("[data-nav]").forEach(btn => {
         btn.addEventListener("click", () => navigate(btn.dataset.nav));
       });
+      document.querySelectorAll("[data-step-nav]").forEach(btn => {
+        btn.addEventListener("click", () => goBackToStep(Number(btn.dataset.stepNav)));
+      });
       document.querySelectorAll("[data-action]").forEach(btn => {
         btn.addEventListener("click", () => handleAction(btn.dataset.action, btn.dataset));
       });
       document.querySelectorAll("[data-file]").forEach(input => {
         input.addEventListener("change", event => handleFile(event.target.dataset.file, event.target.files[0]));
       });
-      document.querySelectorAll("[data-filter-homologation]").forEach(sel => {
-        sel.addEventListener("change", e => {
-          state.homologationFilter = e.target.value;
-          render();
-        });
-      });
       const period = document.getElementById("period");
       if (period) period.addEventListener("input", e => state.period = e.target.value);
+      const profile = document.getElementById("profile");
+      if (profile) profile.addEventListener("change", e => setProfile(e.target.value));
       document.querySelectorAll("[data-hselect]").forEach(sel => {
         sel.addEventListener("change", e => updateHomologation(e.target.dataset.hselect, e.target.value));
       });
@@ -1968,8 +2083,8 @@
       if (action === "confirm-contracts") return runComparison();
       if (action === "review") return markReviewed(data.id);
       if (action === "justify-one") return goJustifyOne(data.id);
-      if (action === "go-justify") return goStep(6);
-      if (action === "go-export") return goStep(7);
+      if (action === "go-justify") return goStep(5);
+      if (action === "go-export") return goStep(6);
       if (action === "save-justification") return saveJustification(data.id);
       if (action === "download-report") return downloadReport();
       if (action === "open-history") return openHistory(data.id);
@@ -1979,13 +2094,36 @@
       if (action === "save-config") return saveConfig();
     }
 
+    function setProfile(profileId) {
+      if (!PROFILE_OPTIONS[profileId] || profileId === state.profile) return;
+      state.profile = profileId;
+      state.step = 1;
+      state.files = { visma: null, rex: null };
+      state.rawRows = { visma: [], rex: [] };
+      state.rows = { visma: [], rex: [] };
+      state.conceptHeaders = { visma: [], rex: [] };
+      state.availableConcepts = { visma: [], rex: [] };
+      state.sourceLabel = "";
+      state.fileErrors = { visma: "", rex: "" };
+      state.validations = null;
+      state.homologations = [];
+      state.contractMappings = [];
+      state.differences = [];
+      state.exportDone = false;
+      render();
+      toast(`Dupla activa: ${activeProfile().label}.`);
+    }
+
     function resetWizard(andStart) {
       state.step = 1;
       state.period = new Date().toISOString().slice(0, 7);
       state.files = { visma: null, rex: null };
       state.rawRows = { visma: [], rex: [] };
       state.rows = { visma: [], rex: [] };
+      state.conceptHeaders = { visma: [], rex: [] };
       state.availableConcepts = { visma: [], rex: [] };
+      state.sourceLabel = "";
+      state.fileErrors = { visma: "", rex: "" };
       state.validations = null;
       state.homologations = [];
       state.contractMappings = [];
@@ -2006,6 +2144,8 @@
       };
       state.rawRows = sample;
       state.rows = sample;
+      state.sourceLabel = "Estas trabajando con la muestra demo";
+      state.fileErrors = { visma: "", rex: "" };
       state.availableConcepts = {
         visma: unique(sample.visma.map(r => r.concepto)).sort(),
         rex: unique(sample.rex.map(r => r.concepto)).sort()
@@ -2014,12 +2154,16 @@
         visma: validateRows("visma", sample.visma, Object.keys(sample.visma[0] || {})),
         rex: validateRows("rex", sample.rex, Object.keys(sample.rex[0] || {}))
       };
-      state.step = 2;
+      state.step = 1;
       render();
-      toast("Muestra cargada y validada.");
+      toast("Muestra cargada.");
     }
 
     async function loadRealSample() {
+      if (state.profile !== "visma_rex") {
+        toast("La carga automatica disponible hoy corresponde a la dupla Visma -> Rex+.");
+        return;
+      }
       try {
         const response = await fetch(REAL_SAMPLE_URL);
         if (!response.ok) throw new Error("No se pudo cargar el dataset real.");
@@ -2031,6 +2175,8 @@
         };
         state.rawRows = { visma: payload.rows.visma, rex: payload.rows.rex };
         state.rows = { visma: payload.rows.visma, rex: payload.rows.rex };
+        state.sourceLabel = "Estas trabajando con el ejemplo real RG 2026-04";
+        state.fileErrors = { visma: "", rex: "" };
         state.availableConcepts = {
           visma: (payload.concepts && payload.concepts.visma ? payload.concepts.visma : unique(payload.rows.visma.map(r => r.concepto))).sort(),
           rex: (payload.concepts && payload.concepts.rex ? payload.concepts.rex : unique(payload.rows.rex.map(r => r.concepto))).sort()
@@ -2049,10 +2195,14 @@
             extra: []
           }
         };
-        state.step = 2;
+        state.step = 1;
         render();
         toast("Libros reales RG 2026-04 cargados como ejemplo.");
       } catch (error) {
+        if (location.protocol === "file:") {
+          toast("En modo file:// la muestra automatica puede fallar. Carga los libros desde los cuadros o abre la app por http.");
+          return;
+        }
         toast("No se pudo cargar el ejemplo real desde el servidor local.");
       }
     }
@@ -2060,29 +2210,48 @@
     async function handleFile(system, file) {
       if (!file) return;
       state.files[system] = { name: file.name, size: file.size };
+      state.sourceLabel = "Estas trabajando con libros cargados manualmente";
+      state.fileErrors[system] = "";
+      state.validations = null;
+      state.homologations = [];
+      state.contractMappings = [];
+      state.differences = [];
       try {
-        const parsed = await parseFile(file);
+        const parsed = await parseFile(system, file);
         state.rawRows[system] = parsed.rows;
-        state.rows[system] = normalizeRows(system, parsed.rows);
+        state.conceptHeaders[system] = parsed.conceptHeaders || [];
+        state.rows[system] = normalizeRows(system, parsed.rows, parsed.conceptHeaders || []);
         state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
         toast(`${file.name} cargado.`);
       } catch (error) {
         state.rawRows[system] = [];
         state.rows[system] = [];
-        toast("No se pudo leer el archivo. Revisa el formato.");
+        state.conceptHeaders[system] = [];
+        state.fileErrors[system] = error && error.message ? error.message : "No se pudo leer el archivo.";
+        toast(`No se pudo leer ${file.name}: ${state.fileErrors[system]}`);
       }
       render();
     }
 
-    async function parseFile(file) {
+    async function parseFile(system, file) {
       const ext = file.name.split(".").pop().toLowerCase();
-      if ((ext === "xlsx" || ext === "xls") && window.XLSX) {
+      if (ext === "xlsx" || ext === "xls") {
+        if (!window.XLSX) {
+          const detail = window.__xlsxLoadStatus === "error"
+            ? "No se pudo cargar el lector Excel local."
+            : "El lector Excel aun no esta disponible en esta vista.";
+          throw new Error(detail);
+        }
+        const xlsx = window.XLSX;
         const buffer = await file.arrayBuffer();
-        const wb = XLSX.read(buffer, { type: "array" });
+        const wb = xlsx.read(buffer, { type: "array" });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        const matrix = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "" });
         const rows = rowsFromMatrix(matrix);
-        return { rows, concepts: extractWideConcepts(rows) };
+        const headerIndex = detectHeaderIndex(matrix);
+        const headers = (matrix[headerIndex] || []).map(h => String(h || "").trim());
+        const conceptHeaders = detectWideConceptHeaders(system, headers);
+        return { rows, concepts: extractWideConcepts(rows, conceptHeaders), conceptHeaders };
       }
       const text = await file.text();
       return { rows: parseDelimited(text, ext === "tsv" ? "\t" : ",") };
@@ -2118,11 +2287,29 @@
       return bestIndex;
     }
 
-    function extractWideConcepts(rows) {
+    function detectWideConceptHeaders(system, headers) {
+      const normalized = headers.map(normalizeText);
+      const hasMeta4Shape = normalized.includes("sueldo base") && normalized.includes("sueldo liquido");
+      if (state.profile === "meta4_rex_finning" && system === "visma" && hasMeta4Shape) {
+        const start = normalized.indexOf("sueldo base");
+        const end = normalized.indexOf("sueldo liquido");
+        return headers.slice(start, end).filter(header => isWideConceptColumn(system, header));
+      }
+      const hasRexShape = normalized.includes("sueldo base") && normalized.includes("total descuentos");
+      if (state.profile === "meta4_rex_finning" && system === "rex" && hasRexShape) {
+        const start = normalized.indexOf("sueldo base");
+        const end = normalized.lastIndexOf("total descuentos");
+        return headers.slice(start, end).filter(header => isWideConceptColumn(system, header));
+      }
+      return headers.filter(header => isWideConceptColumn(system, header));
+    }
+
+    function extractWideConcepts(rows, conceptHeaders) {
+      if (conceptHeaders && conceptHeaders.length) {
+        return conceptHeaders.slice().sort((a, b) => a.localeCompare(b));
+      }
       if (!rows.length) return [];
-      return Object.keys(rows[0])
-        .filter(header => isWideConceptColumn("", header))
-        .sort((a, b) => a.localeCompare(b));
+      return Object.keys(rows[0]).filter(header => isWideConceptColumn("", header)).sort((a, b) => a.localeCompare(b));
     }
 
     function parseDelimited(text, delimiter) {
@@ -2158,8 +2345,12 @@
         visma: validateRows("visma", state.rows.visma, Object.keys(state.rawRows.visma[0] || state.rows.visma[0] || {})),
         rex: validateRows("rex", state.rows.rex, Object.keys(state.rawRows.rex[0] || state.rows.rex[0] || {}))
       };
-      state.step = 2;
-      render();
+      const blocked = state.validations.visma.errors.length || state.validations.rex.errors.length;
+      if (blocked) {
+        render();
+        return toast("Hay errores en la estructura. Corrige antes de homologar.");
+      }
+      return prepareHomologations();
     }
 
     function validateRows(system, rows, originalHeaders) {
@@ -2183,8 +2374,8 @@
       return { rows: rows.length, errors, warnings, extra };
     }
 
-    function normalizeRows(system, rows) {
-      if (hasWideConcepts(system, rows)) return normalizeWideRows(system, rows);
+    function normalizeRows(system, rows, conceptHeaders = []) {
+      if (hasWideConcepts(system, rows, conceptHeaders)) return normalizeWideRows(system, rows, conceptHeaders);
       return rows.map(source => {
         const out = {};
         Object.keys(ALIASES).forEach(key => {
@@ -2204,7 +2395,7 @@
       }).filter(r => Object.values(r).some(present));
     }
 
-    function normalizeWideRows(system, rows) {
+    function normalizeWideRows(system, rows, conceptHeaders = []) {
       const normalized = [];
       rows.forEach(source => {
         const rut = cleanRut(valueByAliases(source, "rut"));
@@ -2215,10 +2406,11 @@
           sede: String(valueByAliases(source, "sede") || "Sin sede").trim(),
           area: String(valueByAliases(source, "area") || "Sin area").trim(),
           cargo: String(valueByAliases(source, "cargo") || "Sin cargo").trim(),
-          numero_empleado_a: system === "visma" ? String(valueByAliases(source, "numero_empleado_a") || "").trim() : "",
-          numero_contrato_b: system === "rex" ? String(valueByAliases(source, "numero_contrato_b") || "").trim() : ""
+          numero_empleado_a: system === "visma" ? String(valueByAliases(source, "numero_empleado_a") || valueByAliases(source, "numero_contrato_b") || "").trim() : "",
+          numero_contrato_b: system === "rex" ? String(valueByAliases(source, "numero_contrato_b") || valueByAliases(source, "numero_empleado_a") || "").trim() : ""
         };
-        Object.keys(source).forEach(header => {
+        const headers = conceptHeaders.length ? conceptHeaders : Object.keys(source);
+        headers.forEach(header => {
           if (!isWideConceptColumn(system, header)) return;
           const monto = toNumber(source[header]);
           if (!Number.isFinite(monto) || Math.abs(monto) < 0.000001) return;
@@ -2233,16 +2425,19 @@
       return normalized;
     }
 
-    function hasWideConcepts(system, rows) {
+    function hasWideConcepts(system, rows, conceptHeaders = []) {
       if (!rows.length) return false;
       const hasLong = rows.some(r => present(valueByAliases(r, "concepto")) && Number.isFinite(toNumber(valueByAliases(r, "monto"))));
       if (hasLong) return false;
-      return rows.some(row => Object.keys(row).some(header => isWideConceptColumn(system, header) && Number.isFinite(toNumber(row[header])) && Math.abs(toNumber(row[header])) > 0.000001));
+      const headers = conceptHeaders.length ? conceptHeaders : Object.keys(rows[0] || {});
+      return rows.some(row => headers.some(header => isWideConceptColumn(system, header) && Number.isFinite(toNumber(row[header])) && Math.abs(toNumber(row[header])) > 0.000001));
     }
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
       if (!key || WIDE_EXCLUDED.has(key)) return false;
+      if (key.includes(" orig") || key.includes(" original")) return false;
+      if (key.startsWith("nro ") || key.startsWith("n° ") || key.startsWith("numero ") || key.startsWith("dias ")) return false;
       const aliasKeys = Object.entries(ALIASES).flatMap(([k, aliases]) => [k, ...aliases]).map(normalizeText);
       if (aliasKeys.includes(key)) return false;
       return true;
@@ -2269,7 +2464,9 @@
     function prepareHomologations() {
       const conceptsA = conceptCatalog("visma");
       const conceptsB = conceptCatalog("rex");
-      const saved = state.config.homologaciones.filter(h => h.par_sistemas === "visma_rex");
+      const pairId = pairStorageKey();
+      const saved = state.config.homologaciones.filter(h => h.par_sistemas === pairId);
+      const presets = conceptPairPresets();
       state.homologations = conceptsA.map(conceptA => {
         const stored = saved.find(h => normalizeText(h.concepto_a) === normalizeText(conceptA));
         if (stored) return {
@@ -2278,9 +2475,9 @@
           concepto_b: stored.concepto_b || "",
           tipo_concepto: stored.tipo_concepto || conceptType(conceptA, state.rows.visma),
           estado: stored.estado === "excluido" ? "excluido" : stored.concepto_b ? "manual" : "sin_par",
-          origen: stored.origen || "manual"
-        };
-        const known = KNOWN_CONCEPT_PAIRS.get(normalizeText(conceptA));
+            origen: stored.origen || "manual"
+          };
+        const known = presets.get(normalizeText(conceptA));
         if (known) {
           const exactKnown = conceptsB.find(c => normalizeText(c) === normalizeText(known));
           if (exactKnown) return {
@@ -2302,7 +2499,7 @@
           origen: match.score >= 0.58 ? "automatico" : "manual"
         };
       });
-      state.step = 3;
+      state.step = 2;
       render();
       toast("Propuesta de homologacion generada.");
     }
@@ -2343,10 +2540,13 @@
     function setNoPair(id) {
       const h = state.homologations.find(x => x.id === id);
       if (!h) return;
+      const alreadyPending = h.estado === "sin_par" && !h.concepto_b;
       h.concepto_b = "";
       h.estado = "sin_par";
       h.origen = "manual";
       render();
+      toast(alreadyPending ? "El concepto ya estaba marcado sin par." : "Concepto movido a Sin par.");
+      focusHomologationSection("sin_par");
     }
 
     function excludeConcept(id) {
@@ -2356,7 +2556,33 @@
       h.concepto_b = "";
       h.origen = "manual";
       render();
+      toast("Concepto movido a Excluidos.");
+      focusHomologationSection("excluido");
     }
+
+    function focusHomologationSection(section) {
+      const idMap = {
+        sin_par: "homologation-pending-section",
+        excluido: "homologation-excluido-section"
+      };
+      const targetId = idMap[section];
+      if (!targetId) return;
+      setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el && typeof el.scrollIntoView === "function") {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 0);
+    }
+
+    window.__codexSetHomologation = function(id, conceptB) {
+      updateHomologation(id, conceptB);
+    };
+
+    window.__codexHomologationAction = function(action, id) {
+      if (action === "no-pair") return setNoPair(id);
+      if (action === "exclude-concept") return excludeConcept(id);
+    };
 
     function prepareContracts() {
       persistHomologations();
@@ -2380,7 +2606,7 @@
           warning: empleados.length !== contratos.length
         };
       });
-      state.step = 4;
+      state.step = 3;
       render();
       toast("Mapeo de contratos propuesto.");
     }
@@ -2464,7 +2690,7 @@
       });
 
       state.differences = diffs;
-      state.step = 5;
+      state.step = 4;
       state.selectedNode = "todos";
       render();
       saveCurrentComparison(false);
@@ -2473,10 +2699,11 @@
 
     function persistHomologations() {
       const now = new Date().toISOString();
-      const withoutPair = state.config.homologaciones.filter(h => h.par_sistemas !== "visma_rex");
+      const pairId = pairStorageKey();
+      const withoutPair = state.config.homologaciones.filter(h => h.par_sistemas !== pairId);
       const current = state.homologations.map(h => ({
         id: uid(),
-        par_sistemas: "visma_rex",
+        par_sistemas: pairId,
         empresa: null,
         concepto_a: h.concepto_a,
         concepto_b: h.concepto_b,
@@ -2491,17 +2718,19 @@
     }
 
     function saveCurrentComparison(exported) {
-      const existing = state.history.find(c => c.periodo === state.period && c.id.startsWith("cmp-live-"));
+      const existing = state.history.find(c => c.periodo === state.period && c.pair_profile === pairStorageKey() && c.id.startsWith("cmp-live-"));
       const totals = summarizeDiffs(state.differences);
       const now = new Date().toISOString();
+      const profile = activeProfile();
       const cmp = {
         id: existing ? existing.id : `cmp-live-${Date.now()}`,
+        pair_profile: pairStorageKey(),
         periodo: state.period,
         fecha_creacion: existing ? existing.fecha_creacion : now,
         fecha_completado: now,
         estado: "completado",
-        sistema_a: "Visma",
-        sistema_b: "REX+",
+        sistema_a: profile.sourceName,
+        sistema_b: profile.targetName,
         total_trabajadores_a: unique(state.rows.visma.map(r => r.rut)).length,
         total_trabajadores_b: unique(state.rows.rex.map(r => r.rut)).length,
         total_diferencias: state.differences.length,
@@ -2542,7 +2771,7 @@
     }
 
     function goJustifyOne(id) {
-      state.step = 6;
+      state.step = 5;
       render();
       setTimeout(() => {
         const el = document.querySelector(`[data-just-cat="${CSS.escape(id)}"]`);
@@ -2569,6 +2798,12 @@
       render();
     }
 
+    function goBackToStep(step) {
+      if (step < 1 || step >= state.step) return;
+      state.step = step;
+      render();
+    }
+
     function prevStep() {
       state.step = Math.max(1, state.step - 1);
       render();
@@ -2576,6 +2811,7 @@
 
     function downloadReport() {
       exportComparison({
+        pair_profile: pairStorageKey(),
         periodo: state.period,
         diferencias: state.differences,
         total_trabajadores_a: unique(state.rows.visma.map(r => r.rut)).length,
@@ -2589,10 +2825,11 @@
     function openHistory(id) {
       const cmp = state.history.find(c => c.id === id);
       if (!cmp) return;
+      state.profile = cmp.pair_profile || "visma_rex";
       state.period = cmp.periodo;
       state.differences = cmp.diferencias || [];
       state.rows = { visma: [], rex: [] };
-      state.step = 5;
+      state.step = 4;
       state.view = "wizard";
       render();
     }
@@ -2604,12 +2841,13 @@
     }
 
     function exportComparison(cmp) {
+      const profile = PROFILE_OPTIONS[cmp.pair_profile] || activeProfile();
       const diffs = cmp.diferencias || [];
       const summary = [{
         periodo: cmp.periodo,
         fecha_exportacion: new Date().toISOString(),
-        trabajadores_visma: cmp.total_trabajadores_a || "",
-        trabajadores_rex: cmp.total_trabajadores_b || "",
+        [`Trabajadores ${profile.sourceName}`]: cmp.total_trabajadores_a || "",
+        [`Trabajadores ${profile.targetName}`]: cmp.total_trabajadores_b || "",
         total_diferencias: diffs.length,
         monto: diffs.filter(d => d.tipo === "monto").length,
         conceptos_faltantes: diffs.filter(d => d.tipo === "concepto_faltante").length,
@@ -2618,24 +2856,25 @@
       }];
       const sheets = {
         "Resumen ejecutivo": summary,
-        "Diferencias de monto": rowsForExport(diffs.filter(d => d.tipo === "monto")),
-        "Conceptos faltantes": rowsForExport(diffs.filter(d => d.tipo === "concepto_faltante")),
-        "Trabajadores sin par": rowsForExport(diffs.filter(d => d.tipo === "trabajador_sin_par")),
-        "Diferencias en datos": rowsForExport(diffs.filter(d => d.tipo === "dato_trabajador"))
+        "Diferencias de monto": rowsForExport(diffs.filter(d => d.tipo === "monto"), profile),
+        "Conceptos faltantes": rowsForExport(diffs.filter(d => d.tipo === "concepto_faltante"), profile),
+        "Trabajadores sin par": rowsForExport(diffs.filter(d => d.tipo === "trabajador_sin_par"), profile),
+        "Diferencias en datos": rowsForExport(diffs.filter(d => d.tipo === "dato_trabajador"), profile)
       };
       if (window.XLSX) {
-        const wb = XLSX.utils.book_new();
+        const xlsx = window.XLSX;
+        const wb = xlsx.utils.book_new();
         Object.entries(sheets).forEach(([name, rows]) => {
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{}]), name.slice(0, 31));
+          xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(rows.length ? rows : [{}]), name.slice(0, 31));
         });
-        XLSX.writeFile(wb, `comparacion_remuneraciones_${cmp.periodo || state.period}.xlsx`);
+        xlsx.writeFile(wb, `comparacion_remuneraciones_${cmp.periodo || state.period}.xlsx`);
       } else {
         downloadBlob(spreadsheetXml(sheets), `comparacion_remuneraciones_${cmp.periodo || state.period}.xls`, "application/vnd.ms-excel");
       }
       toast("Reporte generado.");
     }
 
-    function rowsForExport(diffs) {
+    function rowsForExport(diffs, profile = activeProfile()) {
       return diffs.map(d => ({
         tipo: TYPE_LABELS[d.tipo] || d.tipo,
         rut: d.rut,
@@ -2643,17 +2882,17 @@
         sede: d.sede,
         area: d.area,
         cargo: d.cargo,
-        numero_empleado_visma: d.numero_empleado_a,
-        numero_contrato_rex: d.numero_contrato_b,
-        concepto_visma: d.concepto_a,
-        concepto_rex: d.concepto_b,
-        valor_visma: d.valor_a,
-        valor_rex: d.valor_b,
+        [profile.sourceIdLabel]: d.numero_empleado_a,
+        [profile.targetIdLabel]: d.numero_contrato_b,
+        [`Concepto ${profile.sourceName}`]: d.concepto_a,
+        [`Concepto ${profile.targetName}`]: d.concepto_b,
+        [`Valor ${profile.sourceName}`]: d.valor_a,
+        [`Valor ${profile.targetName}`]: d.valor_b,
         diferencia_absoluta: d.diferencia_absoluta,
         diferencia_porcentual: d.diferencia_porcentual,
         campo_diferente: d.campo_diferente,
-        valor_campo_visma: d.valor_campo_a,
-        valor_campo_rex: d.valor_campo_b,
+        [`Valor campo ${profile.sourceName}`]: d.valor_campo_a,
+        [`Valor campo ${profile.targetName}`]: d.valor_campo_b,
         estado_revision: d.estado_revision,
         categoria_justificacion: d.categoria_justificacion,
         comentario_justificacion: d.comentario_justificacion,
@@ -2812,14 +3051,15 @@
     }
 
     function labelCol(col) {
+      const profile = activeProfile();
       const labels = {
         rut: "RUT",
         nombre: "Nombre",
         sede: "Sede",
         area: "Area",
         cargo: "Cargo",
-        numero_empleado_a: "Numero empleado Visma",
-        numero_contrato_b: "Numero contrato REX+",
+        numero_empleado_a: profile.sourceIdLabel,
+        numero_contrato_b: profile.targetIdLabel,
         concepto: "Concepto",
         monto: "Monto"
       };
