@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Comparador de Libros de Remuneraciones</title>
   <script>
+try {
 /*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
 /* vim: set ts=2: */
 /*exported XLSX */
@@ -24493,6 +24494,10 @@ else make_xlsx_lib(XLSX);
 if(typeof window !== 'undefined' && !window.XLSX) try { window.XLSX = XLSX; } catch(e) {}
 
 window.__xlsxLoadStatus="loaded";
+} catch (error) {
+  window.__xlsxLoadStatus="error";
+  window.__xlsxError=String(error && (error.stack || error));
+}
   </script>
   <style>
     :root {
