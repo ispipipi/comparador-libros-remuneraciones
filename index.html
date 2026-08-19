@@ -25491,6 +25491,7 @@ window.__xlsxLoadStatus="loaded";
     const REAL_SAMPLE_URL = "real-example-rg-2026-04.json";
     const LOCAL_APP_URL = "http://127.0.0.1:8077/index.html";
     const DISPLAY_LIMIT = 500;
+    const TREE_NODE_LIMIT = 1000;
     const PROFILE_OPTIONS = {
       meta4_rex_finning: {
         id: "meta4_rex_finning",
@@ -26338,12 +26339,17 @@ window.__xlsxLoadStatus="loaded";
           grouped[path].count++;
         });
       });
-      nodes.push(...Object.values(grouped).sort((a, b) => a.key.localeCompare(b.key)));
+      const groupedNodes = Object.values(grouped).sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+      const visibleNodes = groupedNodes.slice(0, TREE_NODE_LIMIT);
+      visibleNodes.forEach(node => nodes.push(node));
+      const treeNote = groupedNodes.length > TREE_NODE_LIMIT
+        ? `<div class="subtle tree-note">Mostrando ${TREE_NODE_LIMIT.toLocaleString("es-CL")} de ${groupedNodes.length.toLocaleString("es-CL")} agrupaciones.</div>`
+        : "";
       return nodes.map(n => `
         <button class="level-${n.level} ${state.selectedNode === n.key ? "active" : ""}" data-tree="${esc(n.key)}">
           <span>${esc(n.label)}</span><span class="badge excluded">${n.count}</span>
         </button>
-      `).join("");
+      `).join("") + treeNote;
     }
 
     function diffTable(diffs) {
