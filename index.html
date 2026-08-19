@@ -25436,7 +25436,6 @@ window.__xlsxLoadStatus="loaded";
     const STEPS = [
       ["Carga", "Archivos y periodo"],
       ["Homologacion", "Conceptos"],
-      ["Mapeo", "Contratos"],
       ["Resultados", "Drill down"],
       ["Justificacion", "Documentacion"],
       ["Exportacion", "Reporte Excel"]
@@ -25646,7 +25645,6 @@ window.__xlsxLoadStatus="loaded";
       fileErrors: { visma: "", rex: "" },
       validations: null,
       homologations: [],
-      contractMappings: [],
       differences: [],
       selectedNode: "todos",
       filters: { type: "todos", status: "todos", q: "" },
@@ -25900,7 +25898,7 @@ window.__xlsxLoadStatus="loaded";
         <section class="topline">
           <div>
             <h1>Comparacion ${esc(profile.sourceName)} vs ${esc(profile.targetName)}</h1>
-            <p class="subtle">Carga, homologa, mapea y compara los libros de remuneraciones en un flujo operativo unico para ${esc(profile.subtitle)}.</p>
+            <p class="subtle">Carga, homologa y compara los libros de remuneraciones en un flujo operativo unico para ${esc(profile.subtitle)}.</p>
           </div>
           <div class="actions">
             <button class="btn secondary" data-action="reset-wizard">Reiniciar</button>
@@ -25939,9 +25937,8 @@ window.__xlsxLoadStatus="loaded";
     function stepContent() {
       if (state.step === 1) return stepUpload();
       if (state.step === 2) return stepHomologation();
-      if (state.step === 3) return stepContracts();
-      if (state.step === 4) return stepResults();
-      if (state.step === 5) return stepJustify();
+      if (state.step === 3) return stepResults();
+      if (state.step === 4) return stepJustify();
       return stepExport();
     }
 
@@ -26038,8 +26035,7 @@ window.__xlsxLoadStatus="loaded";
                 <div class="ops-chip-grid">
                   <span class="chip">1. Cargar</span>
                   <span class="chip">2. Homologar</span>
-                  <span class="chip">3. Mapear</span>
-                  <span class="chip">4. Comparar</span>
+                  <span class="chip">3. Comparar</span>
                 </div>
               </div>
             </div>
@@ -26156,7 +26152,7 @@ window.__xlsxLoadStatus="loaded";
           <div class="actions">
             <button class="btn secondary" data-action="prev">Volver</button>
             <button class="btn secondary" data-action="save-homologation">Grabar</button>
-            <button class="btn" data-action="confirm-homologation">Grabar y continuar</button>
+            <button class="btn" data-action="confirm-homologation">Grabar y comparar</button>
           </div>
         </div>
       `;
@@ -26232,107 +26228,6 @@ window.__xlsxLoadStatus="loaded";
       const diff = (rank[a.estado] ?? 9) - (rank[b.estado] ?? 9);
       if (diff) return diff;
       return a.concepto_a.localeCompare(b.concepto_a);
-    }
-
-    function stepContracts() {
-      const profile = activeProfile();
-      const mappings = [...state.contractMappings].sort(contractMappingSort);
-      const inconsistent = mappings.filter(m => m.warning);
-      const unmatchedEmployees = mappings.reduce((sum, m) => sum + m.pairs.filter(p => p.empleado && !p.contrato).length, 0);
-      const unmatchedContracts = mappings.reduce((sum, m) => sum + m.pairs.filter(p => !p.empleado && p.contrato).length, 0);
-      return `
-        <div class="stack">
-          <div>
-            <h2>Mapeo de contratos</h2>
-            <p class="subtle">Ajusta manualmente los pares cuando falte match o el orden ascendente no alcance.</p>
-          </div>
-          <div class="ops-grid">
-            <div class="ops-column">
-              <div class="ops-card">
-                <div class="ops-list">
-                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Trabajadores con alerta</span><strong>${inconsistent.length}</strong></div><span class="badge pending">Revisar</span></div>
-                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Empleado sin contrato</span><strong>${unmatchedEmployees}</strong></div><span class="badge manual">Editar</span></div>
-                </div>
-              </div>
-            </div>
-            <div class="ops-column">
-              <div class="ops-card">
-                <div class="ops-list">
-                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Contrato sin empleado</span><strong>${unmatchedContracts}</strong></div><span class="badge manual">Editar</span></div>
-                  <div class="ops-list-item"><div class="ops-stat"><span class="subtle">Total trabajadores</span><strong>${mappings.length}</strong></div><span class="badge excluded">Base</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          ${inconsistent.length ? `<div class="banner warn">La cantidad de contratos no coincide en ${inconsistent.length} trabajador(es). Revisa el mapeo antes de continuar.</div>` : `<div class="banner ok">Mapeo propuesto sin inconsistencias de cantidad.</div>`}
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>RUT</th><th>Trabajador</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Relacion editable</th><th>Estado</th></tr></thead>
-              <tbody>${mappings.map(contractRow).join("")}</tbody>
-            </table>
-          </div>
-          <div class="mobile-list">${mappings.map(contractRecord).join("")}</div>
-          <div class="actions">
-            <button class="btn secondary" data-action="prev">Volver</button>
-            <button class="btn" data-action="confirm-contracts">Confirmar mapeo y comparar</button>
-          </div>
-        </div>
-      `;
-    }
-
-    function contractRow(m) {
-      return `
-        <tr>
-          <td>${esc(m.rut)}</td>
-          <td><strong>${esc(m.nombre)}</strong></td>
-          <td>${esc(m.empleados.join(", ") || "-")}</td>
-          <td>${esc(m.contratos.join(", ") || "-")}</td>
-          <td>
-            <div class="mapping-editor">
-              ${m.pairs.map((p, idx) => pairSelect(m.rut, idx, p, m.empleados, m.contratos)).join("")}
-              <div class="mapping-actions">
-                <button class="btn secondary" data-action="add-contract-pair" data-rut="${esc(m.rut)}">Agregar relacion</button>
-              </div>
-            </div>
-          </td>
-          <td>${m.warning ? `<span class="badge pending">Revisar</span>` : `<span class="badge reviewed">OK</span>`}</td>
-        </tr>
-      `;
-    }
-
-    function contractRecord(m) {
-      const profile = activeProfile();
-      return `
-        <article class="record">
-          <strong>${esc(m.nombre)}</strong>
-          ${m.warning ? `<span class="badge pending">Revisar</span>` : `<span class="badge reviewed">OK</span>`}
-          <dl><dt>RUT</dt><dd>${esc(m.rut)}</dd><dt>${esc(profile.sourceName)}</dt><dd>${esc(m.empleados.join(", ") || "-")}</dd><dt>${esc(profile.targetName)}</dt><dd>${esc(m.contratos.join(", ") || "-")}</dd></dl>
-        </article>
-      `;
-    }
-
-    function contractMappingSort(a, b) {
-      if (a.warning !== b.warning) return a.warning ? -1 : 1;
-      const aMissing = a.pairs.filter(p => !p.empleado || !p.contrato).length;
-      const bMissing = b.pairs.filter(p => !p.empleado || !p.contrato).length;
-      if (aMissing !== bMissing) return bMissing - aMissing;
-      return a.nombre.localeCompare(b.nombre);
-    }
-
-    function pairSelect(rut, idx, pair, empleados, contratos) {
-      return `
-        <div class="mapping-pair">
-          <select data-employee-rut="${esc(rut)}" data-employee-index="${idx}">
-            <option value="">Sin empleado</option>
-            ${empleados.map(e => `<option value="${esc(e)}" ${e === pair.empleado ? "selected" : ""}>${esc(e)}</option>`).join("")}
-          </select>
-          <span>→</span>
-          <select data-contract-rut="${esc(rut)}" data-contract-index="${idx}">
-            <option value="">Sin contrato</option>
-            ${contratos.map(c => `<option value="${esc(c)}" ${c === pair.contrato ? "selected" : ""}>${esc(c)}</option>`).join("")}
-          </select>
-        </div>
-      `;
     }
 
     function stepResults() {
@@ -26662,12 +26557,6 @@ window.__xlsxLoadStatus="loaded";
       document.querySelectorAll("[data-hselect]").forEach(sel => {
         sel.addEventListener("change", e => updateHomologation(e.target.dataset.hselect, e.target.value));
       });
-      document.querySelectorAll("[data-contract-rut]").forEach(sel => {
-        sel.addEventListener("change", e => updateContract(e.target.dataset.contractRut, Number(e.target.dataset.contractIndex), e.target.value));
-      });
-      document.querySelectorAll("[data-employee-rut]").forEach(sel => {
-        sel.addEventListener("change", e => updateContractEmployee(e.target.dataset.employeeRut, Number(e.target.dataset.employeeIndex), e.target.value));
-      });
       const type = document.getElementById("filter-type");
       if (type) type.addEventListener("change", e => { state.filters.type = e.target.value; render(); });
       const status = document.getElementById("filter-status");
@@ -26734,15 +26623,13 @@ window.__xlsxLoadStatus="loaded";
       if (action === "to-homologation") return runBusy("Preparando homologacion...", prepareHomologations);
       if (action === "confirm-all-homologation") return runBusy("Confirmando homologaciones...", confirmAllHomologations);
       if (action === "save-homologation") return runBusy("Guardando homologaciones...", saveHomologation);
-      if (action === "confirm-homologation") return runBusy("Preparando mapeo de contratos...", prepareContracts);
+      if (action === "confirm-homologation") return runBusy("Comparando los libros...", runComparison);
       if (action === "no-pair") return setNoPair(data.id);
       if (action === "exclude-concept") return excludeConcept(data.id);
-      if (action === "add-contract-pair") return addContractPair(data.rut);
-      if (action === "confirm-contracts") return runBusy("Comparando los libros...", runComparison);
       if (action === "review") return markReviewed(data.id);
       if (action === "justify-one") return goJustifyOne(data.id);
-      if (action === "go-justify") return goStep(5);
-      if (action === "go-export") return goStep(6);
+      if (action === "go-justify") return goStep(4);
+      if (action === "go-export") return goStep(5);
       if (action === "save-justification") return saveJustification(data.id);
       if (action === "download-report") return runBusy("Generando reporte...", downloadReport);
       if (action === "open-history") return openHistory(data.id);
@@ -26765,7 +26652,6 @@ window.__xlsxLoadStatus="loaded";
       state.fileErrors = { visma: "", rex: "" };
       state.validations = null;
       state.homologations = [];
-      state.contractMappings = [];
       state.differences = [];
       state.exportDone = false;
       render();
@@ -26784,7 +26670,6 @@ window.__xlsxLoadStatus="loaded";
       state.fileErrors = { visma: "", rex: "" };
       state.validations = null;
       state.homologations = [];
-      state.contractMappings = [];
       state.differences = [];
       state.selectedNode = "todos";
       state.filters = { type: "todos", status: "todos", q: "" };
@@ -26872,7 +26757,6 @@ window.__xlsxLoadStatus="loaded";
       state.fileErrors[system] = "";
       state.validations = null;
       state.homologations = [];
-      state.contractMappings = [];
       state.differences = [];
       return runBusy(`Leyendo ${file.name}...`, async () => {
         try {
@@ -27292,52 +27176,6 @@ window.__xlsxLoadStatus="loaded";
       if (action === "exclude-concept") return excludeConcept(id);
     };
 
-    async function prepareContracts() {
-      persistHomologations();
-      const ruts = unique([...state.rows.visma.map(r => r.rut), ...state.rows.rex.map(r => r.rut)].filter(Boolean)).sort();
-      state.contractMappings = await mapWithYield(ruts, rut => {
-        const a = state.rows.visma.filter(r => r.rut === rut);
-        const b = state.rows.rex.filter(r => r.rut === rut);
-        const empleados = unique(a.map(r => String(r.numero_empleado_a || "").trim()).filter(Boolean)).sort(smartSort);
-        const contratos = unique(b.map(r => String(r.numero_contrato_b || "").trim()).filter(Boolean)).sort(smartSort);
-        const pairCount = Math.max(empleados.length, contratos.length, 1);
-        const pairs = Array.from({ length: pairCount }, (_, i) => ({
-          empleado: empleados[i] || "",
-          contrato: contratos[i] || ""
-        }));
-        return {
-          rut,
-          nombre: (a[0] || b[0] || {}).nombre || "",
-          empleados,
-          contratos,
-          pairs,
-          warning: empleados.length !== contratos.length
-        };
-      }, 100);
-      state.step = 3;
-      render();
-      toast("Mapeo de contratos propuesto.");
-    }
-
-    function updateContract(rut, idx, value) {
-      const mapping = state.contractMappings.find(m => m.rut === rut);
-      if (!mapping || !mapping.pairs[idx]) return;
-      mapping.pairs[idx].contrato = value;
-    }
-
-    function updateContractEmployee(rut, idx, value) {
-      const mapping = state.contractMappings.find(m => m.rut === rut);
-      if (!mapping || !mapping.pairs[idx]) return;
-      mapping.pairs[idx].empleado = value;
-    }
-
-    function addContractPair(rut) {
-      const mapping = state.contractMappings.find(m => m.rut === rut);
-      if (!mapping) return;
-      mapping.pairs.push({ empleado: "", contrato: "" });
-      render();
-    }
-
     function indexRowsBy(rows, keyFn) {
       const index = new Map();
       rows.forEach(row => {
@@ -27350,16 +27188,11 @@ window.__xlsxLoadStatus="loaded";
 
     async function runComparison() {
       const diffs = [];
-      const mapByRutEmployee = new Map();
-      state.contractMappings.forEach(m => {
-        m.pairs.forEach(p => mapByRutEmployee.set(`${m.rut}|${p.empleado}`, p.contrato || ""));
-      });
       const rowsAByRut = indexRowsBy(state.rows.visma, row => row.rut);
       const rowsBByRut = indexRowsBy(state.rows.rex, row => row.rut);
-      const rowsBByConceptContract = indexRowsBy(
-        state.rows.rex,
-        row => `${row.rut}|${normalizeText(row.concepto)}|${String(row.numero_contrato_b)}`
-      );
+      const rowsAByConcept = indexRowsBy(state.rows.visma, row => `${row.rut}|${normalizeText(row.concepto)}`);
+      const rowsBByConcept = indexRowsBy(state.rows.rex, row => `${row.rut}|${normalizeText(row.concepto)}`);
+      const homologationByConcept = new Map(state.homologations.map(h => [normalizeText(h.concepto_a), h]));
       await yieldToBrowser();
       const rutsA = new Set(state.rows.visma.map(r => r.rut).filter(Boolean));
       const rutsB = new Set(state.rows.rex.map(r => r.rut).filter(Boolean));
@@ -27385,45 +27218,45 @@ window.__xlsxLoadStatus="loaded";
         if ((rutIndex + 1) % 25 === 0) await yieldToBrowser();
       }
 
-      for (let sourceIndex = 0; sourceIndex < state.rows.visma.length; sourceIndex++) {
-        const a = state.rows.visma[sourceIndex];
+      let sourceIndex = 0;
+      for (const aMatches of rowsAByConcept.values()) {
+        sourceIndex += 1;
+        if (sourceIndex % 250 === 0) await yieldToBrowser();
+        const a = aMatches[0];
         if (!rutsB.has(a.rut)) continue;
-        const hom = state.homologations.find(h => normalizeText(h.concepto_a) === normalizeText(a.concepto));
+        const hom = homologationByConcept.get(normalizeText(a.concepto));
         if (hom && hom.estado === "excluido") continue;
-        const contractKey = `${a.rut}|${a.numero_empleado_a}`;
-        const contractB = mapByRutEmployee.get(contractKey) || "";
-        if (!contractB) {
-          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom ? hom.concepto_b : "", a.monto, 0, a.numero_empleado_a, ""));
-          continue;
-        }
         if (!hom || !hom.concepto_b) {
-          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, "", a.monto, 0, a.numero_empleado_a, contractB));
+          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, "", sumRows(aMatches), 0, a.numero_empleado_a, ""));
           continue;
         }
-        const bMatches = rowsBByConceptContract.get(`${a.rut}|${normalizeText(hom.concepto_b)}|${String(contractB)}`) || [];
+        const bMatches = rowsBByConcept.get(`${a.rut}|${normalizeText(hom.concepto_b)}`) || [];
         if (!bMatches.length) {
-          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, a.monto, 0, a.numero_empleado_a, contractB));
+          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, sumRows(aMatches), 0, a.numero_empleado_a, ""));
           continue;
         }
         const bTotal = sumRows(bMatches);
-        if (Math.round(a.monto) !== Math.round(bTotal)) {
-          diffs.push(diff("monto", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, a.monto, bTotal, a.numero_empleado_a, contractB));
+        const aTotal = sumRows(aMatches);
+        const bFirst = bMatches[0];
+        if (Math.round(aTotal) !== Math.round(bTotal)) {
+          diffs.push(diff("monto", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, aTotal, bTotal, a.numero_empleado_a, bFirst.numero_contrato_b));
         }
-        if ((sourceIndex + 1) % 250 === 0) await yieldToBrowser();
       }
 
       const mappedB = new Set(state.homologations.map(h => normalizeText(h.concepto_b)).filter(Boolean));
-      for (let targetIndex = 0; targetIndex < state.rows.rex.length; targetIndex++) {
-        const b = state.rows.rex[targetIndex];
+      let targetIndex = 0;
+      for (const bMatches of rowsBByConcept.values()) {
+        targetIndex += 1;
+        if (targetIndex % 250 === 0) await yieldToBrowser();
+        const b = bMatches[0];
         if (!rutsA.has(b.rut)) continue;
         if (!mappedB.has(normalizeText(b.concepto))) {
-          diffs.push(diff("concepto_faltante", b.rut, b.nombre, b.sede, b.area, b.cargo, "", b.concepto, 0, b.monto, "", b.numero_contrato_b));
+          diffs.push(diff("concepto_faltante", b.rut, b.nombre, b.sede, b.area, b.cargo, "", b.concepto, 0, sumRows(bMatches), "", b.numero_contrato_b));
         }
-        if ((targetIndex + 1) % 250 === 0) await yieldToBrowser();
       }
 
       state.differences = diffs;
-      state.step = 4;
+      state.step = 3;
       state.selectedNode = "todos";
       render();
       saveCurrentComparison(false);
@@ -27504,7 +27337,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function goJustifyOne(id) {
-      state.step = 5;
+      state.step = 4;
       render();
       setTimeout(() => {
         const el = document.querySelector(`[data-just-cat="${CSS.escape(id)}"]`);
@@ -27562,7 +27395,7 @@ window.__xlsxLoadStatus="loaded";
       state.period = cmp.periodo;
       state.differences = cmp.diferencias || [];
       state.rows = { visma: [], rex: [] };
-      state.step = 4;
+      state.step = 3;
       state.view = "wizard";
       render();
     }
