@@ -24559,6 +24559,47 @@ window.__xlsxLoadStatus="loaded";
       grid-template-columns: 248px minmax(0, 1fr);
     }
 
+    .busy-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(245, 247, 248, 0.76);
+      backdrop-filter: blur(3px);
+    }
+
+    .busy-card {
+      width: min(360px, 100%);
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 18px 48px rgba(22, 32, 29, 0.16);
+      text-align: center;
+    }
+
+    .busy-spinner {
+      width: 42px;
+      height: 42px;
+      border: 4px solid #d5e8e3;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: busy-spin 0.8s linear infinite;
+    }
+
+    .busy-card strong {
+      font-size: 16px;
+    }
+
+    @keyframes busy-spin {
+      to { transform: rotate(360deg); }
+    }
+
     .sidebar {
       position: sticky;
       top: 0;
@@ -25610,6 +25651,8 @@ window.__xlsxLoadStatus="loaded";
       selectedNode: "todos",
       filters: { type: "todos", status: "todos", q: "" },
       exportDone: false,
+      busy: false,
+      busyMessage: "",
       history: loadJson(STORE.history, seedHistory()),
       config: loadJson(STORE.config, DEFAULT_CONFIG)
     };
@@ -25781,8 +25824,19 @@ window.__xlsxLoadStatus="loaded";
             ${viewMarkup()}
           </main>
         </div>
+        ${busyMarkup()}
       `;
       bindEvents();
+    }
+
+    function busyMarkup() {
+      if (!state.busy) return "";
+      return "<div class=\"busy-layer\" role=\"status\" aria-live=\"polite\" aria-busy=\"true\">"
+        + "<div class=\"busy-card\">"
+        + "<div class=\"busy-spinner\" aria-hidden=\"true\"></div>"
+        + "<strong>" + esc(state.busyMessage || "Procesando...") + "</strong>"
+        + "<span class=\"subtle\">Puedes esperar aquí; el comparador sigue trabajando.</span>"
+        + "</div></div>";
     }
 
     function navButton(view, icon, label) {
@@ -26635,6 +26689,35 @@ window.__xlsxLoadStatus="loaded";
       render();
     }
 
+    function waitForBrowserPaint() {
+      return new Promise(resolve => {
+        const frame = window.requestAnimationFrame || (callback => setTimeout(callback, 16));
+        frame(() => frame(resolve));
+      });
+    }
+
+    async function runBusy(message, task) {
+      if (state.busy) return;
+      state.busy = true;
+      state.busyMessage = message;
+      render();
+      await waitForBrowserPaint();
+      try {
+        return await task();
+      } catch (error) {
+        console.error(error);
+        toast(error && error.message ? error.message : "No se pudo completar la operacion.");
+      } finally {
+        state.busy = false;
+        state.busyMessage = "";
+        render();
+      }
+    }
+
+    async function yieldToBrowser() {
+      await waitForBrowserPaint();
+    }
+
     async function handleAction(action, data) {
       if (action === "start") return resetWizard(true);
       if (action === "reset-wizard") return resetWizard(false);
@@ -26644,24 +26727,24 @@ window.__xlsxLoadStatus="loaded";
         input.click();
         return;
       }
-      if (action === "load-sample") return loadSample();
-      if (action === "load-real-sample") return loadRealSample();
-      if (action === "validate") return validateAndContinue();
+      if (action === "load-sample") return runBusy("Preparando muestra...", loadSample);
+      if (action === "load-real-sample") return runBusy("Cargando ejemplo real...", loadRealSample);
+      if (action === "validate") return runBusy("Analizando la estructura de los libros...", validateAndContinue);
       if (action === "prev") return prevStep();
-      if (action === "to-homologation") return prepareHomologations();
-      if (action === "confirm-all-homologation") return confirmAllHomologations();
-      if (action === "save-homologation") return saveHomologation();
-      if (action === "confirm-homologation") return prepareContracts();
+      if (action === "to-homologation") return runBusy("Preparando homologacion...", prepareHomologations);
+      if (action === "confirm-all-homologation") return runBusy("Confirmando homologaciones...", confirmAllHomologations);
+      if (action === "save-homologation") return runBusy("Guardando homologaciones...", saveHomologation);
+      if (action === "confirm-homologation") return runBusy("Preparando mapeo de contratos...", prepareContracts);
       if (action === "no-pair") return setNoPair(data.id);
       if (action === "exclude-concept") return excludeConcept(data.id);
       if (action === "add-contract-pair") return addContractPair(data.rut);
-      if (action === "confirm-contracts") return runComparison();
+      if (action === "confirm-contracts") return runBusy("Comparando los libros...", runComparison);
       if (action === "review") return markReviewed(data.id);
       if (action === "justify-one") return goJustifyOne(data.id);
       if (action === "go-justify") return goStep(5);
       if (action === "go-export") return goStep(6);
       if (action === "save-justification") return saveJustification(data.id);
-      if (action === "download-report") return downloadReport();
+      if (action === "download-report") return runBusy("Generando reporte...", downloadReport);
       if (action === "open-history") return openHistory(data.id);
       if (action === "export-history") return exportHistory(data.id);
       if (action === "add-config") return addConfigValue(data.key);
@@ -26783,7 +26866,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     async function handleFile(system, file) {
-      if (!file) return;
+      if (!file || state.busy) return;
       state.files[system] = { name: file.name, size: file.size };
       state.sourceLabel = "Estas trabajando con libros cargados manualmente";
       state.fileErrors[system] = "";
@@ -26791,21 +26874,23 @@ window.__xlsxLoadStatus="loaded";
       state.homologations = [];
       state.contractMappings = [];
       state.differences = [];
-      try {
-        const parsed = await parseFile(system, file);
-        state.rawRows[system] = parsed.rows;
-        state.conceptHeaders[system] = parsed.conceptHeaders || [];
-        state.rows[system] = normalizeRows(system, parsed.rows, parsed.conceptHeaders || []);
-        state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
-        toast(`${file.name} cargado.`);
-      } catch (error) {
-        state.rawRows[system] = [];
-        state.rows[system] = [];
-        state.conceptHeaders[system] = [];
-        state.fileErrors[system] = error && error.message ? error.message : "No se pudo leer el archivo.";
-        toast(`No se pudo leer ${file.name}: ${state.fileErrors[system]}`);
-      }
-      render();
+      return runBusy(`Leyendo ${file.name}...`, async () => {
+        try {
+          const parsed = await parseFile(system, file);
+          state.rawRows[system] = parsed.rows;
+          state.conceptHeaders[system] = parsed.conceptHeaders || [];
+          state.rows[system] = await normalizeRows(system, parsed.rows, parsed.conceptHeaders || []);
+          state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
+          toast(`${file.name} cargado.`);
+        } catch (error) {
+          state.rawRows[system] = [];
+          state.rows[system] = [];
+          state.conceptHeaders[system] = [];
+          state.fileErrors[system] = error && error.message ? error.message : "No se pudo leer el archivo.";
+          toast(`No se pudo leer ${file.name}: ${state.fileErrors[system]}`);
+        }
+        render();
+      });
     }
 
     async function parseFile(system, file) {
@@ -26819,9 +26904,11 @@ window.__xlsxLoadStatus="loaded";
         }
         const xlsx = window.XLSX;
         const buffer = await file.arrayBuffer();
+        await yieldToBrowser();
         const wb = xlsx.read(buffer, { type: "array" });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const matrix = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        await yieldToBrowser();
         const rows = rowsFromMatrix(matrix);
         const headerIndex = detectHeaderIndex(matrix);
         const headers = (matrix[headerIndex] || []).map(h => String(h || "").trim());
@@ -26952,9 +27039,18 @@ window.__xlsxLoadStatus="loaded";
       return { rows: rows.length, errors, warnings, extra };
     }
 
-    function normalizeRows(system, rows, conceptHeaders = []) {
+    async function mapWithYield(values, mapper, chunkSize = 100) {
+      const result = [];
+      for (let index = 0; index < values.length; index++) {
+        result.push(await mapper(values[index], index));
+        if ((index + 1) % chunkSize === 0) await yieldToBrowser();
+      }
+      return result;
+    }
+
+    async function normalizeRows(system, rows, conceptHeaders = []) {
       if (hasWideConcepts(system, rows, conceptHeaders)) return normalizeWideRows(system, rows, conceptHeaders);
-      return rows.map(source => {
+      const normalized = await mapWithYield(rows, source => {
         const out = {};
         Object.keys(ALIASES).forEach(key => {
           out[key] = valueByAliases(source, key);
@@ -26971,14 +27067,16 @@ window.__xlsxLoadStatus="loaded";
         out.monto = present(out.monto) ? toNumber(out.monto) : NaN;
         out.focus = focusSnapshot(source, out);
         return out;
-      }).filter(r => Object.values(r).some(present));
+      });
+      return normalized.filter(r => Object.values(r).some(present));
     }
 
-    function normalizeWideRows(system, rows, conceptHeaders = []) {
+    async function normalizeWideRows(system, rows, conceptHeaders = []) {
       const normalized = [];
-      rows.forEach(source => {
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        const source = rows[rowIndex];
         const rut = cleanRut(valueByAliases(source, "rut"));
-        if (!rut) return;
+        if (!rut) continue;
         const base = {
           rut,
           nombre: String(valueByAliases(source, "nombre") || "").trim(),
@@ -27001,7 +27099,8 @@ window.__xlsxLoadStatus="loaded";
             monto
           });
         });
-      });
+        if ((rowIndex + 1) % 100 === 0) await yieldToBrowser();
+      }
       return normalized;
     }
 
@@ -27070,13 +27169,13 @@ window.__xlsxLoadStatus="loaded";
       return normalizeText(value);
     }
 
-    function prepareHomologations() {
+    async function prepareHomologations() {
       const conceptsA = conceptCatalog("visma");
       const conceptsB = conceptCatalog("rex");
       const pairId = pairStorageKey();
       const saved = state.config.homologaciones.filter(h => h.par_sistemas === pairId);
       const presets = conceptPairPresets();
-      state.homologations = conceptsA.map(conceptA => {
+      state.homologations = await mapWithYield(conceptsA, conceptA => {
         const stored = saved.find(h => normalizeText(h.concepto_a) === normalizeText(conceptA));
         if (stored) return {
           id: uid(),
@@ -27107,7 +27206,7 @@ window.__xlsxLoadStatus="loaded";
           estado: match.score >= 0.58 ? "automatico" : "sin_par",
           origen: match.score >= 0.58 ? "automatico" : "manual"
         };
-      });
+      }, 25);
       state.step = 2;
       render();
       toast("Propuesta de homologacion generada.");
@@ -27193,10 +27292,10 @@ window.__xlsxLoadStatus="loaded";
       if (action === "exclude-concept") return excludeConcept(id);
     };
 
-    function prepareContracts() {
+    async function prepareContracts() {
       persistHomologations();
       const ruts = unique([...state.rows.visma.map(r => r.rut), ...state.rows.rex.map(r => r.rut)].filter(Boolean)).sort();
-      state.contractMappings = ruts.map(rut => {
+      state.contractMappings = await mapWithYield(ruts, rut => {
         const a = state.rows.visma.filter(r => r.rut === rut);
         const b = state.rows.rex.filter(r => r.rut === rut);
         const empleados = unique(a.map(r => String(r.numero_empleado_a || "").trim()).filter(Boolean)).sort(smartSort);
@@ -27214,7 +27313,7 @@ window.__xlsxLoadStatus="loaded";
           pairs,
           warning: empleados.length !== contratos.length
         };
-      });
+      }, 100);
       state.step = 3;
       render();
       toast("Mapeo de contratos propuesto.");
@@ -27239,23 +27338,42 @@ window.__xlsxLoadStatus="loaded";
       render();
     }
 
-    function runComparison() {
+    function indexRowsBy(rows, keyFn) {
+      const index = new Map();
+      rows.forEach(row => {
+        const key = keyFn(row);
+        if (!index.has(key)) index.set(key, []);
+        index.get(key).push(row);
+      });
+      return index;
+    }
+
+    async function runComparison() {
       const diffs = [];
       const mapByRutEmployee = new Map();
       state.contractMappings.forEach(m => {
         m.pairs.forEach(p => mapByRutEmployee.set(`${m.rut}|${p.empleado}`, p.contrato || ""));
       });
+      const rowsAByRut = indexRowsBy(state.rows.visma, row => row.rut);
+      const rowsBByRut = indexRowsBy(state.rows.rex, row => row.rut);
+      const rowsBByConceptContract = indexRowsBy(
+        state.rows.rex,
+        row => `${row.rut}|${normalizeText(row.concepto)}|${String(row.numero_contrato_b)}`
+      );
+      await yieldToBrowser();
       const rutsA = new Set(state.rows.visma.map(r => r.rut).filter(Boolean));
       const rutsB = new Set(state.rows.rex.map(r => r.rut).filter(Boolean));
-      unique([...rutsA, ...rutsB]).forEach(rut => {
-        const aRows = state.rows.visma.filter(r => r.rut === rut);
-        const bRows = state.rows.rex.filter(r => r.rut === rut);
+      const comparisonRuts = unique([...rutsA, ...rutsB]);
+      for (let rutIndex = 0; rutIndex < comparisonRuts.length; rutIndex++) {
+        const rut = comparisonRuts[rutIndex];
+        const aRows = rowsAByRut.get(rut) || [];
+        const bRows = rowsBByRut.get(rut) || [];
         const aFirst = aRows[0];
         const bFirst = bRows[0];
         if (!aRows.length || !bRows.length) {
           const base = aFirst || bFirst;
           diffs.push(diff("trabajador_sin_par", rut, base.nombre, base.sede, base.area, base.cargo, aFirst ? (aFirst.concepto || "") : "", bFirst ? (bFirst.concepto || "") : "", aFirst ? sumRows(aRows) : 0, bFirst ? sumRows(bRows) : 0, aFirst ? aFirst.numero_empleado_a : "", bFirst ? bFirst.numero_contrato_b : ""));
-          return;
+          continue;
         }
         FOCUS_FIELDS.forEach(field => {
           const valueA = focusValue(aFirst, field.key);
@@ -27264,41 +27382,45 @@ window.__xlsxLoadStatus="loaded";
             diffs.push(diff("dato_trabajador", rut, aFirst.nombre || bFirst.nombre, aFirst.sede || bFirst.sede, aFirst.area || bFirst.area, aFirst.cargo || bFirst.cargo, "", "", 0, 0, aFirst.numero_empleado_a, bFirst.numero_contrato_b, field.key, valueA, valueB));
           }
         });
-      });
+        if ((rutIndex + 1) % 25 === 0) await yieldToBrowser();
+      }
 
-      state.rows.visma.forEach(a => {
-        if (!rutsB.has(a.rut)) return;
+      for (let sourceIndex = 0; sourceIndex < state.rows.visma.length; sourceIndex++) {
+        const a = state.rows.visma[sourceIndex];
+        if (!rutsB.has(a.rut)) continue;
         const hom = state.homologations.find(h => normalizeText(h.concepto_a) === normalizeText(a.concepto));
-        if (hom && hom.estado === "excluido") return;
+        if (hom && hom.estado === "excluido") continue;
         const contractKey = `${a.rut}|${a.numero_empleado_a}`;
         const contractB = mapByRutEmployee.get(contractKey) || "";
         if (!contractB) {
           diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom ? hom.concepto_b : "", a.monto, 0, a.numero_empleado_a, ""));
-          return;
+          continue;
         }
         if (!hom || !hom.concepto_b) {
           diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, "", a.monto, 0, a.numero_empleado_a, contractB));
-          return;
+          continue;
         }
-        const bMatches = state.rows.rex.filter(b => b.rut === a.rut && normalizeText(b.concepto) === normalizeText(hom.concepto_b) && String(b.numero_contrato_b) === String(contractB));
+        const bMatches = rowsBByConceptContract.get(`${a.rut}|${normalizeText(hom.concepto_b)}|${String(contractB)}`) || [];
         if (!bMatches.length) {
           diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, a.monto, 0, a.numero_empleado_a, contractB));
-          return;
+          continue;
         }
         const bTotal = sumRows(bMatches);
         if (Math.round(a.monto) !== Math.round(bTotal)) {
           diffs.push(diff("monto", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, a.monto, bTotal, a.numero_empleado_a, contractB));
         }
-      });
+        if ((sourceIndex + 1) % 250 === 0) await yieldToBrowser();
+      }
 
       const mappedB = new Set(state.homologations.map(h => normalizeText(h.concepto_b)).filter(Boolean));
-      state.rows.rex.forEach(b => {
-        if (!rutsA.has(b.rut)) return;
+      for (let targetIndex = 0; targetIndex < state.rows.rex.length; targetIndex++) {
+        const b = state.rows.rex[targetIndex];
+        if (!rutsA.has(b.rut)) continue;
         if (!mappedB.has(normalizeText(b.concepto))) {
-          const aRows = state.rows.visma.filter(a => a.rut === b.rut);
-          if (aRows.length) diffs.push(diff("concepto_faltante", b.rut, b.nombre, b.sede, b.area, b.cargo, "", b.concepto, 0, b.monto, "", b.numero_contrato_b));
+          diffs.push(diff("concepto_faltante", b.rut, b.nombre, b.sede, b.area, b.cargo, "", b.concepto, 0, b.monto, "", b.numero_contrato_b));
         }
-      });
+        if ((targetIndex + 1) % 250 === 0) await yieldToBrowser();
+      }
 
       state.differences = diffs;
       state.step = 4;
