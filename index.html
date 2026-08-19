@@ -25492,6 +25492,7 @@ window.__xlsxLoadStatus="loaded";
     const LOCAL_APP_URL = "http://127.0.0.1:8077/index.html";
     const DISPLAY_LIMIT = 500;
     const TREE_NODE_LIMIT = 1000;
+    const JUSTIFICATION_PAGE_SIZE = 100;
     const PROFILE_OPTIONS = {
       meta4_rex_finning: {
         id: "meta4_rex_finning",
@@ -25687,6 +25688,7 @@ window.__xlsxLoadStatus="loaded";
       differences: [],
       selectedNode: "todos",
       filters: { type: "todos", status: "todos", q: "" },
+      justificationPage: 0,
       exportDone: false,
       busy: false,
       busyMessage: "",
@@ -26418,17 +26420,34 @@ window.__xlsxLoadStatus="loaded";
 
     function stepJustify() {
       const pending = state.differences.filter(d => d.estado_revision !== "justificado");
+      const totalPages = Math.max(1, Math.ceil(pending.length / JUSTIFICATION_PAGE_SIZE));
+      const page = Math.min(state.justificationPage, totalPages - 1);
+      state.justificationPage = page;
+      const start = page * JUSTIFICATION_PAGE_SIZE;
+      const pageRows = pending.slice(start, start + JUSTIFICATION_PAGE_SIZE);
       return `
         <div class="stack">
           <div>
             <h2>Justificacion de diferencias</h2>
             <p class="subtle">Selecciona categoria y registra comentario libre cuando aplique.</p>
           </div>
-          ${pending.length ? diffTableForJustification(pending) : empty("No hay diferencias pendientes.", "Todas las diferencias estan justificadas.")}
+          ${pending.length ? `<div class="banner warn">Mostrando ${start + 1}-${Math.min(start + JUSTIFICATION_PAGE_SIZE, pending.length)} de ${pending.length.toLocaleString("es-CL")} diferencias pendientes.</div>` : empty("No hay diferencias pendientes.", "Todas las diferencias estan justificadas.")}
+          ${pending.length ? diffTableForJustification(pageRows) : ""}
+          ${pending.length > JUSTIFICATION_PAGE_SIZE ? justificationPager(page, totalPages) : ""}
           <div class="actions">
             <button class="btn secondary" data-action="prev">Volver</button>
             <button class="btn" data-action="go-export">Exportar</button>
           </div>
+        </div>
+      `;
+    }
+
+    function justificationPager(page, totalPages) {
+      return `
+        <div class="actions">
+          <button class="btn secondary" data-action="justification-prev" ${page === 0 ? "disabled" : ""}>Anterior</button>
+          <span class="subtle">Pagina ${page + 1} de ${totalPages}</span>
+          <button class="btn secondary" data-action="justification-next" ${page >= totalPages - 1 ? "disabled" : ""}>Siguiente</button>
         </div>
       `;
     }
@@ -26701,6 +26720,8 @@ window.__xlsxLoadStatus="loaded";
       if (action === "review") return markReviewed(data.id);
       if (action === "justify-one") return goJustifyOne(data.id);
       if (action === "go-justify") return goStep(4);
+      if (action === "justification-prev") return changeJustificationPage(-1);
+      if (action === "justification-next") return changeJustificationPage(1);
       if (action === "go-export") return goStep(5);
       if (action === "save-justification") return saveJustification(data.id);
       if (action === "download-report") return runBusy("Generando reporte...", downloadReport);
@@ -27360,6 +27381,7 @@ window.__xlsxLoadStatus="loaded";
       state.differences = diffs;
       state.step = 3;
       state.selectedNode = "todos";
+      state.justificationPage = 0;
       render();
       saveCurrentComparison(false);
       toast(`Comparacion completada. Se detectaron ${diffs.length} diferencias.`);
@@ -27439,12 +27461,22 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function goJustifyOne(id) {
+      const pending = state.differences.filter(d => d.estado_revision !== "justificado");
+      const index = pending.findIndex(d => d.id === id);
+      state.justificationPage = index >= 0 ? Math.floor(index / JUSTIFICATION_PAGE_SIZE) : 0;
       state.step = 4;
       render();
       setTimeout(() => {
         const el = document.querySelector(`[data-just-cat="${CSS.escape(id)}"]`);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 0);
+    }
+
+    function changeJustificationPage(delta) {
+      const pendingCount = state.differences.filter(d => d.estado_revision !== "justificado").length;
+      const totalPages = Math.max(1, Math.ceil(pendingCount / JUSTIFICATION_PAGE_SIZE));
+      state.justificationPage = Math.max(0, Math.min(totalPages - 1, state.justificationPage + delta));
+      render();
     }
 
     function saveJustification(id) {
