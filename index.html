@@ -26298,6 +26298,7 @@ window.__xlsxLoadStatus="loaded";
             ${kpi("Cumplimiento revision", compliance + "%", "Justificadas / total")}
           </section>
           <div class="progress" aria-label="Cumplimiento revision"><span style="--w:${compliance}%"></span></div>
+          ${conceptSummaryMarkup(state.differences)}
           <div class="toolbar">
             <div class="filters">
               <select id="filter-type">
@@ -26333,7 +26334,7 @@ window.__xlsxLoadStatus="loaded";
       const nodes = [{ key: "todos", label: "Todas", count: state.differences.length, level: 0 }];
       const grouped = {};
       state.differences.forEach(d => {
-        const parts = [d.sede || "Sin sede", d.area || "Sin area", d.cargo || "Sin cargo", differenceLabel(d), d.nombre_trabajador || d.rut];
+        const parts = [conceptSourceText(d), conceptTargetText(d), d.sede || "Sin sede", d.area || "Sin area", d.nombre_trabajador || d.rut];
         let path = "";
         parts.forEach((part, idx) => {
           path += (idx ? ">" : "") + part;
@@ -26354,6 +26355,49 @@ window.__xlsxLoadStatus="loaded";
       `).join("") + treeNote;
     }
 
+    function conceptSummaryMarkup(diffs) {
+      const grouped = new Map();
+      diffs.forEach(d => {
+        const source = conceptSourceText(d);
+        const target = conceptTargetText(d);
+        const key = `${d.tipo}|${normalizeText(source)}|${normalizeText(target)}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, { source, target, type: TYPE_LABELS[d.tipo] || d.tipo, affected: new Set(), differences: 0 });
+        }
+        const item = grouped.get(key);
+        item.affected.add(d.rut || d.nombre_trabajador || "sin-identificador");
+        item.differences += 1;
+      });
+      const rows = [...grouped.values()].sort((a, b) => b.affected.size - a.affected.size || b.differences - a.differences || a.source.localeCompare(b.source));
+      const shown = rows.slice(0, 500);
+      return `
+        <section class="panel concept-summary">
+          <div class="panel-head">
+            <div>
+              <h3>Impacto por concepto</h3>
+              <p class="subtle">Revisa primero qué concepto afecta a más trabajadores y cuál es su destino homologado.</p>
+            </div>
+            <span class="badge excluded">${rows.length.toLocaleString("es-CL")} conceptos</span>
+          </div>
+          <div class="panel-body">
+            ${rows.length ? `<div class="table-wrap"><table>
+              <thead><tr><th>Concepto origen</th><th>Concepto destino</th><th>Tipo</th><th>Trabajadores afectados</th><th>Diferencias</th><th>Accion</th></tr></thead>
+              <tbody>${shown.map(item => `
+                <tr>
+                  <td><strong>${esc(item.source)}</strong></td>
+                  <td>${esc(item.target)}</td>
+                  <td>${esc(item.type)}</td>
+                  <td class="num">${item.affected.size.toLocaleString("es-CL")}</td>
+                  <td class="num">${item.differences.toLocaleString("es-CL")}</td>
+                  <td><button class="link-btn" data-action="filter-concept" data-concept="${esc(item.source)}">Ver detalle</button></td>
+                </tr>
+              `).join("")}</tbody>
+            </table></div>${rows.length > shown.length ? `<p class="subtle">Mostrando los ${shown.length.toLocaleString("es-CL")} conceptos con mayor impacto.</p>` : ""}` : empty("Sin conceptos afectados.", "No se detectaron diferencias para agrupar.")}
+          </div>
+        </section>
+      `;
+    }
+
     function diffTable(diffs) {
       const profile = activeProfile();
       const shown = diffs.slice(0, DISPLAY_LIMIT);
@@ -26361,7 +26405,7 @@ window.__xlsxLoadStatus="loaded";
         ${diffs.length > DISPLAY_LIMIT ? `<div class="banner warn" style="margin-bottom:12px">Mostrando ${DISPLAY_LIMIT.toLocaleString("es-CL")} de ${diffs.length.toLocaleString("es-CL")} diferencias filtradas. La exportacion incluye el detalle completo.</div>` : ""}
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Tipo</th><th>Persona</th><th>Concepto / Campo</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Diferencia</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Tipo</th><th>Persona</th><th>Concepto origen</th><th>Concepto destino</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Diferencia</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>${shown.map(diffRow).join("")}</tbody>
           </table>
         </div>
@@ -26374,7 +26418,8 @@ window.__xlsxLoadStatus="loaded";
         <tr>
           <td>${esc(TYPE_LABELS[d.tipo])}</td>
           <td><strong>${esc(d.nombre_trabajador || "-")}</strong><br><span class="subtle">${esc(d.rut)}</span></td>
-          <td>${esc(differenceLabel(d))}</td>
+          <td>${esc(conceptSourceText(d))}</td>
+          <td>${esc(conceptTargetText(d))}</td>
           <td>${valueA(d)}</td>
           <td>${valueB(d)}</td>
           <td class="num">${money(d.diferencia_absoluta)}</td>
@@ -26389,7 +26434,7 @@ window.__xlsxLoadStatus="loaded";
         <article class="record">
           <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
           ${statusBadge(d.estado_revision)}
-          <dl><dt>Tipo</dt><dd>${esc(TYPE_LABELS[d.tipo])}</dd><dt>Concepto</dt><dd>${esc(differenceLabel(d))}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd></dl>
+          <dl><dt>Tipo</dt><dd>${esc(TYPE_LABELS[d.tipo])}</dd><dt>Origen</dt><dd>${esc(conceptSourceText(d))}</dd><dt>Destino</dt><dd>${esc(conceptTargetText(d))}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd></dl>
         </article>
       `;
     }
@@ -26409,6 +26454,18 @@ window.__xlsxLoadStatus="loaded";
       return d.concepto_a || d.concepto_b || d.campo_diferente || "-";
     }
 
+    function conceptSourceText(d) {
+      if (d.concepto_a) return d.concepto_a;
+      if (d.tipo === "dato_trabajador") return focusFieldLabel(d.campo_diferente);
+      return "Sin concepto";
+    }
+
+    function conceptTargetText(d) {
+      if (d.concepto_b) return d.concepto_b;
+      if (d.tipo === "dato_trabajador") return focusFieldLabel(d.campo_diferente);
+      return "Sin par";
+    }
+
     function focusFieldLabel(key) {
       return FOCUS_FIELDS.find(field => field.key === key)?.label || key || "Campo";
     }
@@ -26419,6 +26476,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function stepJustify() {
+      const profile = activeProfile();
       const pending = state.differences.filter(d => d.estado_revision !== "justificado");
       const totalPages = Math.max(1, Math.ceil(pending.length / JUSTIFICATION_PAGE_SIZE));
       const page = Math.min(state.justificationPage, totalPages - 1);
@@ -26429,7 +26487,7 @@ window.__xlsxLoadStatus="loaded";
         <div class="stack">
           <div>
             <h2>Justificacion de diferencias</h2>
-            <p class="subtle">Selecciona categoria y registra comentario libre cuando aplique.</p>
+            <p class="subtle">Cada registro apunta al concepto destino de ${esc(profile.targetName)} y muestra los valores comparados.</p>
           </div>
           ${pending.length ? `<div class="banner warn">Mostrando ${start + 1}-${Math.min(start + JUSTIFICATION_PAGE_SIZE, pending.length)} de ${pending.length.toLocaleString("es-CL")} diferencias pendientes.</div>` : empty("No hay diferencias pendientes.", "Todas las diferencias estan justificadas.")}
           ${pending.length ? diffTableForJustification(pageRows) : ""}
@@ -26453,16 +26511,18 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function diffTableForJustification(diffs) {
+      const profile = activeProfile();
       return `
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Diferencia</th><th>Detalle</th><th>Categoria</th><th>Comentario</th><th>Accion</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Origen ${esc(profile.sourceName)}</th><th>Destino ${esc(profile.targetName)}</th><th>Valores comparados</th><th>Justificacion</th><th>Accion</th></tr></thead>
             <tbody>${diffs.map(d => `
               <tr>
-                <td>${esc(TYPE_LABELS[d.tipo])}<br><strong>${esc(d.nombre_trabajador || d.rut)}</strong></td>
-                <td>${esc(differenceLabel(d))}<br><span class="subtle">${money(d.diferencia_absoluta)}</span></td>
-                <td><select data-just-cat="${esc(d.id)}">${state.config.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></td>
-                <td><textarea data-just-comment="${esc(d.id)}" placeholder="Comentario opcional"></textarea></td>
+                <td><strong>${esc(d.nombre_trabajador || d.rut)}</strong><br><span class="subtle">${esc(d.rut)} · ${esc(TYPE_LABELS[d.tipo])}</span></td>
+                <td><strong>${esc(conceptSourceText(d))}</strong><br><span class="subtle">Id: ${esc(d.numero_empleado_a || "-")}</span></td>
+                <td><strong>${esc(conceptTargetText(d))}</strong><br><span class="subtle">Id: ${esc(d.numero_contrato_b || "-")}</span></td>
+                <td><div><span class="subtle">${esc(profile.sourceName)}:</span> ${valueA(d)}</div><div><span class="subtle">${esc(profile.targetName)}:</span> ${valueB(d)}</div><div><span class="subtle">Diferencia:</span> ${money(d.diferencia_absoluta)}</div></td>
+                <td><select data-just-cat="${esc(d.id)}">${state.config.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select><textarea data-just-comment="${esc(d.id)}" placeholder="Justifica respecto del destino"></textarea></td>
                 <td><button class="btn secondary" data-action="save-justification" data-id="${esc(d.id)}">Guardar</button></td>
               </tr>
             `).join("")}</tbody>
@@ -26471,7 +26531,8 @@ window.__xlsxLoadStatus="loaded";
         <div class="mobile-list">${diffs.map(d => `
           <article class="record">
             <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
-            <p class="subtle">${esc(TYPE_LABELS[d.tipo])} - ${esc(differenceLabel(d))}</p>
+            <p class="subtle">${esc(TYPE_LABELS[d.tipo])} · ${esc(conceptSourceText(d))} → ${esc(conceptTargetText(d))}</p>
+            <dl><dt>${esc(profile.sourceName)}</dt><dd>${valueA(d)}</dd><dt>${esc(profile.targetName)}</dt><dd>${valueB(d)}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd></dl>
           </article>
         `).join("")}</div>
       `;
@@ -26715,6 +26776,7 @@ window.__xlsxLoadStatus="loaded";
       if (action === "confirm-all-homologation") return runBusy("Confirmando homologaciones...", confirmAllHomologations);
       if (action === "save-homologation") return runBusy("Guardando homologaciones...", saveHomologation);
       if (action === "confirm-homologation") return runBusy("Comparando los libros...", runComparison);
+      if (action === "filter-concept") return filterConcept(data.concept);
       if (action === "no-pair") return setNoPair(data.id);
       if (action === "exclude-concept") return excludeConcept(data.id);
       if (action === "review") return markReviewed(data.id);
@@ -27444,11 +27506,20 @@ window.__xlsxLoadStatus="loaded";
         const q = normalizeText(state.filters.q);
         if (q && !normalizeText([d.rut, d.nombre_trabajador, d.concepto_a, d.concepto_b, d.campo_diferente].join(" ")).includes(q)) return false;
         if (state.selectedNode !== "todos") {
-          const path = [d.sede || "Sin sede", d.area || "Sin area", d.cargo || "Sin cargo", d.concepto_a || d.concepto_b || d.campo_diferente || "Sin concepto", d.nombre_trabajador || d.rut].join(">");
+          const path = [conceptSourceText(d), conceptTargetText(d), d.sede || "Sin sede", d.area || "Sin area", d.nombre_trabajador || d.rut].join(">");
           if (!path.startsWith(state.selectedNode)) return false;
         }
         return true;
       });
+    }
+
+    function filterConcept(concept) {
+      state.filters.type = "todos";
+      state.filters.status = "todos";
+      state.filters.q = concept || "";
+      state.selectedNode = "todos";
+      state.step = 3;
+      render();
     }
 
     function markReviewed(id) {
@@ -27486,6 +27557,7 @@ window.__xlsxLoadStatus="loaded";
       const comment = document.querySelector(`[data-just-comment="${CSS.escape(id)}"]`);
       d.categoria_justificacion = cat ? cat.value : state.config.categorias[0];
       d.comentario_justificacion = comment ? comment.value : "";
+      d.concepto_destino_justificacion = conceptTargetText(d);
       d.estado_revision = "justificado";
       d.fecha_justificacion = new Date().toISOString();
       saveCurrentComparison(false);
@@ -27586,6 +27658,7 @@ window.__xlsxLoadStatus="loaded";
         [profile.targetIdLabel]: d.numero_contrato_b,
         [`Concepto ${profile.sourceName}`]: d.concepto_a,
         [`Concepto ${profile.targetName}`]: d.concepto_b,
+        concepto_destino_justificacion: d.concepto_destino_justificacion || conceptTargetText(d),
         [`Valor ${profile.sourceName}`]: d.valor_a,
         [`Valor ${profile.targetName}`]: d.valor_b,
         diferencia_absoluta: d.diferencia_absoluta,
