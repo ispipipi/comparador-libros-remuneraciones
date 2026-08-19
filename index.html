@@ -24986,6 +24986,36 @@ window.__xlsxLoadStatus="loaded";
       background: #fbfdfc;
     }
 
+    .upload-trigger {
+      justify-self: start;
+    }
+
+    .focus-panel {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbfa;
+    }
+
+    .focus-panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .focus-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .focus-list .chip {
+      background: #fff;
+    }
+
     .upload.ready {
       border-color: var(--ok);
       background: var(--ok-soft);
@@ -25415,8 +25445,8 @@ window.__xlsxLoadStatus="loaded";
     };
 
     const REQUIRED = {
-      visma: ["rut", "nombre", "sede", "area", "cargo", "numero_empleado_a", "concepto", "monto"],
-      rex: ["rut", "nombre", "sede", "area", "cargo", "numero_contrato_b", "concepto", "monto"]
+      visma: ["rut", "numero_empleado_a", "concepto", "monto"],
+      rex: ["rut", "numero_contrato_b", "concepto", "monto"]
     };
 
     const ALIASES = {
@@ -25431,6 +25461,28 @@ window.__xlsxLoadStatus="loaded";
       tipo_concepto: ["tipo concepto", "tipo", "clasificacion", "categoria concepto"],
       monto: ["monto", "valor", "importe", "total", "haber", "descuento", "aporte"]
     };
+
+    const FOCUS_FIELDS = [
+      { key: "ci", label: "CI", aliases: ["ci", "rut", "run", "documento", "id trabajador", "identificador"] },
+      { key: "empresa", label: "Empresa", aliases: ["empresa", "nombre empresa", "razon social", "razon social empresa"] },
+      { key: "centro_costo", label: "Centro costo", aliases: ["centro costo", "centro de costo", "nombre c costo", "nombre c. costo", "id centro de costo"] },
+      { key: "fecha_ingreso", label: "Fecha ingreso", aliases: ["fecha ingreso", "fecha de ingreso", "fecha inicio", "fecha de alta", "fec ingreso"] },
+      { key: "fecha_fin_contrato", label: "Fec fin contrato", aliases: ["fec fin contrato", "fecha fin contrato", "fecha de termino", "fecha termino", "fecha baja", "fecha de baja"] },
+      { key: "jubilado", label: "Jubilado", aliases: ["jubilado", "jubilacion", "estado jubilado"] },
+      { key: "afp", label: "AFP", aliases: ["afp", "institucion previsional", "prevision"] },
+      { key: "isapre", label: "ISAPRE", aliases: ["isapre", "inst salud", "inst. salud", "institucion salud"] },
+      { key: "banco", label: "Banco", aliases: ["banco", "institucion bancaria"] },
+      { key: "horas_jornada", label: "Horas jornada", aliases: ["horas jornada", "horas de jornada", "jornada horas", "horas semanales"] },
+      { key: "cargo", label: "Cargo", aliases: ["cargo", "puesto", "rol", "funcion", "posicion", "job code"] },
+      { key: "dias_trabajados", label: "Dias trabajados", aliases: ["dias trabajados", "dias de trabajo"] },
+      { key: "dias_ausencias", label: "Dias ausencias", aliases: ["dias ausencias", "dias de ausencia", "ausencias", "dias de falta"] },
+      { key: "dias_permiso", label: "Dias permiso", aliases: ["dias permiso", "dias de permiso", "permisos"] },
+      { key: "dias_licencia", label: "Dias licencia", aliases: ["dias licencia", "dias de licencia", "licencia", "dias con licencia medica"] },
+      { key: "sueldo_base_contractual", label: "Sueldo base contractual", aliases: ["sueldo base contractual", "sueldo base", "sueldo base mensual", "sueldo base contrato", "sueldo ganado"] },
+      { key: "haberes", label: "Haberes", aliases: ["haberes", "total haberes", "total de haberes", "suma haberes", "total ingresos"] },
+      { key: "descuentos", label: "Descuentos", aliases: ["descuentos", "total descuentos", "total de descuentos", "total rebajas"] },
+      { key: "aportes", label: "Aportes", aliases: ["aportes", "total aportes", "aportes patronales", "total aportes patronales"] }
+    ];
 
     const WIDE_EXCLUDED = new Set([
       "periodo", "periodo", "empleado", "apellido y nombre", "rut", "fecha de alta", "fecha de baja",
@@ -25694,8 +25746,8 @@ window.__xlsxLoadStatus="loaded";
         diferencia_absoluta: Number(valorA || 0) - Number(valorB || 0),
         diferencia_porcentual: percent(valorA, valorB),
         campo_diferente: campo || "",
-        valor_campo_a: campoA || "",
-        valor_campo_b: campoB || "",
+        valor_campo_a: campoA ?? "",
+        valor_campo_b: campoB ?? "",
         estado_revision: "pendiente",
         categoria_justificacion: "",
         comentario_justificacion: "",
@@ -25870,6 +25922,18 @@ window.__xlsxLoadStatus="loaded";
                   ${uploadBox("visma", profile.sourceFileLabel, state.files.visma, state.fileErrors.visma)}
                   ${uploadBox("rex", profile.targetFileLabel, state.files.rex, state.fileErrors.rex)}
                 </div>
+                <div class="focus-panel">
+                  <div class="focus-panel-head">
+                    <div>
+                      <strong>Foco de comparacion</strong>
+                      <div class="subtle">Se comparan estos campos de persona, contrato y resumen remuneracional.</div>
+                    </div>
+                    <span class="badge reviewed">${FOCUS_FIELDS.length} campos</span>
+                  </div>
+                  <div class="focus-list">
+                    ${FOCUS_FIELDS.map(field => `<span class="chip">${esc(field.label)}</span>`).join("")}
+                  </div>
+                </div>
                 <div class="actions">
                   ${state.profile === "visma_rex" ? `<button class="btn secondary" data-action="load-sample">Cargar muestra demo</button>` : ""}
                   ${state.profile === "visma_rex" ? `<button class="btn secondary" data-action="load-real-sample">Cargar libros RG 2026-04</button>` : ""}
@@ -25952,14 +26016,15 @@ window.__xlsxLoadStatus="loaded";
     function uploadBox(system, label, file, error) {
       const ready = error ? "error" : file ? "ready" : "";
       return `
-        <label class="upload ${ready}" for="file-${system}">
+        <div class="upload ${ready}">
           <h3>${esc(label)}</h3>
-          <p class="subtle">Arrastra el archivo o seleccionalo desde tu equipo.</p>
+          <p class="subtle">Selecciona el libro desde tu equipo.</p>
           <input id="file-${system}" data-file="${system}" type="file" accept=".xlsx,.xls,.csv,.tsv" hidden>
+          <button type="button" class="btn secondary upload-trigger" data-action="choose-file" data-file-target="${system}">${file ? "Cambiar archivo" : "Seleccionar archivo"}</button>
           <div class="file-name">${file ? esc(file.name) : "Sin archivo"}</div>
           ${error ? `<div class="subtle" style="color:#b42318">${esc(error)}</div>` : ""}
           <span class="badge ${error ? "pending" : file ? "reviewed" : "excluded"}">${error ? "Error" : file ? "Listo" : "Pendiente"}</span>
-        </label>
+        </div>
       `;
     }
 
@@ -26044,6 +26109,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function homologationGroup(group) {
+      const profile = activeProfile();
       return `
         <div class="panel" id="homologation-${esc(group.key)}-section">
           <div class="panel-head">
@@ -26224,7 +26290,7 @@ window.__xlsxLoadStatus="loaded";
         <div class="stack">
           <div>
             <h2>Resultados</h2>
-            <p class="subtle">Diferencias agrupadas por Sede, Area, Cargo, Concepto y Persona.</p>
+            <p class="subtle">Diferencias enfocadas en los campos definidos y en los conceptos de haberes, descuentos y aportes.</p>
           </div>
           ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
           <section class="kpi-grid">
@@ -26269,7 +26335,7 @@ window.__xlsxLoadStatus="loaded";
       const nodes = [{ key: "todos", label: "Todas", count: state.differences.length, level: 0 }];
       const grouped = {};
       state.differences.forEach(d => {
-        const parts = [d.sede || "Sin sede", d.area || "Sin area", d.cargo || "Sin cargo", d.concepto_a || d.concepto_b || d.campo_diferente || "Sin concepto", d.nombre_trabajador || d.rut];
+        const parts = [d.sede || "Sin sede", d.area || "Sin area", d.cargo || "Sin cargo", differenceLabel(d), d.nombre_trabajador || d.rut];
         let path = "";
         parts.forEach((part, idx) => {
           path += (idx ? ">" : "") + part;
@@ -26305,7 +26371,7 @@ window.__xlsxLoadStatus="loaded";
         <tr>
           <td>${esc(TYPE_LABELS[d.tipo])}</td>
           <td><strong>${esc(d.nombre_trabajador || "-")}</strong><br><span class="subtle">${esc(d.rut)}</span></td>
-          <td>${esc(d.concepto_a || d.concepto_b || d.campo_diferente || "-")}</td>
+          <td>${esc(differenceLabel(d))}</td>
           <td>${valueA(d)}</td>
           <td>${valueB(d)}</td>
           <td class="num">${money(d.diferencia_absoluta)}</td>
@@ -26320,7 +26386,7 @@ window.__xlsxLoadStatus="loaded";
         <article class="record">
           <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
           ${statusBadge(d.estado_revision)}
-          <dl><dt>Tipo</dt><dd>${esc(TYPE_LABELS[d.tipo])}</dd><dt>Concepto</dt><dd>${esc(d.concepto_a || d.concepto_b || d.campo_diferente || "-")}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd></dl>
+          <dl><dt>Tipo</dt><dd>${esc(TYPE_LABELS[d.tipo])}</dd><dt>Concepto</dt><dd>${esc(differenceLabel(d))}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd></dl>
         </article>
       `;
     }
@@ -26333,6 +26399,15 @@ window.__xlsxLoadStatus="loaded";
     function valueB(d) {
       if (d.tipo === "dato_trabajador") return esc(d.valor_campo_b || "-");
       return `<span class="num">${money(d.valor_b)}</span>`;
+    }
+
+    function differenceLabel(d) {
+      if (d.tipo === "dato_trabajador") return focusFieldLabel(d.campo_diferente);
+      return d.concepto_a || d.concepto_b || d.campo_diferente || "-";
+    }
+
+    function focusFieldLabel(key) {
+      return FOCUS_FIELDS.find(field => field.key === key)?.label || key || "Campo";
     }
 
     function statusBadge(status) {
@@ -26365,7 +26440,7 @@ window.__xlsxLoadStatus="loaded";
             <tbody>${diffs.map(d => `
               <tr>
                 <td>${esc(TYPE_LABELS[d.tipo])}<br><strong>${esc(d.nombre_trabajador || d.rut)}</strong></td>
-                <td>${esc(d.concepto_a || d.concepto_b || d.campo_diferente || "-")}<br><span class="subtle">${money(d.diferencia_absoluta)}</span></td>
+                <td>${esc(differenceLabel(d))}<br><span class="subtle">${money(d.diferencia_absoluta)}</span></td>
                 <td><select data-just-cat="${esc(d.id)}">${state.config.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></td>
                 <td><textarea data-just-comment="${esc(d.id)}" placeholder="Comentario opcional"></textarea></td>
                 <td><button class="btn secondary" data-action="save-justification" data-id="${esc(d.id)}">Guardar</button></td>
@@ -26376,7 +26451,7 @@ window.__xlsxLoadStatus="loaded";
         <div class="mobile-list">${diffs.map(d => `
           <article class="record">
             <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
-            <p class="subtle">${esc(TYPE_LABELS[d.tipo])} - ${esc(d.concepto_a || d.concepto_b || d.campo_diferente || "-")}</p>
+            <p class="subtle">${esc(TYPE_LABELS[d.tipo])} - ${esc(differenceLabel(d))}</p>
           </article>
         `).join("")}</div>
       `;
@@ -26563,6 +26638,12 @@ window.__xlsxLoadStatus="loaded";
     async function handleAction(action, data) {
       if (action === "start") return resetWizard(true);
       if (action === "reset-wizard") return resetWizard(false);
+      if (action === "choose-file") {
+        const input = document.getElementById(`file-${data.fileTarget}`);
+        if (!input) return toast("No se encontro el selector de archivos.");
+        input.click();
+        return;
+      }
       if (action === "load-sample") return loadSample();
       if (action === "load-real-sample") return loadRealSample();
       if (action === "validate") return validateAndContinue();
@@ -26860,7 +26941,10 @@ window.__xlsxLoadStatus="loaded";
       if (wide) warnings.push("Formato ancho detectado: los conceptos en columnas se convertiran a filas comparables.");
       const canonicalHeaders = new Set(Object.keys(ALIASES).map(normalizeText));
       const mappedOriginal = originalHeaders.map(normalizeText);
-      const knownOriginal = new Set(Object.values(ALIASES).flat().map(normalizeText));
+      const knownOriginal = new Set([
+        ...Object.values(ALIASES).flat(),
+        ...FOCUS_FIELDS.flatMap(field => field.aliases)
+      ].map(normalizeText));
       const extra = mappedOriginal.filter(h => h && !knownOriginal.has(h) && !canonicalHeaders.has(h));
       if (extra.length) warnings.push("Se detectaron columnas adicionales que no se incluiran en la comparacion.");
       const badAmounts = rows.filter(r => present(r.monto) && Number.isNaN(toNumber(r.monto))).length;
@@ -26885,6 +26969,7 @@ window.__xlsxLoadStatus="loaded";
         out.concepto = String(out.concepto || "").trim();
         out.tipo_concepto = String(out.tipo_concepto || (toNumber(out.monto) < 0 ? "descuento" : "haber")).trim().toLowerCase();
         out.monto = present(out.monto) ? toNumber(out.monto) : NaN;
+        out.focus = focusSnapshot(source, out);
         return out;
       }).filter(r => Object.values(r).some(present));
     }
@@ -26903,6 +26988,7 @@ window.__xlsxLoadStatus="loaded";
           numero_empleado_a: system === "visma" ? String(valueByAliases(source, "numero_empleado_a") || valueByAliases(source, "numero_contrato_b") || "").trim() : "",
           numero_contrato_b: system === "rex" ? String(valueByAliases(source, "numero_contrato_b") || valueByAliases(source, "numero_empleado_a") || "").trim() : ""
         };
+        base.focus = focusSnapshot(source, base);
         const headers = conceptHeaders.length ? conceptHeaders : Object.keys(source);
         headers.forEach(header => {
           if (!isWideConceptColumn(system, header)) return;
@@ -26953,6 +27039,35 @@ window.__xlsxLoadStatus="loaded";
       const wanted = new Set([key, ...ALIASES[key]].map(normalizeText));
       const found = Object.keys(source).find(k => wanted.has(normalizeText(k)));
       return found ? source[found] : "";
+    }
+
+    function focusSnapshot(source, canonical = {}) {
+      const focus = Object.fromEntries(FOCUS_FIELDS.map(field => [field.key, focusValueFromSource(source, field)]));
+      focus.ci = focus.ci || canonical.rut || "";
+      focus.cargo = focus.cargo || canonical.cargo || "";
+      return focus;
+    }
+
+    function focusValueFromSource(source, field) {
+      const wanted = new Set(field.aliases.map(normalizeText));
+      const found = Object.keys(source || {}).find(key => wanted.has(normalizeText(key)));
+      return found ? source[found] : "";
+    }
+
+    function focusValue(row, key) {
+      if (key === "ci") return row.focus?.ci ?? row.rut ?? "";
+      if (key === "cargo") return row.focus?.cargo ?? row.cargo ?? "";
+      return row.focus?.[key] ?? "";
+    }
+
+    function normalizedFocusValue(field, value) {
+      if (!present(value)) return "";
+      const numeric = new Set(["horas_jornada", "dias_trabajados", "dias_ausencias", "dias_permiso", "dias_licencia", "sueldo_base_contractual", "haberes", "descuentos", "aportes"]);
+      if (numeric.has(field.key)) {
+        const number = toNumber(value);
+        return Number.isFinite(number) ? String(Math.round(number * 100) / 100) : normalizeText(value);
+      }
+      return normalizeText(value);
     }
 
     function prepareHomologations() {
@@ -27142,9 +27257,11 @@ window.__xlsxLoadStatus="loaded";
           diffs.push(diff("trabajador_sin_par", rut, base.nombre, base.sede, base.area, base.cargo, aFirst ? (aFirst.concepto || "") : "", bFirst ? (bFirst.concepto || "") : "", aFirst ? sumRows(aRows) : 0, bFirst ? sumRows(bRows) : 0, aFirst ? aFirst.numero_empleado_a : "", bFirst ? bFirst.numero_contrato_b : ""));
           return;
         }
-        ["nombre", "sede", "area", "cargo"].forEach(field => {
-          if (normalizeText(aFirst[field]) !== normalizeText(bFirst[field])) {
-            diffs.push(diff("dato_trabajador", rut, aFirst.nombre || bFirst.nombre, aFirst.sede || bFirst.sede, aFirst.area || bFirst.area, aFirst.cargo || bFirst.cargo, "", "", 0, 0, aFirst.numero_empleado_a, bFirst.numero_contrato_b, field, aFirst[field], bFirst[field]));
+        FOCUS_FIELDS.forEach(field => {
+          const valueA = focusValue(aFirst, field.key);
+          const valueB = focusValue(bFirst, field.key);
+          if (normalizedFocusValue(field, valueA) !== normalizedFocusValue(field, valueB)) {
+            diffs.push(diff("dato_trabajador", rut, aFirst.nombre || bFirst.nombre, aFirst.sede || bFirst.sede, aFirst.area || bFirst.area, aFirst.cargo || bFirst.cargo, "", "", 0, 0, aFirst.numero_empleado_a, bFirst.numero_contrato_b, field.key, valueA, valueB));
           }
         });
       });
@@ -27384,7 +27501,8 @@ window.__xlsxLoadStatus="loaded";
         [`Valor ${profile.targetName}`]: d.valor_b,
         diferencia_absoluta: d.diferencia_absoluta,
         diferencia_porcentual: d.diferencia_porcentual,
-        campo_diferente: d.campo_diferente,
+        campo_diferente: differenceLabel(d),
+        campo_diferente_key: d.campo_diferente,
         [`Valor campo ${profile.sourceName}`]: d.valor_campo_a,
         [`Valor campo ${profile.targetName}`]: d.valor_campo_b,
         estado_revision: d.estado_revision,
