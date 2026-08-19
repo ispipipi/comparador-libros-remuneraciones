@@ -24596,8 +24596,42 @@ window.__xlsxLoadStatus="loaded";
       font-size: 16px;
     }
 
+    .busy-progress-track {
+      width: 100%;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e7efed;
+    }
+
+    .busy-progress-fill {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--primary);
+      transition: width 160ms ease;
+    }
+
+    .busy-progress-fill.indeterminate {
+      width: 34%;
+      animation: busy-progress-slide 1.1s ease-in-out infinite alternate;
+    }
+
+    .busy-progress-text {
+      width: 100%;
+      font-size: 12px;
+      line-height: 1.4;
+      text-align: center;
+    }
+
     @keyframes busy-spin {
       to { transform: rotate(360deg); }
+    }
+
+    @keyframes busy-progress-slide {
+      from { transform: translateX(-110%); }
+      to { transform: translateX(310%); }
     }
 
     .sidebar {
@@ -25538,6 +25572,10 @@ window.__xlsxLoadStatus="loaded";
       "cantidad horas no trabajadas", "cantidad horas extras 50%"
     ]);
 
+    const NORMALIZED_ALIAS_KEYS = new Set(
+      Object.entries(ALIASES).flatMap(([key, aliases]) => [key, ...aliases]).map(normalizeText)
+    );
+
     const PRESET_CONCEPT_PAIRS = {
       meta4_rex_finning: new Map([
         ["sueldo base", "SUELDO BASE"],
@@ -25651,6 +25689,8 @@ window.__xlsxLoadStatus="loaded";
       exportDone: false,
       busy: false,
       busyMessage: "",
+      busyProgress: null,
+      busyDetail: "",
       history: loadJson(STORE.history, seedHistory()),
       config: loadJson(STORE.config, DEFAULT_CONFIG)
     };
@@ -25829,11 +25869,17 @@ window.__xlsxLoadStatus="loaded";
 
     function busyMarkup() {
       if (!state.busy) return "";
+      const hasProgress = Number.isFinite(state.busyProgress);
+      const progress = hasProgress ? Math.max(0, Math.min(100, state.busyProgress)) : 0;
+      const progressLabel = hasProgress
+        ? `${Math.round(progress)}% - ${state.busyDetail || "Procesando por lotes..."}`
+        : state.busyDetail || "Procesando por lotes...";
       return "<div class=\"busy-layer\" role=\"status\" aria-live=\"polite\" aria-busy=\"true\">"
         + "<div class=\"busy-card\">"
         + "<div class=\"busy-spinner\" aria-hidden=\"true\"></div>"
         + "<strong>" + esc(state.busyMessage || "Procesando...") + "</strong>"
-        + "<span class=\"subtle\">Puedes esperar aquí; el comparador sigue trabajando.</span>"
+        + "<div class=\"busy-progress-track\" aria-hidden=\"true\"><span class=\"busy-progress-fill " + (hasProgress ? "" : "indeterminate") + "\" style=\"width:" + progress + "%\"></span></div>"
+        + "<span class=\"subtle busy-progress-text\">" + esc(progressLabel) + "</span>"
         + "</div></div>";
     }
 
@@ -26580,8 +26626,12 @@ window.__xlsxLoadStatus="loaded";
 
     function waitForBrowserPaint() {
       return new Promise(resolve => {
-        const frame = window.requestAnimationFrame || (callback => setTimeout(callback, 16));
-        frame(() => frame(resolve));
+        const frame = window.requestAnimationFrame;
+        if (frame && document.visibilityState === "visible") {
+          frame(() => frame(resolve));
+        } else {
+          setTimeout(resolve, 16);
+        }
       });
     }
 
@@ -26589,18 +26639,34 @@ window.__xlsxLoadStatus="loaded";
       if (state.busy) return;
       state.busy = true;
       state.busyMessage = message;
+      state.busyProgress = null;
+      state.busyDetail = "";
       render();
       await waitForBrowserPaint();
       try {
-        return await task();
+        return await task(updateBusyProgress);
       } catch (error) {
         console.error(error);
         toast(error && error.message ? error.message : "No se pudo completar la operacion.");
       } finally {
         state.busy = false;
         state.busyMessage = "";
+        state.busyProgress = null;
+        state.busyDetail = "";
         render();
       }
+    }
+
+    function updateBusyProgress(progress, detail) {
+      state.busyProgress = Math.max(0, Math.min(100, Number(progress) || 0));
+      state.busyDetail = detail || "Procesando por lotes...";
+      const fill = document.querySelector(".busy-progress-fill");
+      const label = document.querySelector(".busy-progress-text");
+      if (fill) {
+        fill.classList.remove("indeterminate");
+        fill.style.width = `${state.busyProgress}%`;
+      }
+      if (label) label.textContent = `${Math.round(state.busyProgress)}% - ${state.busyDetail}`;
     }
 
     async function yieldToBrowser() {
@@ -26957,6 +27023,8 @@ window.__xlsxLoadStatus="loaded";
 
     async function normalizeWideRows(system, rows, conceptHeaders = []) {
       const normalized = [];
+      const headers = conceptHeaders.length ? conceptHeaders : Object.keys(rows[0] || {});
+      const wideHeaders = headers.filter(header => isWideConceptColumn(system, header));
       for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
         const source = rows[rowIndex];
         const rut = cleanRut(valueByAliases(source, "rut"));
@@ -26971,9 +27039,7 @@ window.__xlsxLoadStatus="loaded";
           numero_contrato_b: system === "rex" ? String(valueByAliases(source, "numero_contrato_b") || valueByAliases(source, "numero_empleado_a") || "").trim() : ""
         };
         base.focus = focusSnapshot(source, base);
-        const headers = conceptHeaders.length ? conceptHeaders : Object.keys(source);
-        headers.forEach(header => {
-          if (!isWideConceptColumn(system, header)) return;
+        wideHeaders.forEach(header => {
           const monto = toNumber(source[header]);
           if (!Number.isFinite(monto) || Math.abs(monto) < 0.000001) return;
           normalized.push({
@@ -27001,8 +27067,7 @@ window.__xlsxLoadStatus="loaded";
       if (!key || WIDE_EXCLUDED.has(key)) return false;
       if (key.includes(" orig") || key.includes(" original")) return false;
       if (key.startsWith("nro ") || key.startsWith("n° ") || key.startsWith("numero ") || key.startsWith("dias ")) return false;
-      const aliasKeys = Object.entries(ALIASES).flatMap(([k, aliases]) => [k, ...aliases]).map(normalizeText);
-      if (aliasKeys.includes(key)) return false;
+      if (NORMALIZED_ALIAS_KEYS.has(key)) return false;
       return true;
     }
 
@@ -27176,28 +27241,49 @@ window.__xlsxLoadStatus="loaded";
       if (action === "exclude-concept") return excludeConcept(id);
     };
 
-    function indexRowsBy(rows, keyFn) {
-      const index = new Map();
-      rows.forEach(row => {
-        const key = keyFn(row);
-        if (!index.has(key)) index.set(key, []);
-        index.get(key).push(row);
-      });
-      return index;
+    function addToIndex(index, key, row) {
+      if (!index.has(key)) index.set(key, []);
+      index.get(key).push(row);
     }
 
-    async function runComparison() {
+    async function buildComparisonIndexes(rows, label, reportProgress, start, end) {
+      const byRut = new Map();
+      const byConcept = new Map();
+      const total = Math.max(rows.length, 1);
+      for (let index = 0; index < rows.length; index++) {
+        const row = rows[index];
+        addToIndex(byRut, row.rut, row);
+        addToIndex(byConcept, `${row.rut}|${normalizeText(row.concepto)}`, row);
+        if ((index + 1) % 2000 === 0 || index === rows.length - 1) {
+          const ratio = (index + 1) / total;
+          reportProgress(start + ratio * (end - start), `${label}: ${(index + 1).toLocaleString("es-CL")} de ${rows.length.toLocaleString("es-CL")} filas`);
+          await yieldToBrowser();
+        }
+      }
+      return { byRut, byConcept };
+    }
+
+    async function runComparison(reportProgress = () => {}) {
       const diffs = [];
-      const rowsAByRut = indexRowsBy(state.rows.visma, row => row.rut);
-      const rowsBByRut = indexRowsBy(state.rows.rex, row => row.rut);
-      const rowsAByConcept = indexRowsBy(state.rows.visma, row => `${row.rut}|${normalizeText(row.concepto)}`);
-      const rowsBByConcept = indexRowsBy(state.rows.rex, row => `${row.rut}|${normalizeText(row.concepto)}`);
+      reportProgress(0, "Preparando indices de comparacion...");
+      const sourceIndexes = await buildComparisonIndexes(state.rows.visma, activeProfile().sourceName, reportProgress, 0, 34);
+      const targetIndexes = await buildComparisonIndexes(state.rows.rex, activeProfile().targetName, reportProgress, 34, 68);
+      const rowsAByRut = sourceIndexes.byRut;
+      const rowsBByRut = targetIndexes.byRut;
+      const rowsAByConcept = sourceIndexes.byConcept;
+      const rowsBByConcept = targetIndexes.byConcept;
       const homologationByConcept = new Map(state.homologations.map(h => [normalizeText(h.concepto_a), h]));
+      reportProgress(69, "Indices listos. Revisando trabajadores...");
       await yieldToBrowser();
-      const rutsA = new Set(state.rows.visma.map(r => r.rut).filter(Boolean));
-      const rutsB = new Set(state.rows.rex.map(r => r.rut).filter(Boolean));
+      const rutsA = new Set([...rowsAByRut.keys()].filter(Boolean));
+      const rutsB = new Set([...rowsBByRut.keys()].filter(Boolean));
       const comparisonRuts = unique([...rutsA, ...rutsB]);
       for (let rutIndex = 0; rutIndex < comparisonRuts.length; rutIndex++) {
+        if ((rutIndex + 1) % 100 === 0 || rutIndex === comparisonRuts.length - 1) {
+          const progress = 69 + ((rutIndex + 1) / Math.max(comparisonRuts.length, 1)) * 9;
+          reportProgress(progress, `Trabajadores: ${(rutIndex + 1).toLocaleString("es-CL")} de ${comparisonRuts.length.toLocaleString("es-CL")}`);
+          await yieldToBrowser();
+        }
         const rut = comparisonRuts[rutIndex];
         const aRows = rowsAByRut.get(rut) || [];
         const bRows = rowsBByRut.get(rut) || [];
@@ -27221,7 +27307,11 @@ window.__xlsxLoadStatus="loaded";
       let sourceIndex = 0;
       for (const aMatches of rowsAByConcept.values()) {
         sourceIndex += 1;
-        if (sourceIndex % 250 === 0) await yieldToBrowser();
+        if (sourceIndex % 250 === 0 || sourceIndex === rowsAByConcept.size) {
+          const progress = 78 + (sourceIndex / Math.max(rowsAByConcept.size, 1)) * 10;
+          reportProgress(progress, `Conceptos ${activeProfile().sourceName}: ${sourceIndex.toLocaleString("es-CL")} de ${rowsAByConcept.size.toLocaleString("es-CL")}`);
+          await yieldToBrowser();
+        }
         const a = aMatches[0];
         if (!rutsB.has(a.rut)) continue;
         const hom = homologationByConcept.get(normalizeText(a.concepto));
@@ -27247,7 +27337,11 @@ window.__xlsxLoadStatus="loaded";
       let targetIndex = 0;
       for (const bMatches of rowsBByConcept.values()) {
         targetIndex += 1;
-        if (targetIndex % 250 === 0) await yieldToBrowser();
+        if (targetIndex % 250 === 0 || targetIndex === rowsBByConcept.size) {
+          const progress = 88 + (targetIndex / Math.max(rowsBByConcept.size, 1)) * 10;
+          reportProgress(progress, `Conceptos ${activeProfile().targetName}: ${targetIndex.toLocaleString("es-CL")} de ${rowsBByConcept.size.toLocaleString("es-CL")}`);
+          await yieldToBrowser();
+        }
         const b = bMatches[0];
         if (!rutsA.has(b.rut)) continue;
         if (!mappedB.has(normalizeText(b.concepto))) {
@@ -27255,6 +27349,8 @@ window.__xlsxLoadStatus="loaded";
         }
       }
 
+      reportProgress(100, "Comparacion terminada. Preparando resultados...");
+      await yieldToBrowser();
       state.differences = diffs;
       state.step = 3;
       state.selectedNode = "todos";
