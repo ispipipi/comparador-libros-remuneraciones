@@ -24499,6 +24499,8 @@ window.__xlsxLoadStatus="loaded";
   window.__xlsxError=String(error && (error.stack || error));
 }
   </script>
+  <script>window.global = window.global || window;</script>
+  <script src="vendor/officecrypto-tool.browser.js?v=20260923-3"></script>
   <style>
     :root {
       --bg: #f5f7f8;
@@ -24793,6 +24795,31 @@ window.__xlsxLoadStatus="loaded";
       margin-top: 22px;
     }
     .simple-footer .subtle { font-size: 13px; }
+
+    .password-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 110;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(20, 32, 29, 0.42);
+      backdrop-filter: blur(3px);
+    }
+
+    .password-card {
+      width: min(420px, 100%);
+      display: grid;
+      gap: 14px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 18px 48px rgba(22, 32, 29, 0.2);
+    }
+
+    .password-card .field { display: grid; gap: 6px; }
+    .password-card .actions { margin-top: 4px; }
     @media (max-width: 700px) {
       .simple-upload-grid { grid-template-columns: 1fr; }
       .simple-header, .simple-map-row, .simple-footer { align-items: stretch; flex-direction: column; }
@@ -25776,6 +25803,7 @@ window.__xlsxLoadStatus="loaded";
       busyMessage: "",
       busyProgress: null,
       busyDetail: "",
+      passwordRequest: null,
       history: loadJson(STORE.history, seedHistory()),
       config: loadJson(STORE.config, DEFAULT_CONFIG)
     };
@@ -25968,8 +25996,33 @@ window.__xlsxLoadStatus="loaded";
           </main>
         </div>
         ${busyMarkup()}
+        ${passwordMarkup()}
       `;
       bindEvents();
+    }
+
+    function passwordMarkup() {
+      const request = state.passwordRequest;
+      if (!request) return "";
+      return `
+        <div class="password-layer" role="dialog" aria-modal="true" aria-labelledby="password-title">
+          <div class="password-card">
+            <div>
+              <h2 id="password-title">Libro protegido</h2>
+              <p class="subtle" style="margin-top:6px">Ingresa la clave para leer ${esc(request.file.name)}.</p>
+            </div>
+            ${request.error ? `<div class="banner danger">${esc(request.error)}</div>` : ""}
+            <div class="field">
+              <label for="file-password">Contraseña</label>
+              <input id="file-password" type="password" autocomplete="off" placeholder="Ingresa la clave">
+            </div>
+            <div class="actions">
+              <button class="btn secondary" type="button" data-action="cancel-password">Cancelar</button>
+              <button class="btn" type="button" data-action="submit-password">Abrir libro</button>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     function busyMarkup() {
@@ -26730,6 +26783,8 @@ window.__xlsxLoadStatus="loaded";
       document.querySelectorAll("[data-tree]").forEach(btn => {
         btn.addEventListener("click", () => { state.selectedNode = btn.dataset.tree; render(); });
       });
+      const passwordInput = document.getElementById("file-password");
+      if (passwordInput) passwordInput.focus();
     }
 
     function navigate(view) {
@@ -26800,6 +26855,8 @@ window.__xlsxLoadStatus="loaded";
         input.click();
         return;
       }
+      if (action === "submit-password") return submitPassword();
+      if (action === "cancel-password") return cancelPassword();
       if (action === "load-sample") return runBusy("Preparando muestra...", loadSample);
       if (action === "load-real-sample") return runBusy("Cargando ejemplo real...", loadRealSample);
       if (action === "validate") return runBusy("Analizando la estructura de los libros...", validateAndContinue);
@@ -26940,7 +26997,7 @@ window.__xlsxLoadStatus="loaded";
 
     async function handleFile(system, file) {
       if (!file || state.busy) return;
-      state.files[system] = { name: file.name, size: file.size };
+      state.files[system] = system === "mapping" ? { name: file.name, size: file.size } : null;
       state.sourceLabel = system === "mapping"
         ? "Estas usando un mapeo de conceptos cargado por ti"
         : "Estas trabajando con libros cargados manualmente";
@@ -26959,16 +27016,16 @@ window.__xlsxLoadStatus="loaded";
             render();
             return;
           }
-          const parsed = await parseFile(system, file);
-          state.rawRows[system] = parsed.rows;
-          state.conceptHeaders[system] = parsed.conceptHeaders || [];
-          state.rows[system] = await normalizeRows(system, parsed.rows, parsed.conceptHeaders || []);
-          state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
-          toast(`${file.name} cargado.`);
+          await loadPayrollFile(system, file, "");
         } catch (error) {
+          if (isPasswordError(error)) {
+            state.passwordRequest = { system, file, error: "" };
+            return;
+          }
           state.rawRows[system] = [];
           state.rows[system] = [];
           state.conceptHeaders[system] = [];
+          state.files[system] = null;
           state.fileErrors[system] = error && error.message ? error.message : "No se pudo leer el archivo.";
           toast(`No se pudo leer ${file.name}: ${state.fileErrors[system]}`);
         }
@@ -26976,7 +27033,58 @@ window.__xlsxLoadStatus="loaded";
       });
     }
 
-    async function parseFile(system, file) {
+    async function loadPayrollFile(system, file, password) {
+      const parsed = await parseFile(system, file, password);
+      state.files[system] = { name: file.name, size: file.size };
+      state.rawRows[system] = parsed.rows;
+      state.conceptHeaders[system] = parsed.conceptHeaders || [];
+      state.rows[system] = await normalizeRows(system, parsed.rows, parsed.conceptHeaders || []);
+      state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
+      toast(`${file.name} cargado.`);
+    }
+
+    function isPasswordError(error) {
+      const code = String(error && error.code || "");
+      const message = String(error && error.message || error || "");
+      return code === "PASSWORD_REQUIRED" || code === "PASSWORD_INCORRECT" || /password|contrase|encrypted|cifrad/i.test(message);
+    }
+
+    async function submitPassword() {
+      const request = state.passwordRequest;
+      const input = document.getElementById("file-password");
+      const password = input ? input.value : "";
+      if (!request || !password) return toast("Ingresa la clave del libro.");
+      state.passwordRequest = null;
+      return runBusy(`Abriendo ${request.file.name}...`, async () => {
+        try {
+          await loadPayrollFile(request.system, request.file, password);
+        } catch (error) {
+          if (isPasswordError(error)) {
+            state.passwordRequest = {
+              system: request.system,
+              file: request.file,
+              error: "La clave no coincide o el archivo usa un cifrado no compatible."
+            };
+          } else {
+            state.fileErrors[request.system] = error && error.message ? error.message : "No se pudo leer el archivo.";
+            toast(`No se pudo leer ${request.file.name}: ${state.fileErrors[request.system]}`);
+          }
+        }
+        render();
+      });
+    }
+
+    function cancelPassword() {
+      const request = state.passwordRequest;
+      state.passwordRequest = null;
+      if (request) {
+        state.files[request.system] = null;
+        state.fileErrors[request.system] = "";
+      }
+      render();
+    }
+
+    async function parseFile(system, file, password = "") {
       const ext = file.name.split(".").pop().toLowerCase();
       if (ext === "xlsx" || ext === "xls") {
         if (!window.XLSX) {
@@ -26986,9 +27094,26 @@ window.__xlsxLoadStatus="loaded";
           throw new Error(detail);
         }
         const xlsx = window.XLSX;
-        const buffer = await file.arrayBuffer();
+        let buffer = await file.arrayBuffer();
         await yieldToBrowser();
-        const wb = xlsx.read(buffer, { type: "array" });
+        let encrypted = false;
+        if (window.OfficeCrypto && typeof window.OfficeCrypto.isEncrypted === "function") {
+          try { encrypted = window.OfficeCrypto.isEncrypted(buffer); } catch (error) { encrypted = false; }
+        }
+        if (encrypted) {
+          if (!password) {
+            const error = new Error("PASSWORD_REQUIRED");
+            error.code = "PASSWORD_REQUIRED";
+            throw error;
+          }
+          try {
+            buffer = await window.OfficeCrypto.decrypt(buffer, { password });
+          } catch (error) {
+            error.code = "PASSWORD_INCORRECT";
+            throw error;
+          }
+        }
+        const wb = xlsx.read(buffer, { type: "array", password });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const matrix = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "" });
         await yieldToBrowser();
