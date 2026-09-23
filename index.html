@@ -26261,7 +26261,7 @@ window.__xlsxLoadStatus="loaded";
               <h3>Conceptos a comparar</h3>
               <p class="subtle">Se usa el mapeo Meta4 → REX+ precargado y el catálogo detectado en el libro destino.</p>
             </div>
-            <span class="badge reviewed concept-selection-summary">${selectedConceptCount()} de ${options.length} seleccionados</span>
+            <span class="badge reviewed concept-selection-summary" data-concept-summary="true">${selectedConceptCount()} de ${options.length} seleccionados</span>
           </div>
           <div class="concept-selection-grid">
             ${groups.map(group => {
@@ -26270,7 +26270,7 @@ window.__xlsxLoadStatus="loaded";
               return `
                 <section class="concept-selection-group">
                   <div class="concept-selection-group-head">
-                    <strong>${group.label} <span class="subtle">(${selectedInGroup}/${rows.length})</span></strong>
+                    <strong>${group.label} <span class="subtle" data-concept-count="${group.key}">(${selectedInGroup}/${rows.length})</span></strong>
                     <button type="button" class="link-btn" data-select-concepts="${group.key}" ${rows.length ? "" : "disabled"}>${rows.length && selectedInGroup === rows.length ? "Quitar todos" : "Seleccionar todos"}</button>
                   </div>
                   <div class="concept-options">
@@ -26882,7 +26882,7 @@ window.__xlsxLoadStatus="loaded";
         btn.addEventListener("click", () => handleAction(btn.dataset.action, btn.dataset));
       });
       document.querySelectorAll("[data-concept-selection]").forEach(input => {
-        input.addEventListener("change", event => toggleConceptSelection(event.target.dataset.conceptSelection, event.target.checked));
+        input.addEventListener("change", event => toggleConceptSelection(event.currentTarget.dataset.conceptSelection, event.currentTarget.checked));
       });
       document.querySelectorAll("[data-select-concepts]").forEach(btn => {
         btn.addEventListener("click", () => toggleConceptTypeSelection(btn.dataset.selectConcepts));
@@ -27791,7 +27791,7 @@ window.__xlsxLoadStatus="loaded";
       if (checked) selected.add(key);
       else selected.delete(key);
       state.selectedConcepts = [...selected];
-      render();
+      refreshConceptSelectionControls();
     }
 
     function toggleConceptTypeSelection(type) {
@@ -27801,7 +27801,33 @@ window.__xlsxLoadStatus="loaded";
       options.forEach(option => allSelected ? selected.delete(option.key) : selected.add(option.key));
       state.conceptSelectionTouched = true;
       state.selectedConcepts = [...selected];
-      render();
+      refreshConceptSelectionControls();
+    }
+
+    function refreshConceptSelectionControls() {
+      const options = conceptSelectionOptions();
+      const selected = new Set(state.selectedConcepts);
+      const summary = document.querySelector("[data-concept-summary]");
+      if (summary) summary.textContent = `${selectedConceptCount()} de ${options.length} seleccionados`;
+
+      document.querySelectorAll("[data-concept-selection]").forEach(input => {
+        input.checked = selected.has(input.dataset.conceptSelection);
+      });
+
+      ["haber", "descuento", "aporte"].forEach(type => {
+        const rows = options.filter(option => option.type === type);
+        const selectedInGroup = rows.filter(option => selected.has(option.key)).length;
+        const count = document.querySelector(`[data-concept-count="${type}"]`);
+        const button = document.querySelector(`[data-select-concepts="${type}"]`);
+        if (count) count.textContent = `(${selectedInGroup}/${rows.length})`;
+        if (button) {
+          button.textContent = rows.length && selectedInGroup === rows.length ? "Quitar todos" : "Seleccionar todos";
+          button.disabled = !rows.length;
+        }
+      });
+
+      const compareButton = document.querySelector('[data-action="validate"]');
+      if (compareButton) compareButton.disabled = !(state.files.visma && state.files.rex && selectedConceptCount());
     }
 
     function selectedConceptSet() {
