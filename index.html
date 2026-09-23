@@ -24796,6 +24796,63 @@ window.__xlsxLoadStatus="loaded";
     }
     .simple-footer .subtle { font-size: 13px; }
 
+    .concept-selection {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+    .concept-selection-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .concept-selection-head h3 { margin: 0; font-size: 17px; }
+    .concept-selection-head p { margin: 5px 0 0; }
+    .concept-selection-summary { white-space: nowrap; }
+    .concept-selection-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .concept-selection-group {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfc;
+    }
+    .concept-selection-group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .concept-selection-group-head strong { font-size: 14px; }
+    .concept-selection-group-head .link-btn { font-size: 12px; }
+    .concept-options {
+      max-height: 260px;
+      overflow: auto;
+      padding: 6px 10px;
+    }
+    .concept-option {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      padding: 7px 2px;
+      border-bottom: 1px solid #edf1ef;
+      cursor: pointer;
+    }
+    .concept-option:last-child { border-bottom: 0; }
+    .concept-option input { margin-top: 3px; }
+    .concept-option-main { min-width: 0; }
+    .concept-option-name { display: block; overflow-wrap: anywhere; font-size: 13px; }
+    .concept-option-target { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .concept-selection-empty { padding: 14px 0 2px; }
+
     .password-layer {
       position: fixed;
       inset: 0;
@@ -24823,6 +24880,9 @@ window.__xlsxLoadStatus="loaded";
     @media (max-width: 700px) {
       .simple-upload-grid { grid-template-columns: 1fr; }
       .simple-header, .simple-map-row, .simple-footer { align-items: stretch; flex-direction: column; }
+      .concept-selection-head { flex-direction: column; }
+      .concept-selection-summary { white-space: normal; }
+      .concept-selection-grid { grid-template-columns: 1fr; }
       .simple-panel { padding: 20px; }
     }
 
@@ -25790,6 +25850,9 @@ window.__xlsxLoadStatus="loaded";
       rows: { visma: [], rex: [] },
       conceptHeaders: { visma: [], rex: [] },
       availableConcepts: { visma: [], rex: [] },
+      rexCatalog: [],
+      selectedConcepts: [],
+      conceptSelectionTouched: false,
       sourceLabel: "",
       fileErrors: { visma: "", rex: "", mapping: "" },
       validations: null,
@@ -26160,7 +26223,7 @@ window.__xlsxLoadStatus="loaded";
           <div class="simple-map-row">
             <div class="map-copy">
               <strong>Mapeo de conceptos</strong>
-              <div class="subtle file-name">${state.files.mapping ? esc(state.files.mapping.name) : "Mapa Finning precargado"} · ${DEFAULT_FINNING_HOMOLOGACIONES.length} reglas</div>
+              <div class="subtle file-name">${state.files.mapping ? esc(state.files.mapping.name) : "Mapa Finning precargado"} · ${DEFAULT_FINNING_HOMOLOGACIONES.length} reglas${state.rexCatalog.length ? ` · ${state.rexCatalog.length} conceptos REX+` : ""}</div>
               ${state.fileErrors.mapping ? `<div class="subtle" style="color:#b42318;margin-top:4px">${esc(state.fileErrors.mapping)}</div>` : ""}
             </div>
             <div class="actions">
@@ -26168,9 +26231,62 @@ window.__xlsxLoadStatus="loaded";
               <button type="button" class="btn secondary" data-action="choose-file" data-file-target="mapping">Cambiar mapeo</button>
             </div>
           </div>
+          ${conceptSelectionMarkup()}
           <div class="simple-footer">
-            <span class="subtle">Se comparan ${FOCUS_FIELDS.length} campos y los conceptos homologados.</span>
-            <button class="btn" data-action="validate" ${state.files.visma && state.files.rex ? "" : "disabled"}>Comparar libros</button>
+            <span class="subtle">Se comparan ${FOCUS_FIELDS.length} campos y los conceptos seleccionados.</span>
+            <button class="btn" data-action="validate" ${state.files.visma && state.files.rex && selectedConceptCount() ? "" : "disabled"}>Comparar libros</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function conceptSelectionMarkup() {
+      const options = conceptSelectionOptions();
+      if (!state.files.visma) {
+        return `<div class="concept-selection"><div class="concept-selection-empty subtle">Carga el libro ${esc(activeProfile().sourceName)} para elegir los conceptos que se compararan.</div></div>`;
+      }
+      if (!options.length) {
+        return `<div class="concept-selection"><div class="concept-selection-empty banner warn">No se encontraron conceptos de haberes, descuentos o aportes en el libro de origen.</div></div>`;
+      }
+      const groups = [
+        { key: "haber", label: "Haberes" },
+        { key: "descuento", label: "Descuentos" },
+        { key: "aporte", label: "Aportes" }
+      ];
+      const selected = new Set(state.selectedConcepts);
+      return `
+        <div class="concept-selection">
+          <div class="concept-selection-head">
+            <div>
+              <h3>Conceptos a comparar</h3>
+              <p class="subtle">Se usa el mapeo Meta4 → REX+ precargado y el catálogo detectado en el libro destino.</p>
+            </div>
+            <span class="badge reviewed concept-selection-summary">${selectedConceptCount()} de ${options.length} seleccionados</span>
+          </div>
+          <div class="concept-selection-grid">
+            ${groups.map(group => {
+              const rows = options.filter(option => option.type === group.key);
+              const selectedInGroup = rows.filter(option => selected.has(option.key)).length;
+              return `
+                <section class="concept-selection-group">
+                  <div class="concept-selection-group-head">
+                    <strong>${group.label} <span class="subtle">(${selectedInGroup}/${rows.length})</span></strong>
+                    <button type="button" class="link-btn" data-select-concepts="${group.key}" ${rows.length ? "" : "disabled"}>${rows.length && selectedInGroup === rows.length ? "Quitar todos" : "Seleccionar todos"}</button>
+                  </div>
+                  <div class="concept-options">
+                    ${rows.length ? rows.map(option => `
+                      <label class="concept-option">
+                        <input type="checkbox" data-concept-selection="${esc(option.key)}" ${selected.has(option.key) ? "checked" : ""}>
+                        <span class="concept-option-main">
+                          <span class="concept-option-name">${esc(option.source)}</span>
+                          <span class="concept-option-target">${option.target ? `REX+: ${esc(option.target)}` : "Sin homologación en el mapeo"}</span>
+                        </span>
+                      </label>
+                    `).join("") : `<div class="concept-selection-empty subtle">Sin conceptos.</div>`}
+                  </div>
+                </section>
+              `;
+            }).join("")}
           </div>
         </div>
       `;
@@ -26316,7 +26432,8 @@ window.__xlsxLoadStatus="loaded";
 
     function homologationRow(h) {
       const profile = activeProfile();
-      const rexConcepts = unique([h.concepto_b, ...conceptCatalog("rex")].filter(Boolean));
+      const rexConcepts = unique([h.concepto_b, h.concepto_b_label, ...conceptCatalog("rex")].filter(Boolean));
+      const selectedTarget = h.concepto_b ? resolveTargetConcept(h) : "";
       const suggestion = !h.concepto_b && h.concepto_b_label
         ? `<div class="subtle mapping-suggestion">Referencia: ${esc(h.concepto_b_label)}</div>`
         : "";
@@ -26326,7 +26443,7 @@ window.__xlsxLoadStatus="loaded";
           <td>
             <select data-hselect="${esc(h.id)}" onchange="window.__codexSetHomologation && window.__codexSetHomologation('${esc(h.id)}', this.value)">
               <option value="">Sin par</option>
-              ${rexConcepts.map(c => `<option value="${esc(c)}" ${c === h.concepto_b ? "selected" : ""}>${esc(c)}${c === h.concepto_b && h.concepto_b_label && h.concepto_b_label !== c ? ` · ${esc(h.concepto_b_label)}` : ""}</option>`).join("")}
+              ${rexConcepts.map(c => `<option value="${esc(c)}" ${c === selectedTarget ? "selected" : ""}>${esc(c)}${c === selectedTarget && h.concepto_b && h.concepto_b_label && h.concepto_b_label !== c ? ` · ${esc(h.concepto_b_label)}` : ""}</option>`).join("")}
             </select>
             ${suggestion}
           </td>
@@ -26764,6 +26881,12 @@ window.__xlsxLoadStatus="loaded";
       document.querySelectorAll("[data-action]").forEach(btn => {
         btn.addEventListener("click", () => handleAction(btn.dataset.action, btn.dataset));
       });
+      document.querySelectorAll("[data-concept-selection]").forEach(input => {
+        input.addEventListener("change", event => toggleConceptSelection(event.target.dataset.conceptSelection, event.target.checked));
+      });
+      document.querySelectorAll("[data-select-concepts]").forEach(btn => {
+        btn.addEventListener("click", () => toggleConceptTypeSelection(btn.dataset.selectConcepts));
+      });
       document.querySelectorAll("[data-file]").forEach(input => {
         input.addEventListener("change", event => handleFile(event.target.dataset.file, event.target.files[0]));
       });
@@ -26893,6 +27016,9 @@ window.__xlsxLoadStatus="loaded";
       state.rows = { visma: [], rex: [] };
       state.conceptHeaders = { visma: [], rex: [] };
       state.availableConcepts = { visma: [], rex: [] };
+      state.rexCatalog = [];
+      state.selectedConcepts = [];
+      state.conceptSelectionTouched = false;
       state.sourceLabel = "";
       state.fileErrors = { visma: "", rex: "", mapping: "" };
       state.validations = null;
@@ -26911,6 +27037,9 @@ window.__xlsxLoadStatus="loaded";
       state.rows = { visma: [], rex: [] };
       state.conceptHeaders = { visma: [], rex: [] };
       state.availableConcepts = { visma: [], rex: [] };
+      state.rexCatalog = [];
+      state.selectedConcepts = [];
+      state.conceptSelectionTouched = false;
       state.sourceLabel = "";
       state.fileErrors = { visma: "", rex: "", mapping: "" };
       state.validations = null;
@@ -26938,6 +27067,7 @@ window.__xlsxLoadStatus="loaded";
         visma: unique(sample.visma.map(r => r.concepto)).sort(),
         rex: unique(sample.rex.map(r => r.concepto)).sort()
       };
+      syncConceptSelection();
       state.validations = {
         visma: validateRows("visma", sample.visma, Object.keys(sample.visma[0] || {})),
         rex: validateRows("rex", sample.rex, Object.keys(sample.rex[0] || {}))
@@ -26969,6 +27099,7 @@ window.__xlsxLoadStatus="loaded";
           visma: (payload.concepts && payload.concepts.visma ? payload.concepts.visma : unique(payload.rows.visma.map(r => r.concepto))).sort(),
           rex: (payload.concepts && payload.concepts.rex ? payload.concepts.rex : unique(payload.rows.rex.map(r => r.concepto))).sort()
         };
+        syncConceptSelection();
         state.validations = {
           visma: {
             rows: payload.sources.visma.source_rows,
@@ -27011,7 +27142,8 @@ window.__xlsxLoadStatus="loaded";
         try {
           if (system === "mapping") {
             const parsed = await parseMappingFile(file);
-            applyMappingRows(parsed.mappings, file.name);
+            applyMappingRows(parsed.mappings, file.name, parsed.catalog);
+            syncConceptSelection();
             toast(`${file.name} cargado. ${parsed.mappings.length} reglas disponibles.`);
             render();
             return;
@@ -27040,6 +27172,7 @@ window.__xlsxLoadStatus="loaded";
       state.conceptHeaders[system] = parsed.conceptHeaders || [];
       state.rows[system] = await normalizeRows(system, parsed.rows, parsed.conceptHeaders || []);
       state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
+      syncConceptSelection();
       toast(`${file.name} cargado.`);
     }
 
@@ -27135,26 +27268,32 @@ window.__xlsxLoadStatus="loaded";
       const workbook = window.XLSX.read(buffer, { type: "array" });
       let selectedMatrix = null;
       let selectedHeaderIndex = -1;
+      const sourceCandidates = ["concepto meta4", "meta4", "concepto origen", "origen", "concepto"];
+      const targetCandidates = ["concepto rex+", "concepto rex", "rex+", "rex", "codigo rex+", "codigo concepto rex+", "codigo destino", "id rex+", "id rex"];
+      const targetLabelCandidates = ["nombre rex+", "nombre rex", "nombre concepto rex+", "concepto destino", "nombre destino", "destino"];
       for (const sheetName of workbook.SheetNames) {
         const sheet = workbook.Sheets[sheetName];
         const matrix = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
         const headerIndex = findMappingHeaderIndex(matrix);
-        if (headerIndex >= 0 && (selectedHeaderIndex < 0 || headerIndex < selectedHeaderIndex)) {
+        const headers = headerIndex >= 0 ? matrix[headerIndex].map(value => String(value || "").trim()) : [];
+        const hasSource = findMappingColumn(headers, sourceCandidates) !== null;
+        const hasTarget = findMappingColumn(headers, targetCandidates) !== null || findMappingColumn(headers, targetLabelCandidates) !== null;
+        if (headerIndex >= 0 && hasSource && hasTarget && (selectedHeaderIndex < 0 || headerIndex < selectedHeaderIndex)) {
           selectedMatrix = matrix;
           selectedHeaderIndex = headerIndex;
         }
       }
       if (!selectedMatrix || selectedHeaderIndex < 0) throw new Error("No se encontraron columnas de origen y destino en el mapeo.");
       const headers = (selectedMatrix[selectedHeaderIndex] || []).map(value => String(value || "").trim());
-      const sourceColumn = findMappingColumn(headers, ["concepto meta4", "concepto origen", "origen", "concepto"]);
-      const targetColumn = findMappingColumn(headers, ["concepto rex+", "concepto rex", "codigo rex+", "codigo destino", "id rex+"]);
-      const targetLabelColumn = findMappingColumn(headers, ["nombre rex+", "nombre rex", "concepto destino", "destino"]);
+      const sourceColumn = findMappingColumn(headers, sourceCandidates);
+      const targetColumn = findMappingColumn(headers, targetCandidates);
+      const targetLabelColumn = findMappingColumn(headers, targetLabelCandidates);
       const typeColumn = findMappingColumn(headers, ["clasificacion", "tipo concepto", "tipo"]);
       const statusColumn = findMappingColumn(headers, ["estado del mapeo", "estado"]);
       const historyColumn = findMappingColumn(headers, ["carga historica", "carga histórica"]);
       const commentColumn = findMappingColumn(headers, ["comentarios", "comentario", "observacion"]);
-      if (!sourceColumn) throw new Error("El mapeo necesita una columna de concepto origen.");
-      if (!targetColumn && !targetLabelColumn) throw new Error("El mapeo necesita una columna de concepto destino.");
+      if (sourceColumn === null) throw new Error("El mapeo necesita una columna de concepto origen.");
+      if (targetColumn === null && targetLabelColumn === null) throw new Error("El mapeo necesita una columna de concepto destino.");
       const mappings = selectedMatrix.slice(selectedHeaderIndex + 1).map(row => {
         const source = String(mappingCell(row, sourceColumn) || "").trim();
         const target = String(mappingCell(row, targetColumn) || "").trim();
@@ -27171,7 +27310,29 @@ window.__xlsxLoadStatus="loaded";
         });
       }).filter(Boolean);
       if (!mappings.length) throw new Error("El mapeo no contiene filas utilizables.");
-      return { mappings };
+      return { mappings, catalog: parseRexCatalog(workbook) };
+    }
+
+    function parseRexCatalog(workbook) {
+      const catalogSheet = workbook.SheetNames.find(name => normalizeText(name).includes("catalogo rex"));
+      if (!catalogSheet) return [];
+      const matrix = window.XLSX.utils.sheet_to_json(workbook.Sheets[catalogSheet], { header: 1, defval: "" });
+      const headerIndex = matrix.findIndex(row => {
+        const headers = row.map(value => String(value || "").trim());
+        return findMappingColumn(headers, ["concepto"]) !== null && findMappingColumn(headers, ["nombre"]) !== null;
+      });
+      if (headerIndex < 0) return [];
+      const headers = matrix[headerIndex].map(value => String(value || "").trim());
+      const conceptColumn = findMappingColumn(headers, ["concepto"]);
+      const nameColumn = findMappingColumn(headers, ["nombre"]);
+      const typeColumn = findMappingColumn(headers, ["tipo", "tipo concepto"]);
+      const enabledColumn = findMappingColumn(headers, ["habilitado", "activo", "estado"]);
+      return matrix.slice(headerIndex + 1).map(row => ({
+        concepto: String(mappingCell(row, conceptColumn) || "").trim(),
+        nombre: String(mappingCell(row, nameColumn) || "").trim(),
+        tipo: String(mappingCell(row, typeColumn) || "").trim(),
+        habilitado: String(mappingCell(row, enabledColumn) || "").trim()
+      })).filter(item => item.concepto || item.nombre);
     }
 
     function findMappingHeaderIndex(matrix) {
@@ -27179,8 +27340,8 @@ window.__xlsxLoadStatus="loaded";
       let bestScore = 0;
       matrix.slice(0, 50).forEach((row, index) => {
         const text = row.map(normalizeText).join(" ");
-        const score = (text.includes("concepto meta4") ? 4 : 0)
-          + (text.includes("concepto rex") ? 4 : 0)
+        const score = (text.includes("concepto meta4") || text.includes("meta4") ? 4 : 0)
+          + (text.includes("concepto rex") || text.includes("rex+") || text.includes("rex ") ? 4 : 0)
           + (text.includes("origen") ? 1 : 0)
           + (text.includes("destino") ? 1 : 0)
           + (text.includes("clasificacion") ? 1 : 0);
@@ -27226,7 +27387,7 @@ window.__xlsxLoadStatus="loaded";
       };
     }
 
-    function applyMappingRows(mappings, fileName) {
+    function applyMappingRows(mappings, fileName, catalog = []) {
       const normalized = mappings.map(normalizeMappingRow).filter(row => row.concepto_a);
       state.config.homologaciones = [
         ...state.config.homologaciones.filter(item => item.par_sistemas !== "meta4_rex_finning"),
@@ -27234,6 +27395,12 @@ window.__xlsxLoadStatus="loaded";
       ];
       state.files.mapping = { name: fileName, size: 0, uploaded: true };
       state.fileErrors.mapping = "";
+      state.rexCatalog = catalog;
+      state.availableConcepts.rex = unique([
+        ...state.availableConcepts.rex,
+        ...catalog.flatMap(item => [item.concepto, item.nombre]),
+        ...normalized.map(item => item.concepto_b_label || item.concepto_b)
+      ]).sort((a, b) => a.localeCompare(b));
       saveJson(STORE.config, state.config);
     }
 
@@ -27554,6 +27721,101 @@ window.__xlsxLoadStatus="loaded";
       return unique([...fromCatalog, ...fromRows]).sort((a, b) => a.localeCompare(b));
     }
 
+    function mappingCatalog() {
+      return state.config.homologaciones.filter(item => item.par_sistemas === pairStorageKey());
+    }
+
+    function comparisonType(type) {
+      const key = normalizeText(type);
+      if (key.includes("descuento") || key.includes("retencion") || key === "apv") return "descuento";
+      if (key.includes("aporte") || key.includes("empresa") || key === "mutual") return "aporte";
+      return "haber";
+    }
+
+    function mappingForConcept(concept) {
+      const wanted = normalizeText(concept);
+      return mappingCatalog().find(item => normalizeText(item.concepto_a) === wanted) || null;
+    }
+
+    function targetConceptCandidates(mapping) {
+      if (!mapping) return [];
+      const mapped = unique([mapping.concepto_b_label, mapping.concepto_b].filter(Boolean));
+      const catalogMatch = (state.rexCatalog || []).find(item =>
+        mapped.some(value => normalizeText(value) === normalizeText(item.concepto) || normalizeText(value) === normalizeText(item.nombre))
+      );
+      return unique([
+        ...mapped,
+        catalogMatch?.concepto,
+        catalogMatch?.nombre
+      ].filter(Boolean));
+    }
+
+    function resolveTargetConcept(mapping) {
+      const catalog = conceptCatalog("rex");
+      const candidates = targetConceptCandidates(mapping);
+      const exact = catalog.find(concept => candidates.some(candidate => normalizeText(concept) === normalizeText(candidate)));
+      return exact || candidates[0] || "";
+    }
+
+    function conceptSelectionOptions() {
+      return conceptCatalog("visma").map(source => {
+        const mapping = mappingForConcept(source);
+        return {
+          key: normalizeText(source),
+          source,
+          target: resolveTargetConcept(mapping),
+          type: comparisonType(mapping?.tipo_concepto || conceptType(source, state.rows.visma)),
+          mapped: Boolean(mapping)
+        };
+      }).filter(option => option.key);
+    }
+
+    function syncConceptSelection() {
+      const options = conceptSelectionOptions();
+      const available = new Set(options.map(option => option.key));
+      if (!state.conceptSelectionTouched) {
+        state.selectedConcepts = options.map(option => option.key);
+        return;
+      }
+      state.selectedConcepts = state.selectedConcepts.filter(key => available.has(key));
+    }
+
+    function selectedConceptCount() {
+      const available = new Set(conceptSelectionOptions().map(option => option.key));
+      return state.selectedConcepts.filter(key => available.has(key)).length;
+    }
+
+    function toggleConceptSelection(key, checked) {
+      state.conceptSelectionTouched = true;
+      const selected = new Set(state.selectedConcepts);
+      if (checked) selected.add(key);
+      else selected.delete(key);
+      state.selectedConcepts = [...selected];
+      render();
+    }
+
+    function toggleConceptTypeSelection(type) {
+      const options = conceptSelectionOptions().filter(option => option.type === type);
+      const selected = new Set(state.selectedConcepts);
+      const allSelected = options.length && options.every(option => selected.has(option.key));
+      options.forEach(option => allSelected ? selected.delete(option.key) : selected.add(option.key));
+      state.conceptSelectionTouched = true;
+      state.selectedConcepts = [...selected];
+      render();
+    }
+
+    function selectedConceptSet() {
+      return new Set(state.selectedConcepts);
+    }
+
+    function targetMatchesForHomologation(rut, mapping, rowsByConcept) {
+      for (const candidate of targetConceptCandidates(mapping)) {
+        const matches = rowsByConcept.get(`${rut}|${normalizeText(candidate)}`) || [];
+        if (matches.length) return matches;
+      }
+      return [];
+    }
+
     function updateHomologation(id, conceptB) {
       const h = state.homologations.find(x => x.id === id);
       if (!h) return;
@@ -27656,6 +27918,7 @@ window.__xlsxLoadStatus="loaded";
       const rowsAByConcept = sourceIndexes.byConcept;
       const rowsBByConcept = targetIndexes.byConcept;
       const homologationByConcept = new Map(state.homologations.map(h => [normalizeText(h.concepto_a), h]));
+      const selectedConcepts = selectedConceptSet();
       reportProgress(69, "Indices listos. Revisando trabajadores...");
       await yieldToBrowser();
       const rutsA = new Set([...rowsAByRut.keys()].filter(Boolean));
@@ -27697,38 +27960,23 @@ window.__xlsxLoadStatus="loaded";
         }
         const a = aMatches[0];
         if (!rutsB.has(a.rut)) continue;
+        if (!selectedConcepts.has(normalizeText(a.concepto))) continue;
         const hom = homologationByConcept.get(normalizeText(a.concepto));
         if (hom && hom.estado === "excluido") continue;
         if (!hom || !hom.concepto_b) {
           diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, "", sumRows(aMatches), 0, a.numero_empleado_a, ""));
           continue;
         }
-        const bMatches = rowsBByConcept.get(`${a.rut}|${normalizeText(hom.concepto_b)}`) || [];
+        const bMatches = targetMatchesForHomologation(a.rut, hom, rowsBByConcept);
         if (!bMatches.length) {
-          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, sumRows(aMatches), 0, a.numero_empleado_a, ""));
+          diffs.push(diff("concepto_faltante", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b_label || hom.concepto_b, sumRows(aMatches), 0, a.numero_empleado_a, ""));
           continue;
         }
         const bTotal = sumRows(bMatches);
         const aTotal = sumRows(aMatches);
         const bFirst = bMatches[0];
         if (Math.round(aTotal) !== Math.round(bTotal)) {
-          diffs.push(diff("monto", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b, aTotal, bTotal, a.numero_empleado_a, bFirst.numero_contrato_b));
-        }
-      }
-
-      const mappedB = new Set(state.homologations.map(h => normalizeText(h.concepto_b)).filter(Boolean));
-      let targetIndex = 0;
-      for (const bMatches of rowsBByConcept.values()) {
-        targetIndex += 1;
-        if (targetIndex % 250 === 0 || targetIndex === rowsBByConcept.size) {
-          const progress = 88 + (targetIndex / Math.max(rowsBByConcept.size, 1)) * 10;
-          reportProgress(progress, `Conceptos ${activeProfile().targetName}: ${targetIndex.toLocaleString("es-CL")} de ${rowsBByConcept.size.toLocaleString("es-CL")}`);
-          await yieldToBrowser();
-        }
-        const b = bMatches[0];
-        if (!rutsA.has(b.rut)) continue;
-        if (!mappedB.has(normalizeText(b.concepto))) {
-          diffs.push(diff("concepto_faltante", b.rut, b.nombre, b.sede, b.area, b.cargo, "", b.concepto, 0, sumRows(bMatches), "", b.numero_contrato_b));
+          diffs.push(diff("monto", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b_label || hom.concepto_b, aTotal, bTotal, a.numero_empleado_a, bFirst.numero_contrato_b));
         }
       }
 
