@@ -24559,6 +24559,8 @@ window.__xlsxLoadStatus="loaded";
       grid-template-columns: 248px minmax(0, 1fr);
     }
 
+    .app.simple-app { grid-template-columns: 1fr; }
+
     .busy-layer {
       position: fixed;
       inset: 0;
@@ -24728,6 +24730,73 @@ window.__xlsxLoadStatus="loaded";
     .main {
       min-width: 0;
       padding: 28px;
+    }
+
+    .simple-shell { max-width: 1080px; margin: 0 auto; }
+    .simple-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .simple-header h1 { margin-bottom: 6px; }
+    .simple-panel { padding: 28px; }
+    .simple-panel > .subtle { margin-top: 6px; }
+    .simple-upload-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .simple-upload-grid .upload {
+      min-height: 184px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .simple-upload-grid .upload h3 { font-size: 17px; }
+    .simple-upload-grid .upload .file-name {
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .simple-map-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbfa;
+    }
+    .simple-map-row .map-copy { min-width: 0; }
+    .simple-map-row .file-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .simple-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 22px;
+    }
+    .simple-footer .subtle { font-size: 13px; }
+    @media (max-width: 700px) {
+      .simple-upload-grid { grid-template-columns: 1fr; }
+      .simple-header, .simple-map-row, .simple-footer { align-items: stretch; flex-direction: column; }
+      .simple-panel { padding: 20px; }
     }
 
     .topline {
@@ -25873,7 +25942,8 @@ window.__xlsxLoadStatus="loaded";
     function render() {
       const profile = activeProfile();
       app.innerHTML = `
-        <div class="app">
+        <div class="app ${state.view === "wizard" ? "simple-app" : ""}">
+          ${state.view === "wizard" ? "" : `
           <aside class="sidebar">
             <div class="brand">
               <div class="brand-mark">NPR</div>
@@ -25892,6 +25962,7 @@ window.__xlsxLoadStatus="loaded";
               Flujo interno sin login. Los archivos se procesan en memoria y no se almacenan.
             </div>
           </aside>
+          `}
           <main class="main">
             ${viewMarkup()}
           </main>
@@ -25975,25 +26046,19 @@ window.__xlsxLoadStatus="loaded";
     function wizardMarkup() {
       const profile = activeProfile();
       return `
-        <section class="topline">
-          <div>
-            <h1>Comparacion ${esc(profile.sourceName)} vs ${esc(profile.targetName)}</h1>
-            <p class="subtle">Carga, homologa y compara los libros de remuneraciones en un flujo operativo unico para ${esc(profile.subtitle)}.</p>
-          </div>
-          <div class="actions">
-            <button class="btn secondary" data-action="reset-wizard">Reiniciar</button>
-            <button class="btn secondary" data-nav="dashboard">Volver</button>
-          </div>
-        </section>
-        <section class="split">
-          <aside class="stepper">
-            <div class="stepper-kicker">Avance</div>
-            ${STEPS.map((s, i) => stepMarkup(i + 1, s)).join("")}
-          </aside>
-          <div class="panel workspace">
-            <div class="panel-body">
-              ${stepContent()}
+        <section class="simple-shell">
+          <div class="simple-header">
+            <div>
+              <h1>Comparador de remuneraciones</h1>
+              <p class="subtle">${esc(profile.sourceName)} → ${esc(profile.targetName)} · ${esc(profile.subtitle)}</p>
             </div>
+            <div class="actions">
+              <button class="btn secondary" data-action="reset-wizard">Reiniciar</button>
+              <button class="btn secondary" data-nav="dashboard">Volver</button>
+            </div>
+          </div>
+          <div class="panel simple-panel">
+            ${state.step === 1 ? stepUpload() : stepContent()}
           </div>
         </section>
       `;
@@ -26024,110 +26089,35 @@ window.__xlsxLoadStatus="loaded";
 
     function stepUpload() {
       const profile = activeProfile();
-      const vismaConcepts = state.availableConcepts.visma.length;
-      const rexConcepts = state.availableConcepts.rex.length;
       return `
-        <div class="stack">
-          <div>
-            <h2>Carga de archivos</h2>
-            <p class="subtle">Prepara ambos libros del mismo periodo para iniciar la comparacion.</p>
-          </div>
+        <div>
+          <h2>Cargar libros</h2>
+          <p class="subtle">Selecciona los dos archivos del mismo periodo y compara.</p>
           ${location.protocol === "file:" ? `<div class="banner warn">Esta vista abierta con <strong>file://</strong> puede fallar al cargar libros Excel en este navegador. Usa la version local por HTTP: <a href="${LOCAL_APP_URL}" target="_blank" rel="noreferrer">${LOCAL_APP_URL}</a></div>` : ""}
           ${window.XLSX ? "" : `<div class="banner warn">SheetJS no esta cargado. La app puede usar CSV/TSV o la muestra; la exportacion usara formato XLS compatible con Excel.</div>`}
-          ${state.sourceLabel ? `<div class="banner ok">${esc(state.sourceLabel)}. ${esc(profile.sourceName)}: ${vismaConcepts} conceptos. ${esc(profile.targetName)}: ${rexConcepts} conceptos.</div>` : ""}
-          <div class="ops-grid">
-            <div class="ops-column">
-              <div class="ops-card stack">
-                <div class="focus-panel">
-                  <div class="focus-panel-head">
-                    <div>
-                      <strong>Comparación Finning</strong>
-                      <div class="subtle">Meta4 es el origen y REX+ el destino.</div>
-                    </div>
-                    <span class="badge reviewed">Meta4 → REX+</span>
-                  </div>
-                </div>
-                <div class="field">
-                  <label for="period">Periodo</label>
-                  <input id="period" type="month" value="${esc(state.period)}">
-                </div>
-                <div class="upload-grid">
-                  ${uploadBox("visma", profile.sourceFileLabel, state.files.visma, state.fileErrors.visma)}
-                  ${uploadBox("rex", profile.targetFileLabel, state.files.rex, state.fileErrors.rex)}
-                </div>
-                ${uploadBox("mapping", "Mapeo de conceptos Meta4 → REX+", state.files.mapping, state.fileErrors.mapping, "Opcional: reemplaza el mapeo Finning que ya viene cargado.")}
-                <div class="focus-panel">
-                  <div class="focus-panel-head">
-                    <div>
-                      <strong>Foco de comparacion</strong>
-                      <div class="subtle">Se comparan estos campos de persona, contrato y resumen remuneracional.</div>
-                    </div>
-                    <span class="badge reviewed">${FOCUS_FIELDS.length} campos</span>
-                  </div>
-                  <div class="focus-list">
-                    ${FOCUS_FIELDS.map(field => `<span class="chip">${esc(field.label)}</span>`).join("")}
-                  </div>
-                </div>
-                <div class="actions">
-                  <button class="btn" data-action="validate" ${state.files.visma && state.files.rex ? "" : "disabled"}>Revisar mapeo y continuar</button>
-                </div>
-              </div>
+          ${state.sourceLabel ? `<div class="banner ok">${esc(state.sourceLabel)}</div>` : ""}
+          <div class="field" style="max-width:180px;margin-top:20px">
+            <label for="period">Periodo</label>
+            <input id="period" type="month" value="${esc(state.period)}">
+          </div>
+          <div class="simple-upload-grid">
+            ${uploadBox("visma", profile.sourceFileLabel, state.files.visma, state.fileErrors.visma, "Libro de remuneraciones de origen")}
+            ${uploadBox("rex", profile.targetFileLabel, state.files.rex, state.fileErrors.rex, "Libro de remuneraciones de destino")}
+          </div>
+          <div class="simple-map-row">
+            <div class="map-copy">
+              <strong>Mapeo de conceptos</strong>
+              <div class="subtle file-name">${state.files.mapping ? esc(state.files.mapping.name) : "Mapa Finning precargado"} · ${DEFAULT_FINNING_HOMOLOGACIONES.length} reglas</div>
+              ${state.fileErrors.mapping ? `<div class="subtle" style="color:#b42318;margin-top:4px">${esc(state.fileErrors.mapping)}</div>` : ""}
             </div>
-            <div class="ops-column">
-              <div class="ops-card">
-                <h3>Estado de preparación</h3>
-                <div class="ops-list">
-                  <div class="ops-list-item">
-                    <div>
-                      <strong>Origen ${esc(profile.sourceName)}</strong>
-                      <div class="subtle">${state.files.visma ? esc(state.files.visma.name) : "Pendiente de carga"}</div>
-                      ${state.fileErrors.visma ? `<div class="subtle" style="color:#b42318;margin-top:4px">${esc(state.fileErrors.visma)}</div>` : ""}
-                    </div>
-                    <span class="badge ${state.fileErrors.visma ? "pending" : state.files.visma ? "reviewed" : "excluded"}">${state.fileErrors.visma ? "Error" : state.files.visma ? "Listo" : "Pendiente"}</span>
-                  </div>
-                  <div class="ops-list-item">
-                    <div>
-                      <strong>Destino ${esc(profile.targetName)}</strong>
-                      <div class="subtle">${state.files.rex ? esc(state.files.rex.name) : "Pendiente de carga"}</div>
-                      ${state.fileErrors.rex ? `<div class="subtle" style="color:#b42318;margin-top:4px">${esc(state.fileErrors.rex)}</div>` : ""}
-                    </div>
-                    <span class="badge ${state.fileErrors.rex ? "pending" : state.files.rex ? "reviewed" : "excluded"}">${state.fileErrors.rex ? "Error" : state.files.rex ? "Listo" : "Pendiente"}</span>
-                  </div>
-                  <div class="ops-list-item">
-                    <div>
-                      <strong>Mapeo de conceptos</strong>
-                      <div class="subtle">${state.files.mapping ? esc(state.files.mapping.name) : "Mapeo Finning precargado"}</div>
-                      ${state.fileErrors.mapping ? `<div class="subtle" style="color:#b42318;margin-top:4px">${esc(state.fileErrors.mapping)}</div>` : ""}
-                    </div>
-                    <span class="badge ${state.fileErrors.mapping ? "pending" : "reviewed"}">${state.fileErrors.mapping ? "Error" : `${DEFAULT_FINNING_HOMOLOGACIONES.length} reglas`}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="ops-card">
-                <h3>Lectura esperada</h3>
-                <div class="ops-list">
-                  <div class="ops-list-item">
-                    <div class="ops-stat">
-                      <span class="subtle">Conceptos ${esc(profile.sourceName)}</span>
-                      <strong>${vismaConcepts || 0}</strong>
-                    </div>
-                    <span class="badge excluded">${esc(profile.summaryLabel)}</span>
-                  </div>
-                  <div class="ops-list-item">
-                    <div class="ops-stat">
-                      <span class="subtle">Conceptos ${esc(profile.targetName)}</span>
-                      <strong>${rexConcepts || 0}</strong>
-                    </div>
-                    <span class="badge excluded">${esc(profile.summaryLabel)}</span>
-                  </div>
-                </div>
-                <div class="ops-chip-grid">
-                  <span class="chip">1. Cargar dos libros</span>
-                  <span class="chip">2. Revisar mapeo</span>
-                  <span class="chip">3. Ver diferencias</span>
-                </div>
-              </div>
+            <div class="actions">
+              <input id="file-mapping" data-file="mapping" type="file" accept=".xlsx,.xls" hidden>
+              <button type="button" class="btn secondary" data-action="choose-file" data-file-target="mapping">Cambiar mapeo</button>
             </div>
+          </div>
+          <div class="simple-footer">
+            <span class="subtle">Se comparan ${FOCUS_FIELDS.length} campos y los conceptos homologados.</span>
+            <button class="btn" data-action="validate" ${state.files.visma && state.files.rex ? "" : "disabled"}>Comparar libros</button>
           </div>
         </div>
       `;
@@ -27204,7 +27194,7 @@ window.__xlsxLoadStatus="loaded";
       return cells;
     }
 
-    function validateAndContinue() {
+    async function validateAndContinue() {
       if (!state.files.visma || !state.files.rex) return toast("Debes cargar ambos archivos.");
       state.validations = {
         visma: validateRows("visma", state.rows.visma, Object.keys(state.rawRows.visma[0] || state.rows.visma[0] || {})),
@@ -27215,7 +27205,8 @@ window.__xlsxLoadStatus="loaded";
         render();
         return toast("Hay errores en la estructura. Corrige antes de homologar.");
       }
-      return prepareHomologations();
+      await prepareHomologations(true);
+      return runComparison();
     }
 
     function validateRows(system, rows, originalHeaders) {
@@ -27372,7 +27363,7 @@ window.__xlsxLoadStatus="loaded";
       return normalizeText(value);
     }
 
-    async function prepareHomologations() {
+    async function prepareHomologations(direct = false) {
       const conceptsA = conceptCatalog("visma");
       const conceptsB = conceptCatalog("rex");
       const pairId = pairStorageKey();
@@ -27421,6 +27412,7 @@ window.__xlsxLoadStatus="loaded";
           origen: match.score >= 0.58 ? "automatico" : "manual"
         };
       }, 25);
+      if (direct) return;
       state.step = 2;
       render();
       toast("Propuesta de homologacion generada.");
