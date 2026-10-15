@@ -26623,6 +26623,28 @@ window.__xlsxLoadStatus="loaded";
         saludRule.origen = healthRule?.origen || "Mapa Visma a REX+ Rauda (precargado)";
         changed = true;
       }
+      ["SALUD", "ADICIONAL SALUD", "IMPUESTO UNICO"].forEach(sourceConcept => {
+        const forced = forcedVismaRexMapping(sourceConcept);
+        if (!forced) return;
+        let savedRule = state.config.homologaciones.find(item =>
+          item.par_sistemas === pairId && normalizeText(item.concepto_a) === normalizeText(sourceConcept)
+        );
+        if (!savedRule) {
+          savedRule = {
+            id: uid(),
+            par_sistemas: pairId,
+            empresa: "Rauda",
+            ...forced
+          };
+          state.config.homologaciones.push(savedRule);
+          changed = true;
+          return;
+        }
+        if (savedRule.concepto_b !== forced.concepto_b || savedRule.concepto_b_label !== forced.concepto_b_label || savedRule.estado !== "activo") {
+          Object.assign(savedRule, forced);
+          changed = true;
+        }
+      });
       if (changed || !current.length) saveJson(STORE.config, state.config);
     }
 
@@ -26647,6 +26669,22 @@ window.__xlsxLoadStatus="loaded";
 
     function pairStorageKey() {
       return activeProfile().id;
+    }
+
+    function forcedVismaRexMapping(concept) {
+      if (!["visma_rex", "visma_rex_rauda"].includes(activeProfile().id)) return null;
+      const rules = {
+        "impuesto unico": { concepto_b: "impuesto", concepto_b_label: "Impuesto", tipo_concepto: "descuento" },
+        "salud": { concepto_b: "isapre", concepto_b_label: "Cotizacion SALUD", tipo_concepto: "descuento" },
+        "adicional salud": { concepto_b: "isapre", concepto_b_label: "Cotizacion SALUD", tipo_concepto: "descuento" }
+      };
+      const rule = rules[normalizeText(concept)];
+      return rule ? {
+        concepto_a: concept,
+        ...rule,
+        estado: "activo",
+        origen: "Homologacion fija Visma a REX+"
+      } : null;
     }
 
     function companyForProfile(profileId) {
@@ -29246,6 +29284,13 @@ window.__xlsxLoadStatus="loaded";
         if (key && !typeByConcept.has(key)) typeByConcept.set(key, row.tipo_concepto);
       });
       state.homologations = await mapWithYield(conceptsA, conceptA => {
+        const forced = forcedVismaRexMapping(conceptA);
+        if (forced) return {
+          id: uid(),
+          ...forced,
+          concepto_b_label: forced.concepto_b_label,
+          tipo_concepto: forced.tipo_concepto || typeByConcept.get(normalizeText(conceptA)) || "descuento"
+        };
         const stored = saved.find(h => normalizeText(h.concepto_a) === normalizeText(conceptA));
         if (stored) return {
           id: uid(),
@@ -29332,6 +29377,8 @@ window.__xlsxLoadStatus="loaded";
 
     function mappingForConcept(concept) {
       const wanted = normalizeText(concept);
+      const forced = forcedVismaRexMapping(concept);
+      if (forced) return forced;
       const direct = mappingCatalog().find(item => normalizeText(item.concepto_a) === wanted);
       if (direct) return direct;
       if (activeProfile().id === "visma_rex_rauda" && wanted === "liquido") {
