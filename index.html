@@ -24972,6 +24972,145 @@ window.__xlsxLoadStatus="loaded";
       margin-bottom: 18px;
     }
 
+    .quadrature-dashboard {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border-top: 4px solid var(--primary);
+    }
+
+    .quadrature-dashboard-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .quadrature-dashboard-head h3 {
+      margin-bottom: 4px;
+      font-size: 17px;
+    }
+
+    .quadrature-dashboard-head p {
+      max-width: 820px;
+    }
+
+    .quadrature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .quadrature-kpi {
+      min-width: 0;
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(22, 32, 29, 0.04);
+    }
+
+    .quadrature-kpi:hover,
+    .quadrature-kpi.active {
+      border-color: #62b7a8;
+      background: #f3fcf9;
+      box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.1);
+    }
+
+    .quadrature-kpi-head,
+    .quadrature-kpi-values {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .quadrature-kpi-label {
+      min-width: 0;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .quadrature-kpi-percent {
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 900;
+      color: var(--primary-dark);
+    }
+
+    .quadrature-kpi-subtitle {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .quadrature-kpi-values {
+      padding-top: 9px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .quadrature-kpi-values span {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .quadrature-kpi-values strong {
+      color: var(--text);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .quadrature-detail {
+      border-left: 4px solid var(--primary);
+    }
+
+    .quadrature-detail .panel-head {
+      align-items: flex-start;
+    }
+
+    .quadrature-detail-table {
+      min-width: 0;
+      table-layout: fixed;
+    }
+
+    .quadrature-detail-table th,
+    .quadrature-detail-table td {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .quadrature-detail-table th:nth-child(1),
+    .quadrature-detail-table td:nth-child(1) { width: 27%; }
+
+    .quadrature-detail-table th:nth-child(2),
+    .quadrature-detail-table td:nth-child(2),
+    .quadrature-detail-table th:nth-child(3),
+    .quadrature-detail-table td:nth-child(3) { width: 18%; }
+
+    .quadrature-detail-table th:nth-child(4),
+    .quadrature-detail-table td:nth-child(4) { width: 19%; }
+
+    .quadrature-detail-table th:nth-child(5),
+    .quadrature-detail-table td:nth-child(5) { width: 18%; }
+
+    .worker-link {
+      padding: 0;
+      background: transparent;
+      color: var(--primary-dark);
+      font-weight: 800;
+      text-align: left;
+    }
+
+    .worker-link:hover { text-decoration: underline; }
+
     .kpi {
       min-height: 116px;
       padding: 17px;
@@ -25913,6 +26052,8 @@ window.__xlsxLoadStatus="loaded";
       .worker-sheet-meta,
       .worker-sheet-grid { grid-template-columns: 1fr; }
       .worker-book-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .quadrature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .quadrature-dashboard-head { flex-direction: column; }
     }
 
     .tree {
@@ -26247,13 +26388,25 @@ window.__xlsxLoadStatus="loaded";
       { key: "dias_ausencias", label: "Dias ausencias", aliases: ["dias ausencias", "dias de ausencia", "ausencias", "dias de falta"] },
       { key: "dias_permiso", label: "Dias permiso", aliases: ["dias permiso", "dias de permiso", "permisos"] },
       { key: "dias_licencia", label: "Dias licencia", aliases: ["dias licencia", "dias de licencia", "licencia", "dias con licencia medica"] },
-      { key: "sueldo_base_contractual", label: "Sueldo base contractual", aliases: ["sueldo base contractual", "sueldo base", "sueldo base mensual", "sueldo base contrato", "sueldo", "sueldo ganado"] },
+      { key: "sueldo_base_contractual", label: "Sueldo base contractual", aliases: ["sueldo base contractual", "sueldo base", "sueldo base mensual", "sueldo base contrato", "sueldo"] },
       { key: "haberes", label: "Haberes", aliases: ["haberes", "total haberes", "total de haberes", "suma haberes", "total ingresos"] },
       { key: "descuentos", label: "Descuentos", aliases: ["descuentos", "total descuentos", "total de descuentos", "total rebajas"] },
-      { key: "aportes", label: "Aportes", aliases: ["aportes", "total aportes", "aportes patronales", "total aportes patronales"] }
+      { key: "aportes", label: "Aportes", aliases: ["aportes", "total aportes", "aportes patronales", "total aportes patronales"] },
+      { key: "total_imponible", label: "Total imponible", aliases: ["total imponible", "total de imponible", "imponible total", "total imponible sin tope", "imponible"] },
+      { key: "imponible_afp", label: "Imponible afecto AFP", aliases: ["total imponible topado", "total imponible afecto afp", "imponible afecto afp", "imponible con tope", "imponible topeado", "afecto afp"] },
+      { key: "tributable", label: "Total afecto impuesto", aliases: ["tributable", "total tributable", "total afecto impuesto", "base tributable", "afecto impuesto"] }
     ];
 
-    const REMUNERATION_FOCUS_FIELDS = new Set(["haberes", "descuentos", "aportes"]);
+    const REMUNERATION_FOCUS_FIELDS = new Set([
+      "dias_trabajados",
+      "sueldo_base_contractual",
+      "haberes",
+      "descuentos",
+      "aportes",
+      "total_imponible",
+      "imponible_afp",
+      "tributable"
+    ]);
 
     const WIDE_EXCLUDED = new Set([
       "periodo", "periodo", "empleado", "apellido y nombre", "rut", "fecha de alta", "fecha de baja",
@@ -26262,7 +26415,7 @@ window.__xlsxLoadStatus="loaded";
       "nombre", "contrato", "sede", "fecha inicio", "fecha termino", "fecha termino", "inst salud",
       "inst. salud", "tipo contrato", "centro costo", "sindicato", "pauta contable", "agrupacion",
       "plan uf", "alcance liquido", "liquido", "sueldo", "sueldo liquido", "total haberes", "total descuentos",
-      "tributable", "total imponible", "total imponible topado", "total imponible sin tope", "total de haberes sc", "base tributable", "afecto afp", "afecto cesantia",
+      "tributable", "total tributable", "total afecto impuesto", "total imponible", "imponible", "total imponible topado", "total imponible afecto afp", "total imponible sin tope", "total de haberes sc", "base tributable", "afecto afp", "imponible afecto afp", "imponible con tope", "imponible topeado", "afecto cesantia",
       "haberes exentos", "suma haberes", "total rebajas", "afecto impuesto",
       "imponible informado ley 21 227", "imponible cesantia ley 21 227", "dias trabajados",
       "dias con licencia medica", "dias con licencia por accidente", "dias de falta", "minutos de atraso",
@@ -26402,7 +26555,9 @@ window.__xlsxLoadStatus="loaded";
       differences: [],
       selectedNode: "todos",
       selectedNumericGroup: "",
+      selectedQuadratureMetric: "",
       selectedWorkerRut: "",
+      quadratureCache: {},
       filters: { type: "todos", status: "todos", q: "" },
       justificationPage: 0,
       exportDone: false,
@@ -27195,10 +27350,8 @@ window.__xlsxLoadStatus="loaded";
 
     function stepResults() {
       const diffs = filteredDifferences();
-      const totals = summarizeDiffs(state.differences);
       const contractual = state.differences.filter(isContractualDifference);
       const remunerational = state.differences.filter(isRemunerationalDifference);
-      const netPay = remunerational.filter(isNetSalaryDifference);
       const justified = state.differences.filter(d => d.estado_revision === "justificado").length;
       const compliance = state.differences.length ? Math.round(justified / state.differences.length * 100) : 100;
       return `
@@ -27208,15 +27361,11 @@ window.__xlsxLoadStatus="loaded";
             <p class="subtle">Diferencias enfocadas en los campos definidos y en los conceptos de haberes, descuentos y aportes. Cada registro incluye un analisis automatico, motivo probable y regla aplicada.</p>
           </div>
           ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
+          ${quadratureDashboardMarkup()}
+          ${quadratureMetricDetailMarkup(state.selectedQuadratureMetric)}
+          ${workerDetailMarkup(state.selectedWorkerRut)}
           ${netSalaryMatchMarkup(netSalaryComparisonSummary())}
           ${numericDifferenceGroupsMarkup()}
-          ${workerDetailMarkup(state.selectedWorkerRut)}
-          <section class="kpi-grid">
-            ${kpi("Total diferencias", state.differences.length, "Resultado completo")}
-            ${kpi("Datos contractuales", contractual.length, `${unique(contractual.map(d => d.rut || d.nombre_trabajador)).length.toLocaleString("es-CL")} trabajadores afectados`)}
-            ${kpi("Conceptos remuneracionales", remunerational.length, `${(totals.monto || 0) + (totals.concepto_faltante || 0)} diferencias de conceptos`)}
-            ${kpi("Sueldo liquido", netPay.length, netPay.length ? `${unique(netPay.map(d => d.rut || d.nombre_trabajador)).length.toLocaleString("es-CL")} trabajadores afectados` : "Sin diferencias detectadas")}
-          </section>
           <div class="progress" aria-label="Cumplimiento revision"><span style="--w:${compliance}%"></span></div>
           <div class="result-groups">
             ${contractualSummaryMarkup(contractual)}
@@ -27254,6 +27403,224 @@ window.__xlsxLoadStatus="loaded";
       `;
     }
 
+    function quadratureMetrics() {
+      return [
+        { key: "dotacion", label: "Dotacion", subtitle: "Cantidad de RUT", kind: "count" },
+        { key: "dias_trabajados", label: "Dias trabajados", subtitle: "Total informado por trabajador", kind: "number", focusKey: "dias_trabajados", fallbackConcepts: ["dias trabajados", "dias de trabajo"] },
+        { key: "sueldo_liquido", label: "Sueldo liquido", subtitle: "Importe final a pagar", kind: "money" },
+        { key: "haberes", label: "Total haberes", subtitle: "Ingresos remuneracionales", kind: "money", focusKey: "haberes", fallbackConcepts: ["haberes", "total haberes"] },
+        { key: "total_imponible", label: "Total imponible", subtitle: "Base imponible", kind: "money", focusKey: "total_imponible", fallbackConcepts: ["total imponible", "total de imponible", "imponible total", "total imponible sin tope", "imponible"] },
+        { key: "imponible_afp", label: "Imponible afecto AFP", subtitle: "Imponible con tope en Visma", kind: "money", focusKey: "imponible_afp", fallbackConcepts: ["total imponible topado", "total imponible afecto afp", "imponible afecto afp", "imponible con tope", "imponible topeado", "afecto afp"] },
+        { key: "tributable", label: "Total afecto impuesto", subtitle: "Tributable", kind: "money", focusKey: "tributable", fallbackConcepts: ["tributable", "total tributable", "total afecto impuesto", "base tributable", "afecto impuesto"] },
+        { key: "descuentos", label: "Total descuentos", subtitle: "Retenciones y descuentos", kind: "money", focusKey: "descuentos", fallbackConcepts: ["descuentos", "total descuentos"] },
+        { key: "sueldo_base", label: "Sueldo base", subtitle: "Base contractual / concepto sueldo base", kind: "money", focusKey: "sueldo_base_contractual", fallbackConcepts: ["sueldo base", "sueldo base contractual"] }
+      ];
+    }
+
+    function firstRowsByRut(rows) {
+      const result = new Map();
+      rows.forEach(row => {
+        const rut = cleanRut(row.rut);
+        if (rut && !result.has(rut)) result.set(rut, row);
+      });
+      return result;
+    }
+
+    function conceptAmountsByRut(rows, aliases) {
+      const wanted = new Set((aliases || []).map(normalizeText));
+      const result = new Map();
+      if (!wanted.size) return result;
+      rows.forEach(row => {
+        const rut = cleanRut(row.rut);
+        const concept = normalizeText(row.concepto);
+        const amount = toNumber(row.monto);
+        if (!rut || !wanted.has(concept) || !Number.isFinite(amount)) return;
+        const previous = result.get(rut);
+        result.set(rut, {
+          value: (previous?.value || 0) + amount,
+          name: row.nombre || previous?.name || rut
+        });
+      });
+      return result;
+    }
+
+    function rowDisplayName(row, rut) {
+      if (!row) return rut;
+      return row.nombre || focusValue(row, "nombre") || rut;
+    }
+
+    function normalizeQuadratureValue(metric, value) {
+      return metric.key === "descuentos" ? Math.abs(value) : value;
+    }
+
+    function quadratureMetricValues(metric, system) {
+      const rows = state.rows[system] || [];
+      const first = firstRowsByRut(rows);
+      const result = new Map();
+      if (metric.key === "dotacion") {
+        first.forEach((row, rut) => result.set(rut, { value: 1, name: rowDisplayName(row, rut) }));
+        return result;
+      }
+      if (metric.key === "sueldo_liquido") {
+        const values = netSalaryRowsByRut(rows, system);
+        values.forEach((value, rut) => result.set(rut, { value, name: rowDisplayName(first.get(rut), rut) }));
+        return result;
+      }
+
+      const fallback = conceptAmountsByRut(rows, metric.fallbackConcepts);
+      first.forEach((row, rut) => {
+        const focused = metric.focusKey ? toNumber(focusValue(row, metric.focusKey)) : NaN;
+        const sourceValue = Number.isFinite(focused) ? focused : fallback.get(rut)?.value;
+        if (Number.isFinite(sourceValue)) result.set(rut, { value: normalizeQuadratureValue(metric, sourceValue), name: rowDisplayName(row, rut) });
+      });
+      fallback.forEach((item, rut) => {
+        if (!result.has(rut)) result.set(rut, { ...item, value: normalizeQuadratureValue(metric, item.value) });
+      });
+      return result;
+    }
+
+    function quadratureValueEqual(metric, left, right) {
+      if (!left || !right || !Number.isFinite(left.value) || !Number.isFinite(right.value)) return false;
+      return Math.round(left.value * 100) === Math.round(right.value * 100);
+    }
+
+    function quadratureComparison(metric) {
+      const cached = state.quadratureCache[metric.key];
+      if (cached) return cached;
+      const source = quadratureMetricValues(metric, "visma");
+      const target = quadratureMetricValues(metric, "rex");
+      const ruts = unique([...source.keys(), ...target.keys()]);
+      const rows = [];
+      let exact = 0;
+      let sourceTotal = 0;
+      let targetTotal = 0;
+      let sourcePresent = 0;
+      let targetPresent = 0;
+      ruts.forEach(rut => {
+        const sourceItem = source.get(rut);
+        const targetItem = target.get(rut);
+        if (metric.kind === "count") {
+          sourceTotal += sourceItem ? 1 : 0;
+          targetTotal += targetItem ? 1 : 0;
+          sourcePresent += sourceItem ? 1 : 0;
+          targetPresent += targetItem ? 1 : 0;
+          if (Boolean(sourceItem) === Boolean(targetItem)) exact += 1;
+          else rows.push({ rut, name: sourceItem?.name || targetItem?.name || rut, sourceValue: sourceItem ? 1 : null, targetValue: targetItem ? 1 : null, difference: null });
+          return;
+        }
+        if (sourceItem && Number.isFinite(sourceItem.value)) { sourceTotal += sourceItem.value; sourcePresent += 1; }
+        if (targetItem && Number.isFinite(targetItem.value)) { targetTotal += targetItem.value; targetPresent += 1; }
+        if (quadratureValueEqual(metric, sourceItem, targetItem)) exact += 1;
+        else rows.push({
+          rut,
+          name: sourceItem?.name || targetItem?.name || rut,
+          sourceValue: sourceItem?.value ?? null,
+          targetValue: targetItem?.value ?? null,
+          difference: sourceItem && targetItem ? sourceItem.value - targetItem.value : null
+        });
+      });
+      const summary = {
+        metric,
+        total: ruts.length,
+        exact,
+        affected: rows.length,
+        percentage: ruts.length ? exact / ruts.length * 100 : 0,
+        sourceTotal,
+        targetTotal,
+        sourcePresent,
+        targetPresent,
+        rows
+      };
+      state.quadratureCache[metric.key] = summary;
+      return summary;
+    }
+
+    function quadratureNumber(value) {
+      if (value === null || value === undefined || !Number.isFinite(Number(value))) return "No informado";
+      return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 }).format(Number(value));
+    }
+
+    function quadratureValueLabel(metric, value) {
+      if (value === null || value === undefined || !Number.isFinite(Number(value))) return "No informado";
+      if (metric.kind === "money") return money(value);
+      if (metric.kind === "number") return quadratureNumber(value);
+      return Number(value) ? "Presente" : "Ausente";
+    }
+
+    function quadratureTotalLabel(metric, value, presentCount) {
+      if (!presentCount) return "No informado";
+      if (metric.kind === "count") return Number(value).toLocaleString("es-CL");
+      return quadratureValueLabel(metric, value);
+    }
+
+    function quadratureAffectedLabel(count) {
+      return `${Number(count).toLocaleString("es-CL")} ${Number(count) === 1 ? "afectado" : "afectados"}`;
+    }
+
+    function quadratureDashboardMarkup() {
+      const profile = activeProfile();
+      return `
+        <section class="panel quadrature-dashboard">
+          <div class="quadrature-dashboard-head">
+            <div><h3>Cuadratura principal</h3><p class="subtle">Selecciona una metrica para ver los trabajadores afectados. Desde cada persona puedes abrir ambas liquidaciones.</p></div>
+            <span class="badge reviewed">${esc(profile.sourceName)} → ${esc(profile.targetName)}</span>
+          </div>
+          <div class="quadrature-grid">
+            ${quadratureMetrics().map(metric => {
+              const summary = quadratureComparison(metric);
+              const hasData = summary.total > 0;
+              const comparable = summary.sourcePresent > 0 && summary.targetPresent > 0;
+              const status = summary.affected ? (comparable ? quadratureAffectedLabel(summary.affected) : "Falta dato") : hasData ? "Cuadratura exacta" : "Sin datos";
+              return `<button class="quadrature-kpi ${state.selectedQuadratureMetric === metric.key ? "active" : ""}" data-action="select-quadrature" data-metric="${esc(metric.key)}">
+                <div class="quadrature-kpi-head"><span class="quadrature-kpi-label">${esc(metric.label)}</span><span class="badge ${summary.affected ? "pending" : "reviewed"}">${esc(status)}</span></div>
+                <strong class="quadrature-kpi-percent">${comparable ? formatPercent(summary.percentage) : "-"}</strong>
+                <span class="quadrature-kpi-subtitle">${esc(metric.subtitle)}</span>
+                <div class="quadrature-kpi-values"><span>${esc(profile.sourceName)}<strong>${quadratureTotalLabel(metric, summary.sourceTotal, summary.sourcePresent)}</strong></span><span>${esc(profile.targetName)}<strong>${quadratureTotalLabel(metric, summary.targetTotal, summary.targetPresent)}</strong></span></div>
+              </button>`;
+            }).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function quadratureDetailRow(metric, row, profile) {
+      const status = row.difference === null ? "RUT sin par" : quadratureValueLabel(metric, row.difference);
+      return `<tr>
+        <td><button class="worker-link" data-action="worker-detail" data-rut="${esc(row.rut)}">${esc(row.name)}</button><br><span class="subtle">${esc(row.rut)}</span></td>
+        <td>${quadratureValueLabel(metric, row.sourceValue)}</td>
+        <td>${quadratureValueLabel(metric, row.targetValue)}</td>
+        <td>${esc(status)}</td>
+        <td><button class="link-btn" data-action="worker-detail" data-rut="${esc(row.rut)}">Ver liquidaciones</button></td>
+      </tr>`;
+    }
+
+    function quadratureDetailCard(metric, row, profile) {
+      const status = row.difference === null ? "RUT sin par" : quadratureValueLabel(metric, row.difference);
+      return `<article class="record">
+        <button class="worker-link" data-action="worker-detail" data-rut="${esc(row.rut)}">${esc(row.name)}</button>
+        <span class="subtle">${esc(row.rut)}</span>
+        <dl><dt>${esc(profile.sourceName)}</dt><dd>${quadratureValueLabel(metric, row.sourceValue)}</dd><dt>${esc(profile.targetName)}</dt><dd>${quadratureValueLabel(metric, row.targetValue)}</dd><dt>Descuadre</dt><dd>${esc(status)}</dd><dt>Accion</dt><dd><button class="link-btn" data-action="worker-detail" data-rut="${esc(row.rut)}">Ver liquidaciones</button></dd></dl>
+      </article>`;
+    }
+
+    function quadratureMetricDetailMarkup(metricKey) {
+      const metric = quadratureMetrics().find(item => item.key === metricKey);
+      if (!metric) return "";
+      const summary = quadratureComparison(metric);
+      const profile = activeProfile();
+      return `
+        <section class="panel quadrature-detail" id="quadrature-detail">
+          <div class="panel-head">
+            <div><h3>${esc(metric.label)}: trabajadores afectados</h3><p class="subtle">${summary.affected ? `Se muestran ${quadratureAffectedLabel(summary.affected)} con diferencias o sin par. Haz clic en la persona para abrir ambas liquidaciones.` : "No hay trabajadores afectados en esta cuadratura."}</p></div>
+            <span class="badge ${summary.affected ? "pending" : "reviewed"}">${summary.affected ? `${summary.affected.toLocaleString("es-CL")} descuadraturas` : "Cuadra"}</span>
+          </div>
+          <div class="panel-body">
+            ${summary.rows.length ? `<div class="table-wrap"><table class="quadrature-detail-table"><thead><tr><th>Trabajador / RUT</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Descuadre / estado</th><th>Accion</th></tr></thead><tbody>${summary.rows.map(row => quadratureDetailRow(metric, row, profile)).join("")}</tbody></table></div><div class="mobile-list">${summary.rows.map(row => quadratureDetailCard(metric, row, profile)).join("")}</div>` : empty("Cuadratura exacta", "No se encontraron diferencias para esta metrica.")}
+          </div>
+        </section>
+      `;
+    }
+
     function isNetSalaryConceptValue(value, side = "") {
       const key = normalizeText(value);
       if (!key || key === "sueldo ganado") return false;
@@ -27268,13 +27635,28 @@ window.__xlsxLoadStatus="loaded";
       ].some(alias => key === alias || key.includes(alias));
     }
 
+    function netSalaryConceptRank(concept) {
+      const key = normalizeText(concept);
+      if (key === "liquido" || key === "sueldo liquido" || key === "totalesempl" || key === "totales empl") return 3;
+      if (["total liquido", "liquido a pagar", "neto a pagar", "total a pagar"].includes(key)) return 2;
+      if (key.includes("alcance liquido")) return 1;
+      return 0;
+    }
+
     function netSalaryRowsByRut(rows, side) {
       const totals = new Map();
+      const ranks = new Map();
       rows.filter(row => isNetSalaryConceptValue(row.concepto, side)).forEach(row => {
         const rut = cleanRut(row.rut);
         const amount = toNumber(row.monto);
         if (!rut || !Number.isFinite(amount)) return;
-        totals.set(rut, (totals.get(rut) || 0) + amount);
+        const rank = netSalaryConceptRank(row.concepto);
+        if (!totals.has(rut) || rank > (ranks.get(rut) ?? -1)) {
+          totals.set(rut, amount);
+          ranks.set(rut, rank);
+        } else if (rank === ranks.get(rut)) {
+          totals.set(rut, totals.get(rut) + amount);
+        }
       });
       return totals;
     }
@@ -27482,10 +27864,12 @@ window.__xlsxLoadStatus="loaded";
         const amount = toNumber(row.monto);
         if (!Number.isFinite(amount)) return;
         if (isNetSalaryConceptValue(row.concepto)) {
-          const rank = concept === "liquido" || concept === "sueldo liquido" ? 3 : concept.includes("liquido") ? 2 : 1;
-          if (rank >= netRank) {
+          const rank = netSalaryConceptRank(row.concepto);
+          if (rank > netRank) {
             summary.net = amount;
             netRank = rank;
+          } else if (rank === netRank) {
+            summary.net = (summary.net || 0) + amount;
           }
           return;
         }
@@ -27516,6 +27900,14 @@ window.__xlsxLoadStatus="loaded";
       state.selectedNumericGroup = key;
       render();
       setTimeout(() => document.getElementById("numeric-group-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    }
+
+    function selectQuadratureMetric(metricKey) {
+      if (!quadratureMetrics().some(metric => metric.key === metricKey)) return;
+      state.selectedQuadratureMetric = state.selectedQuadratureMetric === metricKey ? "" : metricKey;
+      state.selectedWorkerRut = "";
+      render();
+      setTimeout(() => document.getElementById("quadrature-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     }
 
     function showWorkerDetail(rut) {
@@ -28134,6 +28526,7 @@ window.__xlsxLoadStatus="loaded";
       if (action === "filter-field") return filterField(data.field);
       if (action === "filter-net-pay") return filterNetSalary();
       if (action === "select-numeric-group") return selectNumericGroup(data.groupKey);
+      if (action === "select-quadrature") return selectQuadratureMetric(data.metric);
       if (action === "worker-detail") return showWorkerDetail(data.rut);
       if (action === "close-worker-detail") return closeWorkerDetail();
       if (action === "no-pair") return setNoPair(data.id);
@@ -28184,7 +28577,9 @@ window.__xlsxLoadStatus="loaded";
       state.homologations = [];
       state.differences = [];
       state.selectedNumericGroup = "";
+      state.selectedQuadratureMetric = "";
       state.selectedWorkerRut = "";
+      state.quadratureCache = {};
       state.exportDone = false;
       render();
       toast(`Dupla activa: ${activeProfile().label}.`);
@@ -28209,7 +28604,9 @@ window.__xlsxLoadStatus="loaded";
       state.differences = [];
       state.selectedNode = "todos";
       state.selectedNumericGroup = "";
+      state.selectedQuadratureMetric = "";
       state.selectedWorkerRut = "";
+      state.quadratureCache = {};
       state.filters = { type: "todos", status: "todos", q: "" };
       state.exportDone = false;
       state.view = andStart ? "wizard" : state.view;
@@ -29236,7 +29633,9 @@ window.__xlsxLoadStatus="loaded";
       state.step = 3;
       state.selectedNode = "todos";
       state.selectedNumericGroup = "";
+      state.selectedQuadratureMetric = "";
       state.selectedWorkerRut = "";
+      state.quadratureCache = {};
       state.justificationPage = 0;
       render();
       saveCurrentComparison(false);
