@@ -25502,6 +25502,40 @@ window.__xlsxLoadStatus="loaded";
       padding-top: 12px;
     }
 
+    .remuneration-category-list {
+      display: grid;
+      gap: 22px;
+    }
+
+    .remuneration-category {
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .remuneration-category:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .remuneration-category-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .remuneration-category-head h4 {
+      margin: 0 0 3px;
+      font-size: 15px;
+    }
+
+    .remuneration-category-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
     .priority-row td {
       background: #f3fcf8;
     }
@@ -26804,13 +26838,10 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function isNetSalaryDifference(d) {
-      const mapping = d.concepto_a ? mappingForConcept(d.concepto_a) : null;
       const values = [
         d.concepto_a,
         d.concepto_b,
-        d.campo_diferente,
-        mapping?.concepto_b,
-        mapping?.concepto_b_label
+        d.campo_diferente
       ].map(normalizeText).filter(Boolean);
       return values.some(value =>
         value === "liquido" ||
@@ -26934,45 +26965,93 @@ window.__xlsxLoadStatus="loaded";
       `).join("") + treeNote;
     }
 
-    function conceptSummaryMarkup(diffs) {
-      const grouped = new Map();
+    function remunerationCategory(d) {
+      if (d.tipo === "dato_trabajador") {
+        if (d.campo_diferente === "haberes") return "haberes";
+        if (d.campo_diferente === "descuentos") return "descuentos";
+        if (d.campo_diferente === "aportes") return "aportes";
+      }
+
+      const text = normalizeText([
+        d.concepto_a,
+        d.concepto_b,
+        d.regla_mapeo
+      ].join(" "));
+      const discountClass = text.includes("clasificacion descuentos") || text.includes("tipo concepto descuento");
+      const contributionClass = text.includes("clasificacion aport") || text.includes("clasificacion leyes sociales") || text.includes("tipo concepto aporte") || text.includes("tipo concepto aporte patronal");
+      const contributionTerms = ["aporte", "ley social", "leyes sociales", "mutual", "sis ", "ss ", "solidario", "expectativa de vida", "trabajo pesado", "empleador", "patronal", "seg accidente", "seguro invalidez", "prov idem"];
+      const discountTerms = ["descuento", "descto", "dcto", "afp", "a f p", "isapre", "salud", "cotizacion", "impuesto", "prestamo", "anticipo", "cuota", "retencion", "seguro cesantia", "seguro de cesantia", "apv", "ahorro"];
+      if (contributionClass || contributionTerms.some(term => text.includes(term))) return "aportes";
+      if (discountClass || discountTerms.some(term => text.includes(term))) return "descuentos";
+      return "haberes";
+    }
+
+    function groupedRemunerationalConcepts(diffs) {
+      const grouped = new Map(["haberes", "descuentos", "aportes"].map(category => [category, new Map()]));
       diffs.forEach(d => {
         const source = conceptSourceText(d);
         const target = conceptTargetText(d);
         const key = `${d.tipo}|${normalizeText(source)}|${normalizeText(target)}`;
-        if (!grouped.has(key)) {
-          grouped.set(key, { source, target, type: differenceTypeLabel(d), affected: new Set(), differences: 0, priority: false });
+        const category = remunerationCategory(d);
+        const categoryRows = grouped.get(category);
+        if (!categoryRows.has(key)) {
+          categoryRows.set(key, { source, target, type: differenceTypeLabel(d), affected: new Set(), differences: 0, priority: false });
         }
-        const item = grouped.get(key);
+        const item = categoryRows.get(key);
         item.affected.add(d.rut || d.nombre_trabajador || "sin-identificador");
         item.differences += 1;
         item.priority = item.priority || isNetSalaryDifference(d);
       });
-      const rows = [...grouped.values()].sort((a, b) => Number(b.priority) - Number(a.priority) || b.affected.size - a.affected.size || b.differences - a.differences || a.source.localeCompare(b.source));
-      const shown = rows.slice(0, 500);
+      return grouped;
+    }
+
+    function remunerationCategoryMarkup(category, label, description, rows) {
+      const sorted = rows.sort((a, b) => Number(b.priority) - Number(a.priority) || b.affected.size - a.affected.size || b.differences - a.differences || a.source.localeCompare(b.source));
+      const shown = sorted.slice(0, 500);
+      return `
+        <section class="remuneration-category">
+          <div class="remuneration-category-head">
+            <div><h4>${esc(label)}</h4><p>${esc(description)}</p></div>
+            <span class="badge excluded">${sorted.length.toLocaleString("es-CL")} conceptos · ${sorted.reduce((sum, item) => sum + item.differences, 0).toLocaleString("es-CL")} diferencias</span>
+          </div>
+          ${sorted.length ? `<div class="table-wrap"><table>
+            <thead><tr><th>Concepto origen</th><th>Concepto destino</th><th>Tipo</th><th>Trabajadores afectados</th><th>Diferencias</th><th>Accion</th></tr></thead>
+            <tbody>${shown.map(item => `
+              <tr>
+                <td><strong>${item.priority ? `<span class="badge reviewed">Prioridad</span> ` : ""}${esc(item.source)}</strong></td>
+                <td>${esc(item.target)}</td>
+                <td>${esc(item.type)}</td>
+                <td class="num">${item.affected.size.toLocaleString("es-CL")}</td>
+                <td class="num">${item.differences.toLocaleString("es-CL")}</td>
+                <td><button class="link-btn" data-action="filter-concept" data-concept="${esc(item.source)}">Ver detalle</button></td>
+              </tr>
+            `).join("")}</tbody>
+          </table></div>${sorted.length > shown.length ? `<p class="subtle">Mostrando los ${shown.length.toLocaleString("es-CL")} conceptos con mayor impacto.</p>` : ""}` : empty(`Sin diferencias en ${label.toLowerCase()}.`, "No se detectaron descuadres para este grupo.")}
+        </section>
+      `;
+    }
+
+    function conceptSummaryMarkup(diffs) {
+      const grouped = groupedRemunerationalConcepts(diffs);
+      const definitions = [
+        ["haberes", "Haberes", "Sueldos, bonos, asignaciones y demás ingresos del trabajador."],
+        ["descuentos", "Descuentos", "Retenciones, previsión, salud, impuestos, préstamos y otros descuentos."],
+        ["aportes", "Leyes sociales y aportes", "Aportes patronales y conceptos asociados a leyes sociales." ]
+      ];
+      const totalConcepts = definitions.reduce((sum, [key]) => sum + grouped.get(key).size, 0);
       return `
         <section class="panel result-group remunerational-group concept-summary">
           <div class="panel-head">
             <div>
               <h3>Conceptos remuneracionales</h3>
-              <p class="subtle">Haberes, descuentos y aportes. El sueldo liquido aparece primero por su importancia para el trabajador.</p>
+              <p class="subtle">Separados por naturaleza para revisar primero el sueldo liquido y luego cada grupo de conceptos.</p>
             </div>
-            <span class="badge excluded">${rows.length.toLocaleString("es-CL")} conceptos</span>
+            <span class="badge excluded">${totalConcepts.toLocaleString("es-CL")} conceptos</span>
           </div>
           <div class="panel-body">
-            ${rows.length ? `<div class="table-wrap"><table>
-              <thead><tr><th>Concepto origen</th><th>Concepto destino</th><th>Tipo</th><th>Trabajadores afectados</th><th>Diferencias</th><th>Accion</th></tr></thead>
-              <tbody>${shown.map(item => `
-                <tr>
-                  <td><strong>${item.priority ? `<span class="badge reviewed">Prioridad</span> ` : ""}${esc(item.source)}</strong></td>
-                  <td>${esc(item.target)}</td>
-                  <td>${esc(item.type)}</td>
-                  <td class="num">${item.affected.size.toLocaleString("es-CL")}</td>
-                  <td class="num">${item.differences.toLocaleString("es-CL")}</td>
-                  <td><button class="link-btn" data-action="filter-concept" data-concept="${esc(item.source)}">Ver detalle</button></td>
-                </tr>
-              `).join("")}</tbody>
-            </table></div>${rows.length > shown.length ? `<p class="subtle">Mostrando los ${shown.length.toLocaleString("es-CL")} conceptos con mayor impacto.</p>` : ""}` : empty("Sin conceptos afectados.", "No se detectaron diferencias para agrupar.")}
+            <div class="remuneration-category-list">
+              ${definitions.map(([key, label, description]) => remunerationCategoryMarkup(key, label, description, [...grouped.get(key).values()])).join("")}
+            </div>
           </div>
         </section>
       `;
