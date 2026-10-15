@@ -27035,7 +27035,8 @@ window.__xlsxLoadStatus="loaded";
               <button class="btn" data-action="go-export">Exportar</button>
             </div>
           </div>
-          <div class="drill-layout">
+          ${state.filters.q ? `<div class="banner ok">Detalle filtrado por <strong>${esc(state.filters.q)}</strong>. Se muestran sus diferencias y el análisis automático.</div>` : ""}
+          <div class="drill-layout" id="results-detail">
             <div class="tree">${treeMarkup()}</div>
             <div>
               ${diffs.length ? diffTable(diffs) : empty("Sin diferencias para estos filtros.", "Ajusta los filtros o vuelve al nivel completo.")}
@@ -28995,6 +28996,7 @@ window.__xlsxLoadStatus="loaded";
       state.selectedNode = "todos";
       state.step = 3;
       render();
+      focusResultsDetail();
     }
 
     function filterField(field) {
@@ -29004,6 +29006,7 @@ window.__xlsxLoadStatus="loaded";
       state.selectedNode = "todos";
       state.step = 3;
       render();
+      focusResultsDetail();
     }
 
     function filterNetSalary() {
@@ -29015,6 +29018,11 @@ window.__xlsxLoadStatus="loaded";
       state.selectedNode = "todos";
       state.step = 3;
       render();
+      focusResultsDetail();
+    }
+
+    function focusResultsDetail() {
+      setTimeout(() => document.getElementById("results-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     }
 
     function markReviewed(id) {
