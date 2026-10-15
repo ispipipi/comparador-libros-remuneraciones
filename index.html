@@ -24731,10 +24731,14 @@ window.__xlsxLoadStatus="loaded";
 
     .main {
       min-width: 0;
-      padding: 28px;
+      padding: 28px clamp(18px, 2.6vw, 48px);
     }
 
-    .simple-shell { max-width: 1080px; margin: 0 auto; }
+    .simple-shell {
+      width: min(100%, 1540px);
+      max-width: 1540px;
+      margin: 0 auto;
+    }
     .simple-header {
       display: flex;
       align-items: flex-start;
@@ -25619,13 +25623,17 @@ window.__xlsxLoadStatus="loaded";
       border-left: 4px solid #6685a4;
     }
 
+    .worker-sheet .panel-body {
+      padding: 22px 24px 26px;
+    }
+
     .worker-sheet .panel-head {
       align-items: flex-start;
     }
 
     .worker-sheet-meta {
       display: grid;
-      grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(150px, .7fr));
+      grid-template-columns: minmax(300px, 1.6fr) repeat(2, minmax(190px, .7fr));
       gap: 12px;
       margin-bottom: 16px;
     }
@@ -25652,14 +25660,15 @@ window.__xlsxLoadStatus="loaded";
     .worker-sheet-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
+      gap: 20px;
     }
 
     .worker-book {
       min-width: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
-      overflow: hidden;
+      overflow: visible;
+      background: #fff;
     }
 
     .worker-book-head {
@@ -25677,13 +25686,77 @@ window.__xlsxLoadStatus="loaded";
       font-size: 15px;
     }
 
+    .worker-book-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfdfc;
+    }
+
+    .worker-book-stat {
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .worker-book-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .worker-book-stat strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 14px;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+
+    .worker-book-stat.net {
+      border-color: #a8ded2;
+      background: #effbf7;
+    }
+
+    .worker-book-stat.net strong {
+      color: var(--primary-dark);
+      font-size: 16px;
+    }
+
+    .worker-book .table-wrap {
+      border: 0;
+      border-radius: 0;
+    }
+
     .worker-book table {
       width: 100%;
+      min-width: 0;
+      table-layout: fixed;
     }
 
     .worker-book td,
     .worker-book th {
       padding: 8px 10px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .worker-book th:nth-child(1),
+    .worker-book td:nth-child(1) { width: 56%; }
+
+    .worker-book th:nth-child(2),
+    .worker-book td:nth-child(2) { width: 24%; }
+
+    .worker-book th:nth-child(3),
+    .worker-book td:nth-child(3) { width: 20%; }
+
+    .worker-book .num {
+      white-space: nowrap;
     }
 
     .worker-row-diff td {
@@ -25708,6 +25781,37 @@ window.__xlsxLoadStatus="loaded";
     .worker-sheet-diffs h4 {
       margin: 0 0 10px;
       font-size: 16px;
+    }
+
+    .worker-difference-table {
+      min-width: 0;
+      table-layout: fixed;
+    }
+
+    .worker-difference-table th,
+    .worker-difference-table td {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .worker-difference-table th:nth-child(1),
+    .worker-difference-table td:nth-child(1),
+    .worker-difference-table th:nth-child(2),
+    .worker-difference-table td:nth-child(2) { width: 15%; }
+
+    .worker-difference-table th:nth-child(3),
+    .worker-difference-table td:nth-child(3),
+    .worker-difference-table th:nth-child(4),
+    .worker-difference-table td:nth-child(4),
+    .worker-difference-table th:nth-child(5),
+    .worker-difference-table td:nth-child(5) { width: 10%; }
+
+    .worker-difference-table th:nth-child(6),
+    .worker-difference-table td:nth-child(6) { width: 35%; }
+
+    .worker-difference-table .analysis-cell {
+      min-width: 0;
+      max-width: none;
     }
 
     .priority-stat {
@@ -25808,6 +25912,7 @@ window.__xlsxLoadStatus="loaded";
       .numeric-group-detail-head { flex-direction: column; }
       .worker-sheet-meta,
       .worker-sheet-grid { grid-template-columns: 1fr; }
+      .worker-book-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     .tree {
@@ -27332,7 +27437,7 @@ window.__xlsxLoadStatus="loaded";
             </div>
             <div class="worker-sheet-diffs">
               <h4>Diferencias y análisis automático</h4>
-              ${differences.length ? `<div class="table-wrap"><table><thead><tr><th>Concepto origen</th><th>Concepto destino</th><th>${esc(activeProfile().sourceName)}</th><th>${esc(activeProfile().targetName)}</th><th>Descuadre</th><th>Analisis / motivo</th></tr></thead><tbody>${differences.map(workerDifferenceRow).join("")}</tbody></table></div><div class="mobile-list">${differences.map(workerDifferenceCard).join("")}</div>` : empty("Sin diferencias para este trabajador.", "Las filas coinciden entre ambos libros.")}
+              ${differences.length ? `<div class="table-wrap"><table class="worker-difference-table"><thead><tr><th>Concepto origen</th><th>Concepto destino</th><th>${esc(activeProfile().sourceName)}</th><th>${esc(activeProfile().targetName)}</th><th>Descuadre</th><th>Analisis / motivo</th></tr></thead><tbody>${differences.map(workerDifferenceRow).join("")}</tbody></table></div><div class="mobile-list">${differences.map(workerDifferenceCard).join("")}</div>` : empty("Sin diferencias para este trabajador.", "Las filas coinciden entre ambos libros.")}
             </div>
           </div>
         </section>
@@ -27341,15 +27446,59 @@ window.__xlsxLoadStatus="loaded";
 
     function workerBookMarkup(label, rows, differenceConcepts) {
       const shown = rows.slice(0, 500);
+      const summary = workerBookSummary(rows);
       const rowClass = row => differenceConcepts.has(normalizeText(row.concepto)) ? "worker-row-diff" : "";
-      const rowTable = row => `<tr class="${rowClass(row)}"><td>${esc(row.concepto || "-")}</td><td class="num">${money(row.monto)}</td><td>${esc(row.tipo_concepto || "-")}</td></tr>`;
-      const rowCard = row => `<article class="record ${rowClass(row)}"><strong>${esc(row.concepto || "-")}</strong><dl><dt>Monto</dt><dd>${money(row.monto)}</dd><dt>Tipo</dt><dd>${esc(row.tipo_concepto || "-")}</dd></dl></article>`;
+      const rowTable = row => `<tr class="${rowClass(row)}"><td>${esc(row.concepto || "-")}</td><td class="num">${money(row.monto)}</td><td>${esc(conceptTypeLabel(row.tipo_concepto))}</td></tr>`;
+      const rowCard = row => `<article class="record ${rowClass(row)}"><strong>${esc(row.concepto || "-")}</strong><dl><dt>Monto</dt><dd>${money(row.monto)}</dd><dt>Tipo</dt><dd>${esc(conceptTypeLabel(row.tipo_concepto))}</dd></dl></article>`;
       return `
         <section class="worker-book">
           <div class="worker-book-head"><h4>${esc(label)}</h4><span class="badge excluded">${rows.length.toLocaleString("es-CL")} conceptos</span></div>
-          ${shown.length ? `<div class="table-wrap"><table><thead><tr><th>Concepto</th><th>Monto</th><th>Tipo</th></tr></thead><tbody>${shown.map(rowTable).join("")}</tbody></table></div><div class="mobile-list">${shown.map(rowCard).join("")}</div>${rows.length > shown.length ? `<p class="subtle" style="padding:0 12px">Mostrando ${shown.length.toLocaleString("es-CL")} de ${rows.length.toLocaleString("es-CL")} filas.</p>` : ""}` : empty("Sin filas cargadas.", "No se encontraron conceptos para este trabajador.")}
+          ${shown.length ? `<div class="worker-book-summary"><div class="worker-book-stat net"><span>Sueldo liquido</span><strong>${summary.net === null ? "-" : money(summary.net)}</strong></div><div class="worker-book-stat"><span>Haberes</span><strong>${money(summary.haberes)}</strong></div><div class="worker-book-stat"><span>Descuentos</span><strong>${money(summary.descuentos)}</strong></div><div class="worker-book-stat"><span>Aportes</span><strong>${money(summary.aportes)}</strong></div></div><div class="table-wrap"><table><thead><tr><th>Concepto</th><th>Monto</th><th>Tipo</th></tr></thead><tbody>${shown.map(rowTable).join("")}</tbody></table></div><div class="mobile-list">${shown.map(rowCard).join("")}</div>${rows.length > shown.length ? `<p class="subtle" style="padding:0 12px">Mostrando ${shown.length.toLocaleString("es-CL")} de ${rows.length.toLocaleString("es-CL")} filas.</p>` : ""}` : empty("Sin filas cargadas.", "No se encontraron conceptos para este trabajador.")}
         </section>
       `;
+    }
+
+    function conceptTypeLabel(value) {
+      const key = String(value || "").trim().toLowerCase().replace(/_/g, " ");
+      return ({
+        haber: "Haber",
+        descuento: "Descuento",
+        aporte: "Aporte",
+        "aporte patronal": "Aporte patronal"
+      })[key] || value || "-";
+    }
+
+    function workerBookSummary(rows) {
+      const summary = { net: null, haberes: 0, descuentos: 0, aportes: 0 };
+      const aggregate = { haberes: null, descuentos: null, aportes: null };
+      let netRank = -1;
+      const aggregateNames = {
+        haberes: new Set(["haberes", "total haberes"]),
+        descuentos: new Set(["descuentos", "total descuentos"]),
+        aportes: new Set(["aportes", "total aportes", "leyes sociales", "leyes sociales y aportes"])
+      };
+      rows.forEach(row => {
+        const concept = normalizeText(row.concepto);
+        const amount = toNumber(row.monto);
+        if (!Number.isFinite(amount)) return;
+        if (isNetSalaryConceptValue(row.concepto)) {
+          const rank = concept === "liquido" || concept === "sueldo liquido" ? 3 : concept.includes("liquido") ? 2 : 1;
+          if (rank >= netRank) {
+            summary.net = amount;
+            netRank = rank;
+          }
+          return;
+        }
+        const type = normalizeText(row.tipo_concepto);
+        const category = type.includes("aporte") || type.includes("patronal") ? "aportes" : type.includes("descuento") ? "descuentos" : "haberes";
+        if (aggregateNames[category].has(concept)) aggregate[category] = amount;
+        if (concept.includes("imponible") || concept.includes("topeado") || aggregateNames[category].has(concept)) return;
+        summary[category] += amount;
+      });
+      Object.keys(aggregate).forEach(category => {
+        if (aggregate[category] !== null) summary[category] = aggregate[category];
+      });
+      return summary;
     }
 
     function workerDifferenceRow(d) {
