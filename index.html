@@ -25615,6 +25615,101 @@ window.__xlsxLoadStatus="loaded";
       font-size: 13px;
     }
 
+    .worker-sheet {
+      border-left: 4px solid #6685a4;
+    }
+
+    .worker-sheet .panel-head {
+      align-items: flex-start;
+    }
+
+    .worker-sheet-meta {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(150px, .7fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .worker-sheet-meta > div {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdfc;
+    }
+
+    .worker-sheet-meta span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .worker-sheet-meta strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 15px;
+    }
+
+    .worker-sheet-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .worker-book {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .worker-book-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f4f8f7;
+    }
+
+    .worker-book-head h4 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .worker-book table {
+      width: 100%;
+    }
+
+    .worker-book td,
+    .worker-book th {
+      padding: 8px 10px;
+    }
+
+    .worker-row-diff td {
+      background: #fff8e8;
+    }
+
+    .worker-row-diff td:first-child {
+      border-left: 3px solid var(--warn);
+    }
+
+    .worker-book .record.worker-row-diff {
+      border-left: 3px solid var(--warn);
+      background: #fff8e8;
+    }
+
+    .worker-sheet-diffs {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .worker-sheet-diffs h4 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
     .priority-stat {
       padding: 13px 14px;
       border: 1px solid #ccebe3;
@@ -25711,6 +25806,8 @@ window.__xlsxLoadStatus="loaded";
       .numeric-group-button { grid-template-columns: 1fr; }
       .numeric-group-metrics { justify-content: flex-start; text-align: left; }
       .numeric-group-detail-head { flex-direction: column; }
+      .worker-sheet-meta,
+      .worker-sheet-grid { grid-template-columns: 1fr; }
     }
 
     .tree {
@@ -26200,6 +26297,7 @@ window.__xlsxLoadStatus="loaded";
       differences: [],
       selectedNode: "todos",
       selectedNumericGroup: "",
+      selectedWorkerRut: "",
       filters: { type: "todos", status: "todos", q: "" },
       justificationPage: 0,
       exportDone: false,
@@ -27007,6 +27105,7 @@ window.__xlsxLoadStatus="loaded";
           ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
           ${netSalaryMatchMarkup(netSalaryComparisonSummary())}
           ${numericDifferenceGroupsMarkup()}
+          ${workerDetailMarkup(state.selectedWorkerRut)}
           <section class="kpi-grid">
             ${kpi("Total diferencias", state.differences.length, "Resultado completo")}
             ${kpi("Datos contractuales", contractual.length, `${unique(contractual.map(d => d.rut || d.nombre_trabajador)).length.toLocaleString("es-CL")} trabajadores afectados`)}
@@ -27188,7 +27287,7 @@ window.__xlsxLoadStatus="loaded";
           <td class="num">${valueB(d)}</td>
           <td class="num">${money(d.diferencia_absoluta)}</td>
           <td>${differenceAnalysisMarkup(d, true)}</td>
-          <td><div class="inline-actions"><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div></td>
+          <td><div class="inline-actions"><button class="link-btn" data-action="worker-detail" data-rut="${esc(d.rut)}">Ver ficha</button><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div></td>
         </tr>
       `;
     }
@@ -27199,9 +27298,66 @@ window.__xlsxLoadStatus="loaded";
           <strong>${esc(d.nombre_trabajador || d.rut || "-")}</strong>
           ${statusBadge(d.estado_revision)}
           <dl><dt>Origen</dt><dd>${valueA(d)}</dd><dt>Destino</dt><dd>${valueB(d)}</dd><dt>Descuadre</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl>
-          <div class="inline-actions"><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div>
+          <div class="inline-actions"><button class="link-btn" data-action="worker-detail" data-rut="${esc(d.rut)}">Ver ficha</button><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div>
         </article>
       `;
+    }
+
+    function workerDetailMarkup(rut) {
+      const clean = cleanRut(rut);
+      if (!clean) return "";
+      const sourceRows = state.rows.visma.filter(row => cleanRut(row.rut) === clean);
+      const targetRows = state.rows.rex.filter(row => cleanRut(row.rut) === clean);
+      const differences = state.differences.filter(d => cleanRut(d.rut) === clean);
+      if (!sourceRows.length && !targetRows.length) return "";
+      const first = differences[0] || {};
+      const name = first.nombre_trabajador || sourceRows[0]?.nombre || targetRows[0]?.nombre || clean;
+      const sourceConcepts = new Set(differences.map(d => normalizeText(d.concepto_a)).filter(Boolean));
+      const targetConcepts = new Set(differences.map(d => normalizeText(d.concepto_b)).filter(Boolean));
+      return `
+        <section class="panel worker-sheet" id="worker-detail">
+          <div class="panel-head">
+            <div><h3>Ficha comparativa del trabajador</h3><p class="subtle">Vista tipo liquidación para revisar todas las filas de origen y destino, no solo el descuadre.</p></div>
+            <button class="btn secondary" data-action="close-worker-detail">Cerrar ficha</button>
+          </div>
+          <div class="panel-body">
+            <div class="worker-sheet-meta">
+              <div><span>Trabajador</span><strong>${esc(name)}</strong></div>
+              <div><span>RUT</span><strong>${esc(clean)}</strong></div>
+              <div><span>Diferencias detectadas</span><strong>${differences.length.toLocaleString("es-CL")}</strong></div>
+            </div>
+            <div class="worker-sheet-grid">
+              ${workerBookMarkup(activeProfile().sourceName, sourceRows, sourceConcepts)}
+              ${workerBookMarkup(activeProfile().targetName, targetRows, targetConcepts)}
+            </div>
+            <div class="worker-sheet-diffs">
+              <h4>Diferencias y análisis automático</h4>
+              ${differences.length ? `<div class="table-wrap"><table><thead><tr><th>Concepto origen</th><th>Concepto destino</th><th>${esc(activeProfile().sourceName)}</th><th>${esc(activeProfile().targetName)}</th><th>Descuadre</th><th>Analisis / motivo</th></tr></thead><tbody>${differences.map(workerDifferenceRow).join("")}</tbody></table></div><div class="mobile-list">${differences.map(workerDifferenceCard).join("")}</div>` : empty("Sin diferencias para este trabajador.", "Las filas coinciden entre ambos libros.")}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function workerBookMarkup(label, rows, differenceConcepts) {
+      const shown = rows.slice(0, 500);
+      const rowClass = row => differenceConcepts.has(normalizeText(row.concepto)) ? "worker-row-diff" : "";
+      const rowTable = row => `<tr class="${rowClass(row)}"><td>${esc(row.concepto || "-")}</td><td class="num">${money(row.monto)}</td><td>${esc(row.tipo_concepto || "-")}</td></tr>`;
+      const rowCard = row => `<article class="record ${rowClass(row)}"><strong>${esc(row.concepto || "-")}</strong><dl><dt>Monto</dt><dd>${money(row.monto)}</dd><dt>Tipo</dt><dd>${esc(row.tipo_concepto || "-")}</dd></dl></article>`;
+      return `
+        <section class="worker-book">
+          <div class="worker-book-head"><h4>${esc(label)}</h4><span class="badge excluded">${rows.length.toLocaleString("es-CL")} conceptos</span></div>
+          ${shown.length ? `<div class="table-wrap"><table><thead><tr><th>Concepto</th><th>Monto</th><th>Tipo</th></tr></thead><tbody>${shown.map(rowTable).join("")}</tbody></table></div><div class="mobile-list">${shown.map(rowCard).join("")}</div>${rows.length > shown.length ? `<p class="subtle" style="padding:0 12px">Mostrando ${shown.length.toLocaleString("es-CL")} de ${rows.length.toLocaleString("es-CL")} filas.</p>` : ""}` : empty("Sin filas cargadas.", "No se encontraron conceptos para este trabajador.")}
+        </section>
+      `;
+    }
+
+    function workerDifferenceRow(d) {
+      return `<tr><td>${esc(conceptSourceText(d))}</td><td>${esc(conceptTargetText(d))}</td><td class="num">${valueA(d)}</td><td class="num">${valueB(d)}</td><td class="num">${money(d.diferencia_absoluta)}</td><td>${differenceAnalysisMarkup(d, true)}</td></tr>`;
+    }
+
+    function workerDifferenceCard(d) {
+      return `<article class="record"><strong>${esc(conceptSourceText(d))} → ${esc(conceptTargetText(d))}</strong><dl><dt>Origen</dt><dd>${valueA(d)}</dd><dt>Destino</dt><dd>${valueB(d)}</dd><dt>Descuadre</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl></article>`;
     }
 
     function selectNumericGroup(encodedKey) {
@@ -27211,6 +27367,17 @@ window.__xlsxLoadStatus="loaded";
       state.selectedNumericGroup = key;
       render();
       setTimeout(() => document.getElementById("numeric-group-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    }
+
+    function showWorkerDetail(rut) {
+      state.selectedWorkerRut = cleanRut(rut);
+      render();
+      setTimeout(() => document.getElementById("worker-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    }
+
+    function closeWorkerDetail() {
+      state.selectedWorkerRut = "";
+      render();
     }
 
     function isNetSalaryDifference(d) {
@@ -27269,7 +27436,7 @@ window.__xlsxLoadStatus="loaded";
                     <td class="num">${valueA(d)}</td>
                     <td class="num">${valueB(d)}</td>
                     <td class="num">${money(d.diferencia_absoluta)}</td>
-                    <td><button class="link-btn" data-action="filter-net-pay">Ver detalle</button></td>
+                    <td><div class="inline-actions"><button class="link-btn" data-action="worker-detail" data-rut="${esc(d.rut)}">Ver ficha</button><button class="link-btn" data-action="filter-net-pay">Ver detalle</button></div></td>
                   </tr>
                 `).join("")}</tbody>
               </table></div>
@@ -27448,7 +27615,7 @@ window.__xlsxLoadStatus="loaded";
           <td class="num">${money(d.diferencia_absoluta)}</td>
           <td>${differenceAnalysisMarkup(d)}</td>
           <td>${statusBadge(d.estado_revision)}</td>
-          <td><div class="inline-actions"><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div></td>
+          <td><div class="inline-actions"><button class="link-btn" data-action="worker-detail" data-rut="${esc(d.rut)}">Ver ficha</button><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div></td>
         </tr>
       `;
     }
@@ -27459,6 +27626,7 @@ window.__xlsxLoadStatus="loaded";
           <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
           ${statusBadge(d.estado_revision)}
           <dl><dt>Tipo</dt><dd>${esc(differenceTypeLabel(d))}</dd><dt>Origen</dt><dd>${esc(conceptSourceText(d))}</dd><dt>Destino</dt><dd>${esc(conceptTargetText(d))}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl>
+          <div class="inline-actions"><button class="link-btn" data-action="worker-detail" data-rut="${esc(d.rut)}">Ver ficha</button><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div>
         </article>
       `;
     }
@@ -27817,6 +27985,8 @@ window.__xlsxLoadStatus="loaded";
       if (action === "filter-field") return filterField(data.field);
       if (action === "filter-net-pay") return filterNetSalary();
       if (action === "select-numeric-group") return selectNumericGroup(data.groupKey);
+      if (action === "worker-detail") return showWorkerDetail(data.rut);
+      if (action === "close-worker-detail") return closeWorkerDetail();
       if (action === "no-pair") return setNoPair(data.id);
       if (action === "exclude-concept") return excludeConcept(data.id);
       if (action === "review") return markReviewed(data.id);
@@ -27865,6 +28035,7 @@ window.__xlsxLoadStatus="loaded";
       state.homologations = [];
       state.differences = [];
       state.selectedNumericGroup = "";
+      state.selectedWorkerRut = "";
       state.exportDone = false;
       render();
       toast(`Dupla activa: ${activeProfile().label}.`);
@@ -27889,6 +28060,7 @@ window.__xlsxLoadStatus="loaded";
       state.differences = [];
       state.selectedNode = "todos";
       state.selectedNumericGroup = "";
+      state.selectedWorkerRut = "";
       state.filters = { type: "todos", status: "todos", q: "" };
       state.exportDone = false;
       state.view = andStart ? "wizard" : state.view;
@@ -28915,6 +29087,7 @@ window.__xlsxLoadStatus="loaded";
       state.step = 3;
       state.selectedNode = "todos";
       state.selectedNumericGroup = "";
+      state.selectedWorkerRut = "";
       state.justificationPage = 0;
       render();
       saveCurrentComparison(false);
