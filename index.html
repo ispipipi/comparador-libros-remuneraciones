@@ -28075,8 +28075,9 @@ window.__xlsxLoadStatus="loaded";
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
+      if (system === "visma" && activeProfile().id === "visma_rex_rauda" && key === "liquido") return true;
       // REX+ exports the net salary as a wide monetary column, not as a long-format concept.
-      // Keep this target total available so the SUELDO GANADO mapping can compare it.
+      // Keep this target total available for the dedicated net salary comparison.
       if (system === "rex" && ["sueldo liquido", "liquido", "alcance liquido"].includes(key)) return true;
       if (!key || WIDE_EXCLUDED.has(key)) return false;
       if (NON_CONCEPT_WIDE_HEADERS.has(key)) return false;
@@ -28144,7 +28145,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     async function prepareHomologations(direct = false) {
-      const conceptsA = conceptCatalog("visma");
+      const conceptsA = sourceConceptsForComparison();
       const conceptsB = conceptCatalog("rex");
       const pairId = pairStorageKey();
       const saved = state.config.homologaciones.filter(h => h.par_sistemas === pairId);
@@ -28168,6 +28169,19 @@ window.__xlsxLoadStatus="loaded";
           carga_historica: stored.carga_historica || "",
           comentario: stored.comentario || ""
         };
+        const netSalaryMapping = mappingForConcept(conceptA);
+        if (netSalaryMapping && normalizeText(conceptA) === "liquido") {
+          const target = resolveTargetConcept(netSalaryMapping);
+          return {
+            id: uid(),
+            concepto_a: conceptA,
+            concepto_b: target,
+            concepto_b_label: target,
+            tipo_concepto: "haber",
+            estado: target ? "automatico" : "sin_par",
+            origen: netSalaryMapping.origen
+          };
+        }
         const known = presets.get(normalizeText(conceptA));
         if (known) {
           const exactKnown = conceptsB.find(c => normalizeText(c) === normalizeText(known));
@@ -28209,6 +28223,12 @@ window.__xlsxLoadStatus="loaded";
       return unique([...fromCatalog, ...fromRows]).sort((a, b) => a.localeCompare(b));
     }
 
+    function sourceConceptsForComparison() {
+      const concepts = conceptCatalog("visma");
+      if (activeProfile().id !== "visma_rex_rauda") return concepts;
+      return concepts.filter(concept => normalizeText(concept) !== "sueldo ganado");
+    }
+
     function mappingCatalog() {
       return state.config.homologaciones.filter(item => item.par_sistemas === pairStorageKey());
     }
@@ -28222,7 +28242,22 @@ window.__xlsxLoadStatus="loaded";
 
     function mappingForConcept(concept) {
       const wanted = normalizeText(concept);
-      return mappingCatalog().find(item => normalizeText(item.concepto_a) === wanted) || null;
+      const direct = mappingCatalog().find(item => normalizeText(item.concepto_a) === wanted);
+      if (direct) return direct;
+      if (activeProfile().id === "visma_rex_rauda" && wanted === "liquido") {
+        const target = conceptCatalog("rex").find(item => normalizeText(item) === "sueldo liquido");
+        if (target) {
+          return {
+            concepto_a: concept,
+            concepto_b: "totalesEmpl",
+            concepto_b_label: target,
+            tipo_concepto: "haber",
+            estado: "activo",
+            origen: "Regla sueldo liquido"
+          };
+        }
+      }
+      return null;
     }
 
     function targetConceptCandidates(mapping) {
@@ -28246,7 +28281,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function conceptSelectionOptions() {
-      return conceptCatalog("visma").map(source => {
+      return sourceConceptsForComparison().map(source => {
         const mapping = mappingForConcept(source);
         return {
           key: normalizeText(source),
