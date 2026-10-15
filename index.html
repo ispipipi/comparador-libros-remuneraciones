@@ -27349,52 +27349,16 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function stepResults() {
-      const diffs = filteredDifferences();
-      const contractual = state.differences.filter(isContractualDifference);
-      const remunerational = state.differences.filter(isRemunerationalDifference);
-      const justified = state.differences.filter(d => d.estado_revision === "justificado").length;
-      const compliance = state.differences.length ? Math.round(justified / state.differences.length * 100) : 100;
       return `
         <div class="stack">
           <div>
             <h2>Resultados</h2>
-            <p class="subtle">Diferencias enfocadas en los campos definidos y en los conceptos de haberes, descuentos y aportes. Cada registro incluye un analisis automatico, motivo probable y regla aplicada.</p>
+            <p class="subtle">Revisa las cuadraturas principales por trabajador y abre las dos liquidaciones desde cualquier KPI.</p>
           </div>
-          ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
+          <div class="banner ok">Comparacion completada. Selecciona una cuadratura para revisar a los trabajadores afectados.</div>
           ${quadratureDashboardMarkup()}
           ${quadratureMetricDetailMarkup(state.selectedQuadratureMetric)}
           ${workerDetailMarkup(state.selectedWorkerRut)}
-          ${netSalaryMatchMarkup(netSalaryComparisonSummary())}
-          ${numericDifferenceGroupsMarkup()}
-          <div class="progress" aria-label="Cumplimiento revision"><span style="--w:${compliance}%"></span></div>
-          <div class="result-groups">
-            ${contractualSummaryMarkup(contractual)}
-            ${conceptSummaryMarkup(remunerational)}
-          </div>
-          <div class="toolbar">
-            <div class="filters">
-              <select id="filter-type">
-                <option value="todos">Todos los tipos</option>
-                ${Object.entries(TYPE_LABELS).map(([k, v]) => `<option value="${k}" ${state.filters.type === k ? "selected" : ""}>${esc(v)}</option>`).join("")}
-              </select>
-              <select id="filter-status">
-                <option value="todos">Todos los estados</option>
-                ${Object.entries(STATUS_LABELS).map(([k, v]) => `<option value="${k}" ${state.filters.status === k ? "selected" : ""}>${esc(v)}</option>`).join("")}
-              </select>
-              <input id="filter-q" placeholder="Buscar trabajador o concepto" value="${esc(state.filters.q)}">
-            </div>
-            <div class="actions">
-              <button class="btn secondary" data-action="go-justify">Justificar</button>
-              <button class="btn" data-action="go-export">Exportar</button>
-            </div>
-          </div>
-          ${state.filters.q ? `<div class="banner ok">Detalle filtrado por <strong>${esc(state.filters.q)}</strong>. Se muestran sus diferencias y el análisis automático.</div>` : ""}
-          <div class="drill-layout" id="results-detail">
-            <div class="tree">${treeMarkup()}</div>
-            <div>
-              ${diffs.length ? diffTable(diffs) : empty("Sin diferencias para estos filtros.", "Ajusta los filtros o vuelve al nivel completo.")}
-            </div>
-          </div>
           <div class="actions">
             <button class="btn secondary" data-action="prev">Volver</button>
             <button class="btn" data-action="go-justify">Continuar</button>
@@ -27795,43 +27759,47 @@ window.__xlsxLoadStatus="loaded";
       if (!clean) return "";
       const sourceRows = state.rows.visma.filter(row => cleanRut(row.rut) === clean);
       const targetRows = state.rows.rex.filter(row => cleanRut(row.rut) === clean);
-      const differences = state.differences.filter(d => cleanRut(d.rut) === clean);
       if (!sourceRows.length && !targetRows.length) return "";
-      const first = differences[0] || {};
-      const name = first.nombre_trabajador || sourceRows[0]?.nombre || targetRows[0]?.nombre || clean;
-      const sourceConcepts = new Set(differences.map(d => normalizeText(d.concepto_a)).filter(Boolean));
-      const targetConcepts = new Set(differences.map(d => normalizeText(d.concepto_b)).filter(Boolean));
+      const sourceFirst = sourceRows[0];
+      const targetFirst = targetRows[0];
+      const name = sourceFirst?.nombre || targetFirst?.nombre || clean;
+      const sourceProfile = activeProfile().sourceName;
+      const targetProfile = activeProfile().targetName;
       return `
         <section class="panel worker-sheet" id="worker-detail">
           <div class="panel-head">
-            <div><h3>Ficha comparativa del trabajador</h3><p class="subtle">Vista tipo liquidación para revisar todas las filas de origen y destino, no solo el descuadre.</p></div>
+            <div><h3>Ficha comparativa del trabajador</h3><p class="subtle">Vista tipo liquidación con las filas completas de origen y destino.</p></div>
             <button class="btn secondary" data-action="close-worker-detail">Cerrar ficha</button>
           </div>
           <div class="panel-body">
             <div class="worker-sheet-meta">
               <div><span>Trabajador</span><strong>${esc(name)}</strong></div>
               <div><span>RUT</span><strong>${esc(clean)}</strong></div>
-              <div><span>Diferencias detectadas</span><strong>${differences.length.toLocaleString("es-CL")}</strong></div>
+              <div><span>AFP ${esc(sourceProfile)}</span><strong>${esc(workerInstitutionValue(sourceRows, "afp"))}</strong></div>
+              <div><span>AFP ${esc(targetProfile)}</span><strong>${esc(workerInstitutionValue(targetRows, "afp"))}</strong></div>
+              <div><span>Salud ${esc(sourceProfile)}</span><strong>${esc(workerInstitutionValue(sourceRows, "isapre"))}</strong></div>
+              <div><span>Salud ${esc(targetProfile)}</span><strong>${esc(workerInstitutionValue(targetRows, "isapre"))}</strong></div>
             </div>
             <div class="worker-sheet-grid">
-              ${workerBookMarkup(activeProfile().sourceName, sourceRows, sourceConcepts)}
-              ${workerBookMarkup(activeProfile().targetName, targetRows, targetConcepts)}
-            </div>
-            <div class="worker-sheet-diffs">
-              <h4>Diferencias y análisis automático</h4>
-              ${differences.length ? `<div class="table-wrap"><table class="worker-difference-table"><thead><tr><th>Concepto origen</th><th>Concepto destino</th><th>${esc(activeProfile().sourceName)}</th><th>${esc(activeProfile().targetName)}</th><th>Descuadre</th><th>Analisis / motivo</th></tr></thead><tbody>${differences.map(workerDifferenceRow).join("")}</tbody></table></div><div class="mobile-list">${differences.map(workerDifferenceCard).join("")}</div>` : empty("Sin diferencias para este trabajador.", "Las filas coinciden entre ambos libros.")}
+              ${workerBookMarkup(sourceProfile, sourceRows)}
+              ${workerBookMarkup(targetProfile, targetRows)}
             </div>
           </div>
         </section>
       `;
     }
 
-    function workerBookMarkup(label, rows, differenceConcepts) {
+    function workerInstitutionValue(rows, key) {
+      const row = rows[0];
+      if (!row) return "No informado";
+      return String(focusValue(row, key) || "No informado").trim();
+    }
+
+    function workerBookMarkup(label, rows) {
       const shown = rows.slice(0, 500);
       const summary = workerBookSummary(rows);
-      const rowClass = row => differenceConcepts.has(normalizeText(row.concepto)) ? "worker-row-diff" : "";
-      const rowTable = row => `<tr class="${rowClass(row)}"><td>${esc(row.concepto || "-")}</td><td class="num">${money(row.monto)}</td><td>${esc(conceptTypeLabel(row.tipo_concepto))}</td></tr>`;
-      const rowCard = row => `<article class="record ${rowClass(row)}"><strong>${esc(row.concepto || "-")}</strong><dl><dt>Monto</dt><dd>${money(row.monto)}</dd><dt>Tipo</dt><dd>${esc(conceptTypeLabel(row.tipo_concepto))}</dd></dl></article>`;
+      const rowTable = row => `<tr><td>${esc(row.concepto || "-")}</td><td class="num">${money(row.monto)}</td><td>${esc(conceptTypeLabel(row.tipo_concepto))}</td></tr>`;
+      const rowCard = row => `<article class="record"><strong>${esc(row.concepto || "-")}</strong><dl><dt>Monto</dt><dd>${money(row.monto)}</dd><dt>Tipo</dt><dd>${esc(conceptTypeLabel(row.tipo_concepto))}</dd></dl></article>`;
       return `
         <section class="worker-book">
           <div class="worker-book-head"><h4>${esc(label)}</h4><span class="badge excluded">${rows.length.toLocaleString("es-CL")} conceptos</span></div>
