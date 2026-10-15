@@ -25178,6 +25178,26 @@ window.__xlsxLoadStatus="loaded";
       gap: 7px;
     }
 
+    .setup-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) minmax(180px, 220px) minmax(180px, 220px);
+      gap: 12px;
+      margin-top: 20px;
+      align-items: end;
+    }
+
+    .readonly-field {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #f4f7f6;
+      color: var(--text);
+      padding: 8px 10px;
+      font-weight: 700;
+    }
+
     .field label {
       font-size: 12px;
       font-weight: 800;
@@ -25719,7 +25739,7 @@ window.__xlsxLoadStatus="loaded";
       .topline { display: grid; }
       .actions { justify-content: stretch; }
       .actions .btn { flex: 1 1 auto; }
-      .kpi-grid, .form-grid, .upload-grid { grid-template-columns: 1fr; }
+      .kpi-grid, .form-grid, .upload-grid, .setup-grid { grid-template-columns: 1fr; }
       .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .filters select, .filters input { width: 100%; }
       .toolbar { align-items: stretch; }
@@ -25796,6 +25816,8 @@ window.__xlsxLoadStatus="loaded";
         id: "meta4_rex_finning",
         label: "Meta4 -> Rex+",
         subtitle: "Finning",
+        companyKey: "finning",
+        companyLabel: "Finning",
         sourceName: "Meta4",
         targetName: "Rex+",
         sourceFileLabel: "Libro Meta4",
@@ -25807,7 +25829,9 @@ window.__xlsxLoadStatus="loaded";
       visma_rex: {
         id: "visma_rex",
         label: "Visma -> Rex+",
-        subtitle: "Flujo general",
+        subtitle: "Otra empresa",
+        companyKey: "otra",
+        companyLabel: "Otra empresa",
         sourceName: "Visma",
         targetName: "REX+",
         sourceFileLabel: "Libro Visma",
@@ -25820,6 +25844,8 @@ window.__xlsxLoadStatus="loaded";
         id: "visma_rex_rauda",
         label: "Visma -> REX+",
         subtitle: "Rauda",
+        companyKey: "rauda",
+        companyLabel: "Rauda",
         sourceName: "Visma",
         targetName: "REX+",
         sourceFileLabel: "Libro Visma",
@@ -25828,6 +25854,12 @@ window.__xlsxLoadStatus="loaded";
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Rauda"
       }
+    };
+
+    const COMPANY_OPTIONS = {
+      finning: { id: "finning", label: "Finning", profileId: "meta4_rex_finning" },
+      rauda: { id: "rauda", label: "Rauda", profileId: "visma_rex_rauda" },
+      otra: { id: "otra", label: "Otra empresa", profileId: "visma_rex" }
     };
 
     const REQUIRED = {
@@ -26004,10 +26036,11 @@ window.__xlsxLoadStatus="loaded";
 
     let state = {
       view: "wizard",
-      profile: "meta4_rex_finning",
+      profile: "visma_rex",
+      company: "otra",
       step: 1,
       period: new Date().toISOString().slice(0, 7),
-      files: { visma: null, rex: null, mapping: { name: "Mapa Meta4 a REX+ Finning (precargado)", bundled: true } },
+      files: { visma: null, rex: null, mapping: null },
       rawRows: { visma: [], rex: [] },
       rows: { visma: [], rex: [] },
       conceptHeaders: { visma: [], rex: [] },
@@ -26083,6 +26116,32 @@ window.__xlsxLoadStatus="loaded";
 
     function pairStorageKey() {
       return activeProfile().id;
+    }
+
+    function companyForProfile(profileId) {
+      const profile = PROFILE_OPTIONS[profileId];
+      return profile?.companyKey || Object.values(COMPANY_OPTIONS).find(option => option.profileId === profileId)?.id || "otra";
+    }
+
+    function companyFromUrl(value) {
+      const key = normalizeText(value).replace(/\s+/g, "_");
+      if (["finning", "finning_chile"].includes(key)) return "finning";
+      if (key === "rauda") return "rauda";
+      if (["otra", "otras", "general", "visma"].includes(key)) return "otra";
+      return "";
+    }
+
+    function applyUrlConfiguration() {
+      const params = new URLSearchParams(location.search);
+      const requestedCompany = companyFromUrl(params.get("empresa") || params.get("company") || "");
+      if (requestedCompany && COMPANY_OPTIONS[requestedCompany]) {
+        state.company = requestedCompany;
+        state.profile = COMPANY_OPTIONS[requestedCompany].profileId;
+        ensureProfileMappingDefaults();
+        state.files.mapping = defaultMappingMeta();
+      }
+      const requestedPeriod = params.get("mes") || params.get("periodo") || params.get("period") || "";
+      if (/^\d{4}-\d{2}$/.test(requestedPeriod)) state.period = requestedPeriod;
     }
 
     function conceptPairPresets() {
@@ -26502,15 +26561,21 @@ window.__xlsxLoadStatus="loaded";
           ${location.protocol === "file:" ? `<div class="banner warn">Esta vista abierta con <strong>file://</strong> puede fallar al cargar libros Excel en este navegador. Usa la version local por HTTP: <a href="${LOCAL_APP_URL}" target="_blank" rel="noreferrer">${LOCAL_APP_URL}</a></div>` : ""}
           ${window.XLSX ? "" : `<div class="banner warn">SheetJS no esta cargado. La app puede usar CSV/TSV o la muestra; la exportacion usara formato XLS compatible con Excel.</div>`}
           ${state.sourceLabel ? `<div class="banner ok">${esc(state.sourceLabel)}</div>` : ""}
-          <div class="field" style="max-width:320px;margin-top:20px">
-            <label for="profile">Dupla y empresa</label>
-            <select id="profile">
-              ${Object.values(PROFILE_OPTIONS).map(option => `<option value="${esc(option.id)}" ${option.id === state.profile ? "selected" : ""}>${esc(option.label)} · ${esc(option.subtitle)}</option>`).join("")}
-            </select>
-          </div>
-          <div class="field" style="max-width:180px;margin-top:20px">
-            <label for="period">Periodo</label>
-            <input id="period" type="month" value="${esc(state.period)}">
+          <div class="setup-grid">
+            <div class="field">
+              <label for="company">Empresa</label>
+              <select id="company">
+                ${Object.values(COMPANY_OPTIONS).map(option => `<option value="${esc(option.id)}" ${option.id === companyForProfile(state.profile) ? "selected" : ""}>${esc(option.label)}</option>`).join("")}
+              </select>
+            </div>
+            <div class="field">
+              <label for="period">Mes</label>
+              <input id="period" type="month" value="${esc(state.period)}">
+            </div>
+            <div class="field">
+              <label>Sistema origen</label>
+              <div class="readonly-field" aria-label="Sistema origen">${esc(profile.sourceName)}</div>
+            </div>
           </div>
           <div class="simple-upload-grid">
             ${uploadBox("visma", profile.sourceFileLabel, state.files.visma, state.fileErrors.visma, "Libro de remuneraciones de origen")}
@@ -27353,8 +27418,8 @@ window.__xlsxLoadStatus="loaded";
       });
       const period = document.getElementById("period");
       if (period) period.addEventListener("input", e => state.period = e.target.value);
-      const profile = document.getElementById("profile");
-      if (profile) profile.addEventListener("change", e => setProfile(e.target.value));
+      const company = document.getElementById("company");
+      if (company) company.addEventListener("change", e => setCompany(e.target.value));
       document.querySelectorAll("[data-hselect]").forEach(sel => {
         sel.addEventListener("change", e => updateHomologation(e.target.dataset.hselect, e.target.value));
       });
@@ -27469,9 +27534,21 @@ window.__xlsxLoadStatus="loaded";
       if (action === "save-config") return saveConfig();
     }
 
+    function setCompany(companyId) {
+      const company = COMPANY_OPTIONS[companyId];
+      if (!company) return;
+      if (company.profileId === state.profile) {
+        state.company = companyId;
+        render();
+        return;
+      }
+      setProfile(company.profileId);
+    }
+
     function setProfile(profileId) {
       if (!PROFILE_OPTIONS[profileId] || profileId === state.profile) return;
       state.profile = profileId;
+      state.company = companyForProfile(profileId);
       state.step = 1;
       ensureProfileMappingDefaults();
       state.files = { visma: null, rex: null, mapping: defaultMappingMeta() };
@@ -29007,6 +29084,7 @@ window.__xlsxLoadStatus="loaded";
         .replace(/'/g, "&#039;");
     }
 
+    applyUrlConfiguration();
     render();
   </script>
 </body>
