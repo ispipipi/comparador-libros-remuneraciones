@@ -25422,6 +25422,98 @@ window.__xlsxLoadStatus="loaded";
       align-items: start;
     }
 
+    .result-priority {
+      border-color: #8bd6c4;
+      background: linear-gradient(135deg, #f0fbf7 0%, #ffffff 72%);
+    }
+
+    .result-priority .panel-head {
+      border-bottom-color: #bde8dc;
+    }
+
+    .result-priority-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .priority-mark {
+      display: inline-grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .result-priority-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .priority-stat {
+      padding: 13px 14px;
+      border: 1px solid #ccebe3;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .priority-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .priority-stat strong {
+      display: block;
+      margin-top: 5px;
+      color: var(--primary-dark);
+      font-size: 23px;
+      line-height: 1.1;
+    }
+
+    .result-groups {
+      display: grid;
+      gap: 16px;
+    }
+
+    .result-group.contractual-group {
+      border-left: 4px solid #6685a4;
+    }
+
+    .result-group.remunerational-group {
+      border-left: 4px solid var(--primary);
+    }
+
+    .result-group .panel-head {
+      align-items: flex-start;
+    }
+
+    .result-group .panel-head h3 {
+      margin-bottom: 4px;
+    }
+
+    .result-group .panel-body {
+      padding-top: 12px;
+    }
+
+    .priority-row td {
+      background: #f3fcf8;
+    }
+
+    .priority-row td:first-child {
+      border-left: 3px solid var(--primary);
+    }
+
+    @media (max-width: 760px) {
+      .result-priority-grid { grid-template-columns: 1fr; }
+    }
+
     .tree {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -25724,7 +25816,11 @@ window.__xlsxLoadStatus="loaded";
 
     const FOCUS_FIELDS = [
       { key: "ci", label: "CI", aliases: ["ci", "rut", "run", "documento", "id trabajador", "identificador"] },
+      { key: "nombre", label: "Nombre", aliases: ["nombre", "apellido y nombre", "nombre trabajador", "trabajador", "empleado", "colaborador"] },
       { key: "empresa", label: "Empresa", aliases: ["empresa", "nombre empresa", "razon social", "razon social empresa"] },
+      { key: "unidad_negocio", label: "Unidad de negocio", aliases: ["unidad de negocio", "unidad de negocios", "unidad negocios", "business unit", "division"] },
+      { key: "sede", label: "Sede", aliases: ["sede", "ubicacion", "ubicacion workday", "local"] },
+      { key: "area", label: "Area", aliases: ["area", "departamento", "unidad", "gerencia"] },
       { key: "centro_costo", label: "Centro costo", aliases: ["centro costo", "centro de costo", "nombre c costo", "nombre c. costo", "id centro de costo"] },
       { key: "fecha_ingreso", label: "Fecha ingreso", aliases: ["fecha ingreso", "fecha de ingreso", "fecha inicio", "fecha de alta", "fec ingreso"] },
       { key: "fecha_fin_contrato", label: "Fec fin contrato", aliases: ["fec fin contrato", "fecha fin contrato", "fecha de termino", "fecha termino", "fecha baja", "fecha de baja"] },
@@ -25743,6 +25839,8 @@ window.__xlsxLoadStatus="loaded";
       { key: "descuentos", label: "Descuentos", aliases: ["descuentos", "total descuentos", "total de descuentos", "total rebajas"] },
       { key: "aportes", label: "Aportes", aliases: ["aportes", "total aportes", "aportes patronales", "total aportes patronales"] }
     ];
+
+    const REMUNERATION_FOCUS_FIELDS = new Set(["haberes", "descuentos", "aportes"]);
 
     const WIDE_EXCLUDED = new Set([
       "periodo", "periodo", "empleado", "apellido y nombre", "rut", "fecha de alta", "fecha de baja",
@@ -26650,6 +26748,9 @@ window.__xlsxLoadStatus="loaded";
     function stepResults() {
       const diffs = filteredDifferences();
       const totals = summarizeDiffs(state.differences);
+      const contractual = state.differences.filter(isContractualDifference);
+      const remunerational = state.differences.filter(isRemunerationalDifference);
+      const netPay = remunerational.filter(isNetSalaryDifference);
       const justified = state.differences.filter(d => d.estado_revision === "justificado").length;
       const compliance = state.differences.length ? Math.round(justified / state.differences.length * 100) : 100;
       return `
@@ -26661,12 +26762,16 @@ window.__xlsxLoadStatus="loaded";
           ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
           <section class="kpi-grid">
             ${kpi("Total diferencias", state.differences.length, "Resultado completo")}
-            ${kpi("Monto", totals.monto || 0, "Diferencias numericas")}
-            ${kpi("Conceptos faltantes", totals.concepto_faltante || 0, "Sin par o ausentes")}
-            ${kpi("Cumplimiento revision", compliance + "%", "Justificadas / total")}
+            ${kpi("Datos contractuales", contractual.length, `${unique(contractual.map(d => d.rut || d.nombre_trabajador)).length.toLocaleString("es-CL")} trabajadores afectados`)}
+            ${kpi("Conceptos remuneracionales", remunerational.length, `${(totals.monto || 0) + (totals.concepto_faltante || 0)} diferencias de conceptos`)}
+            ${kpi("Sueldo liquido", netPay.length, netPay.length ? `${unique(netPay.map(d => d.rut || d.nombre_trabajador)).length.toLocaleString("es-CL")} trabajadores afectados` : "Sin diferencias detectadas")}
           </section>
           <div class="progress" aria-label="Cumplimiento revision"><span style="--w:${compliance}%"></span></div>
-          ${conceptSummaryMarkup(state.differences)}
+          ${resultPriorityMarkup(netPay)}
+          <div class="result-groups">
+            ${contractualSummaryMarkup(contractual)}
+            ${conceptSummaryMarkup(remunerational)}
+          </div>
           <div class="toolbar">
             <div class="filters">
               <select id="filter-type">
@@ -26695,6 +26800,114 @@ window.__xlsxLoadStatus="loaded";
             <button class="btn" data-action="go-justify">Continuar</button>
           </div>
         </div>
+      `;
+    }
+
+    function isNetSalaryDifference(d) {
+      const mapping = d.concepto_a ? mappingForConcept(d.concepto_a) : null;
+      const values = [
+        d.concepto_a,
+        d.concepto_b,
+        d.campo_diferente,
+        mapping?.concepto_b,
+        mapping?.concepto_b_label
+      ].map(normalizeText).filter(Boolean);
+      return values.some(value =>
+        value === "liquido" ||
+        value === "totalesempl" ||
+        value.includes("sueldo liquido") ||
+        value.includes("total liquido") ||
+        value.includes("alcance liquido") ||
+        value.includes("liquido a pagar") ||
+        value.includes("neto a pagar") ||
+        value.includes("total a pagar")
+      );
+    }
+
+    function isRemunerationalDifference(d) {
+      return d.tipo !== "dato_trabajador" || REMUNERATION_FOCUS_FIELDS.has(d.campo_diferente);
+    }
+
+    function isContractualDifference(d) {
+      return !isRemunerationalDifference(d);
+    }
+
+    function differenceTypeLabel(d) {
+      if (isNetSalaryDifference(d)) return "Sueldo liquido";
+      if (isContractualDifference(d)) return "Dato contractual";
+      if (d.tipo === "dato_trabajador") return "Total remuneracional";
+      return TYPE_LABELS[d.tipo] || d.tipo;
+    }
+
+    function differenceGroupRank(d) {
+      if (isNetSalaryDifference(d)) return 0;
+      if (isRemunerationalDifference(d)) return 1;
+      return 2;
+    }
+
+    function resultPriorityMarkup(netPay) {
+      const affected = unique(netPay.map(d => d.rut || d.nombre_trabajador)).length;
+      const gap = netPay.reduce((sum, d) => sum + Math.abs(Number(d.diferencia_absoluta || 0)), 0);
+      const shown = netPay.slice(0, 50);
+      return `
+        <section class="panel result-priority">
+          <div class="panel-head">
+            <div>
+              <div class="result-priority-title"><span class="priority-mark">$</span><div><h3>Sueldo liquido: prioridad de revision</h3><p class="subtle">Muestra primero el importe que finalmente recibe cada trabajador y su brecha entre sistemas.</p></div></div>
+            </div>
+            <span class="badge ${netPay.length ? "pending" : "reviewed"}">${netPay.length ? `${netPay.length.toLocaleString("es-CL")} diferencias` : "Sin diferencias"}</span>
+          </div>
+          <div class="panel-body">
+            ${netPay.length ? `
+              <div class="result-priority-grid">
+                <div class="priority-stat"><span>Trabajadores afectados</span><strong>${affected.toLocaleString("es-CL")}</strong></div>
+                <div class="priority-stat"><span>Brecha acumulada</span><strong>${money(gap)}</strong></div>
+                <div class="priority-stat"><span>Estado</span><strong>${netPay.filter(d => d.estado_revision === "justificado").length.toLocaleString("es-CL")} justificados</strong></div>
+              </div>
+              <div class="table-wrap"><table>
+                <thead><tr><th>Trabajador</th><th>Concepto origen</th><th>Destino</th><th>${esc(activeProfile().sourceName)}</th><th>${esc(activeProfile().targetName)}</th><th>Brecha</th><th>Accion</th></tr></thead>
+                <tbody>${shown.map(d => `
+                  <tr class="priority-row">
+                    <td><strong>${esc(d.nombre_trabajador || d.rut || "-")}</strong><br><span class="subtle">${esc(d.rut || "")}</span></td>
+                    <td>${esc(conceptSourceText(d))}</td>
+                    <td>${esc(conceptTargetText(d))}</td>
+                    <td class="num">${valueA(d)}</td>
+                    <td class="num">${valueB(d)}</td>
+                    <td class="num">${money(d.diferencia_absoluta)}</td>
+                    <td><button class="link-btn" data-action="filter-net-pay">Ver detalle</button></td>
+                  </tr>
+                `).join("")}</tbody>
+              </table></div>
+              ${netPay.length > shown.length ? `<p class="subtle">Mostrando las primeras ${shown.length.toLocaleString("es-CL")} diferencias de sueldo liquido. El detalle y la exportacion incluyen todas.</p>` : ""}
+            ` : `<div class="empty"><div><strong>No se detectaron diferencias de sueldo liquido.</strong><p>El foco queda disponible cuando el concepto este homologado y presente en ambos libros.</p></div></div>`}
+          </div>
+        </section>
+      `;
+    }
+
+    function contractualSummaryMarkup(diffs) {
+      const grouped = new Map();
+      diffs.forEach(d => {
+        const field = d.campo_diferente || "otro";
+        if (!grouped.has(field)) grouped.set(field, { field, label: focusFieldLabel(field), affected: new Set(), differences: 0 });
+        const item = grouped.get(field);
+        item.affected.add(d.rut || d.nombre_trabajador || "sin-identificador");
+        item.differences += 1;
+      });
+      const rows = [...grouped.values()].sort((a, b) => b.affected.size - a.affected.size || a.label.localeCompare(b.label));
+      return `
+        <section class="panel result-group contractual-group">
+          <div class="panel-head">
+            <div><h3>Datos contractuales</h3><p class="subtle">Nombre, cargo, unidad de negocio, fechas, previsión y otros datos maestros del trabajador.</p></div>
+            <span class="badge excluded">${diffs.length.toLocaleString("es-CL")} diferencias</span>
+          </div>
+          <div class="panel-body">
+            ${rows.length ? `<div class="table-wrap"><table>
+              <thead><tr><th>Dato contractual</th><th>Trabajadores afectados</th><th>Diferencias</th><th>Accion</th></tr></thead>
+              <tbody>${rows.map(item => `<tr><td><strong>${esc(item.label)}</strong></td><td class="num">${item.affected.size.toLocaleString("es-CL")}</td><td class="num">${item.differences.toLocaleString("es-CL")}</td><td><button class="link-btn" data-action="filter-field" data-field="${esc(item.field)}">Ver detalle</button></td></tr>`).join("")}</tbody>
+            </table></div>` : empty("Sin diferencias contractuales.", "Los datos maestros coinciden entre ambos libros.")}
+          </div>
+        </section>
       `;
     }
 
@@ -26728,20 +26941,21 @@ window.__xlsxLoadStatus="loaded";
         const target = conceptTargetText(d);
         const key = `${d.tipo}|${normalizeText(source)}|${normalizeText(target)}`;
         if (!grouped.has(key)) {
-          grouped.set(key, { source, target, type: TYPE_LABELS[d.tipo] || d.tipo, affected: new Set(), differences: 0 });
+          grouped.set(key, { source, target, type: differenceTypeLabel(d), affected: new Set(), differences: 0, priority: false });
         }
         const item = grouped.get(key);
         item.affected.add(d.rut || d.nombre_trabajador || "sin-identificador");
         item.differences += 1;
+        item.priority = item.priority || isNetSalaryDifference(d);
       });
-      const rows = [...grouped.values()].sort((a, b) => b.affected.size - a.affected.size || b.differences - a.differences || a.source.localeCompare(b.source));
+      const rows = [...grouped.values()].sort((a, b) => Number(b.priority) - Number(a.priority) || b.affected.size - a.affected.size || b.differences - a.differences || a.source.localeCompare(b.source));
       const shown = rows.slice(0, 500);
       return `
-        <section class="panel concept-summary">
+        <section class="panel result-group remunerational-group concept-summary">
           <div class="panel-head">
             <div>
-              <h3>Impacto por concepto</h3>
-              <p class="subtle">Revisa primero qué concepto afecta a más trabajadores y cuál es su destino homologado.</p>
+              <h3>Conceptos remuneracionales</h3>
+              <p class="subtle">Haberes, descuentos y aportes. El sueldo liquido aparece primero por su importancia para el trabajador.</p>
             </div>
             <span class="badge excluded">${rows.length.toLocaleString("es-CL")} conceptos</span>
           </div>
@@ -26750,7 +26964,7 @@ window.__xlsxLoadStatus="loaded";
               <thead><tr><th>Concepto origen</th><th>Concepto destino</th><th>Tipo</th><th>Trabajadores afectados</th><th>Diferencias</th><th>Accion</th></tr></thead>
               <tbody>${shown.map(item => `
                 <tr>
-                  <td><strong>${esc(item.source)}</strong></td>
+                  <td><strong>${item.priority ? `<span class="badge reviewed">Prioridad</span> ` : ""}${esc(item.source)}</strong></td>
                   <td>${esc(item.target)}</td>
                   <td>${esc(item.type)}</td>
                   <td class="num">${item.affected.size.toLocaleString("es-CL")}</td>
@@ -26782,7 +26996,7 @@ window.__xlsxLoadStatus="loaded";
     function diffRow(d) {
       return `
         <tr>
-          <td>${esc(TYPE_LABELS[d.tipo])}</td>
+          <td>${esc(differenceTypeLabel(d))}</td>
           <td><strong>${esc(d.nombre_trabajador || "-")}</strong><br><span class="subtle">${esc(d.rut)}</span></td>
           <td>${esc(conceptSourceText(d))}</td>
           <td>${esc(conceptTargetText(d))}</td>
@@ -26801,7 +27015,7 @@ window.__xlsxLoadStatus="loaded";
         <article class="record">
           <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
           ${statusBadge(d.estado_revision)}
-          <dl><dt>Tipo</dt><dd>${esc(TYPE_LABELS[d.tipo])}</dd><dt>Origen</dt><dd>${esc(conceptSourceText(d))}</dd><dt>Destino</dt><dd>${esc(conceptTargetText(d))}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl>
+          <dl><dt>Tipo</dt><dd>${esc(differenceTypeLabel(d))}</dd><dt>Origen</dt><dd>${esc(conceptSourceText(d))}</dd><dt>Destino</dt><dd>${esc(conceptTargetText(d))}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl>
         </article>
       `;
     }
@@ -26844,7 +27058,9 @@ window.__xlsxLoadStatus="loaded";
 
     function stepJustify() {
       const profile = activeProfile();
-      const pending = state.differences.filter(d => d.estado_revision !== "justificado");
+      const pending = state.differences
+        .filter(d => d.estado_revision !== "justificado")
+        .sort((a, b) => differenceGroupRank(a) - differenceGroupRank(b));
       const totalPages = Math.max(1, Math.ceil(pending.length / JUSTIFICATION_PAGE_SIZE));
       const page = Math.min(state.justificationPage, totalPages - 1);
       state.justificationPage = page;
@@ -26854,7 +27070,7 @@ window.__xlsxLoadStatus="loaded";
         <div class="stack">
           <div>
             <h2>Justificacion de diferencias</h2>
-            <p class="subtle">Cada registro apunta al concepto destino de ${esc(profile.targetName)} y muestra los valores comparados.</p>
+            <p class="subtle">Orden de revision: sueldo liquido, conceptos remuneracionales y datos contractuales. Cada registro apunta al destino de ${esc(profile.targetName)} y muestra los valores comparados.</p>
           </div>
           ${pending.length ? `<div class="banner warn">Mostrando ${start + 1}-${Math.min(start + JUSTIFICATION_PAGE_SIZE, pending.length)} de ${pending.length.toLocaleString("es-CL")} diferencias pendientes.</div>` : empty("No hay diferencias pendientes.", "Todas las diferencias estan justificadas.")}
           ${pending.length ? diffTableForJustification(pageRows) : ""}
@@ -26885,7 +27101,7 @@ window.__xlsxLoadStatus="loaded";
             <thead><tr><th>Persona</th><th>Origen ${esc(profile.sourceName)}</th><th>Destino ${esc(profile.targetName)}</th><th>Valores comparados</th><th>Analisis automatico</th><th>Justificacion</th><th>Accion</th></tr></thead>
             <tbody>${diffs.map(d => `
               <tr>
-                <td><strong>${esc(d.nombre_trabajador || d.rut)}</strong><br><span class="subtle">${esc(d.rut)} · ${esc(TYPE_LABELS[d.tipo])}</span></td>
+                <td><strong>${esc(d.nombre_trabajador || d.rut)}</strong><br><span class="subtle">${esc(d.rut)} · ${esc(differenceTypeLabel(d))}</span></td>
                 <td><strong>${esc(conceptSourceText(d))}</strong><br><span class="subtle">Id: ${esc(d.numero_empleado_a || "-")}</span></td>
                 <td><strong>${esc(conceptTargetText(d))}</strong><br><span class="subtle">Id: ${esc(d.numero_contrato_b || "-")}</span></td>
                 <td><div><span class="subtle">${esc(profile.sourceName)}:</span> ${valueA(d)}</div><div><span class="subtle">${esc(profile.targetName)}:</span> ${valueB(d)}</div><div><span class="subtle">Diferencia:</span> ${money(d.diferencia_absoluta)}</div></td>
@@ -26899,7 +27115,7 @@ window.__xlsxLoadStatus="loaded";
         <div class="mobile-list">${diffs.map(d => `
           <article class="record">
             <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
-            <p class="subtle">${esc(TYPE_LABELS[d.tipo])} · ${esc(conceptSourceText(d))} → ${esc(conceptTargetText(d))}</p>
+            <p class="subtle">${esc(differenceTypeLabel(d))} · ${esc(conceptSourceText(d))} → ${esc(conceptTargetText(d))}</p>
             <dl><dt>${esc(profile.sourceName)}</dt><dd>${valueA(d)}</dd><dt>${esc(profile.targetName)}</dt><dd>${valueB(d)}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl>
           </article>
         `).join("")}</div>
@@ -27155,6 +27371,8 @@ window.__xlsxLoadStatus="loaded";
       if (action === "save-homologation") return runBusy("Guardando homologaciones...", saveHomologation);
       if (action === "confirm-homologation") return runBusy("Comparando los libros...", runComparison);
       if (action === "filter-concept") return filterConcept(data.concept);
+      if (action === "filter-field") return filterField(data.field);
+      if (action === "filter-net-pay") return filterNetSalary();
       if (action === "no-pair") return setNoPair(data.id);
       if (action === "exclude-concept") return excludeConcept(data.id);
       if (action === "review") return markReviewed(data.id);
@@ -27811,6 +28029,9 @@ window.__xlsxLoadStatus="loaded";
     function focusSnapshot(source, canonical = {}) {
       const focus = Object.fromEntries(FOCUS_FIELDS.map(field => [field.key, focusValueFromSource(source, field)]));
       focus.ci = focus.ci || canonical.rut || "";
+      focus.nombre = focus.nombre || canonical.nombre || "";
+      focus.sede = focus.sede || canonical.sede || "";
+      focus.area = focus.area || canonical.area || "";
       focus.cargo = focus.cargo || canonical.cargo || "";
       return focus;
     }
@@ -27823,6 +28044,9 @@ window.__xlsxLoadStatus="loaded";
 
     function focusValue(row, key) {
       if (key === "ci") return row.focus?.ci ?? row.rut ?? "";
+      if (key === "nombre") return row.focus?.nombre ?? row.nombre ?? "";
+      if (key === "sede") return row.focus?.sede ?? row.sede ?? "";
+      if (key === "area") return row.focus?.area ?? row.area ?? "";
       if (key === "cargo") return row.focus?.cargo ?? row.cargo ?? "";
       return row.focus?.[key] ?? "";
     }
@@ -28272,6 +28496,26 @@ window.__xlsxLoadStatus="loaded";
       state.filters.type = "todos";
       state.filters.status = "todos";
       state.filters.q = concept || "";
+      state.selectedNode = "todos";
+      state.step = 3;
+      render();
+    }
+
+    function filterField(field) {
+      state.filters.type = "dato_trabajador";
+      state.filters.status = "todos";
+      state.filters.q = field || "";
+      state.selectedNode = "todos";
+      state.step = 3;
+      render();
+    }
+
+    function filterNetSalary() {
+      const netPay = state.differences.filter(isNetSalaryDifference);
+      const first = netPay[0];
+      state.filters.type = "todos";
+      state.filters.status = "todos";
+      state.filters.q = first ? (first.concepto_a || first.concepto_b || "sueldo liquido") : "sueldo liquido";
       state.selectedNode = "todos";
       state.step = 3;
       render();
