@@ -26623,7 +26623,7 @@ window.__xlsxLoadStatus="loaded";
         saludRule.origen = healthRule?.origen || "Mapa Visma a REX+ Rauda (precargado)";
         changed = true;
       }
-      ["SALUD", "ADICIONAL SALUD", "IMPUESTO UNICO"].forEach(sourceConcept => {
+      ["A.F.P.", "SALUD", "ADICIONAL SALUD", "SEGURO DE CESANTIA", "IMPUESTO UNICO"].forEach(sourceConcept => {
         const forced = forcedVismaRexMapping(sourceConcept);
         if (!forced) return;
         let savedRule = state.config.homologaciones.find(item =>
@@ -26674,9 +26674,13 @@ window.__xlsxLoadStatus="loaded";
     function forcedVismaRexMapping(concept) {
       if (!["visma_rex", "visma_rex_rauda"].includes(activeProfile().id)) return null;
       const rules = {
+        "a f p": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
+        "afp": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
         "impuesto unico": { concepto_b: "impuesto", concepto_b_label: "Impuesto", tipo_concepto: "descuento" },
         "salud": { concepto_b: "isapre", concepto_b_label: "Cotizacion SALUD", tipo_concepto: "descuento" },
-        "adicional salud": { concepto_b: "isapre", concepto_b_label: "Cotizacion SALUD", tipo_concepto: "descuento" }
+        "adicional salud": { concepto_b: "isapre", concepto_b_label: "Cotizacion SALUD", tipo_concepto: "descuento" },
+        "seguro de cesantia": { concepto_b: "cesempleado", concepto_b_label: "Seguro de Cesantia", tipo_concepto: "descuento" },
+        "seguro cesantia": { concepto_b: "cesempleado", concepto_b_label: "Seguro de Cesantia", tipo_concepto: "descuento" }
       };
       const rule = rules[normalizeText(concept)];
       return rule ? {
