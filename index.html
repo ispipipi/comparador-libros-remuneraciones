@@ -25357,6 +25357,22 @@ window.__xlsxLoadStatus="loaded";
       white-space: nowrap;
     }
 
+    .analysis-cell {
+      min-width: 260px;
+      max-width: 420px;
+      line-height: 1.4;
+    }
+    .analysis-cell strong,
+    .analysis-cell > span,
+    .analysis-cell details {
+      display: block;
+    }
+    .analysis-cell strong { font-size: 12px; }
+    .analysis-reason { margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .analysis-cell details { margin-top: 6px; font-size: 11px; }
+    .analysis-cell summary { color: var(--primary); cursor: pointer; font-weight: 800; }
+    .analysis-rule { margin-top: 5px; color: var(--muted); }
+
     .badge {
       display: inline-flex;
       min-height: 24px;
@@ -26026,8 +26042,95 @@ window.__xlsxLoadStatus="loaded";
         estado_revision: "pendiente",
         categoria_justificacion: "",
         comentario_justificacion: "",
-        fecha_justificacion: ""
+        fecha_justificacion: "",
+        analisis_automatico: "",
+        motivo_probable: "",
+        regla_comparacion: "",
+        regla_mapeo: ""
       };
+    }
+
+    function buildDifferenceAnalysis(d) {
+      const profile = activeProfile();
+      const sourceName = profile.sourceName;
+      const targetName = profile.targetName;
+      const mapping = d.concepto_a ? mappingForConcept(d.concepto_a) : null;
+      const sourceConcept = conceptSourceText(d);
+      const targetConcept = conceptTargetText(d);
+      const mappingTarget = mapping ? (mapping.concepto_b_label || mapping.concepto_b || "") : "";
+      const mappingParts = [];
+      if (mapping) {
+        mappingParts.push(`${mapping.concepto_a} -> ${mappingTarget || "sin destino"}`);
+        if (mapping.clasificacion && mapping.clasificacion !== "-") mappingParts.push(`clasificacion: ${mapping.clasificacion}`);
+        if (mapping.carga_historica && mapping.carga_historica !== "-") mappingParts.push(`carga historica: ${mapping.carga_historica}`);
+        if (mapping.comentario && mapping.comentario !== "-") mappingParts.push(`nota: ${mapping.comentario}`);
+      } else if (d.concepto_a) {
+        mappingParts.push("No se encontro una homologacion activa para el concepto de origen.");
+      }
+
+      let analysis = "";
+      let reason = "";
+      let rule = "";
+      if (d.tipo === "monto") {
+        const difference = Number(d.diferencia_absoluta || 0);
+        const direction = difference > 0
+          ? `${sourceName} supera a ${targetName}`
+          : difference < 0 ? `${targetName} supera a ${sourceName}` : "los totales no coinciden por su valor registrado";
+        analysis = `${sourceConcept} esta homologado a ${targetConcept}; se compararon ${money(d.valor_a)} en ${sourceName} contra ${money(d.valor_b)} en ${targetName}. ${direction} por ${money(Math.abs(difference))}.`;
+        reason = `Motivo probable: diferencia en la formula, base de calculo, redondeo o registro incluido en el concepto. Variacion relativa: ${Number(d.diferencia_porcentual || 0).toLocaleString("es-CL")}%.`;
+        rule = "Formula: redondear(suma de montos por RUT y concepto homologado) en origen != redondear(suma equivalente) en destino.";
+      } else if (d.tipo === "concepto_faltante") {
+        analysis = targetConcept && targetConcept !== "Sin par"
+          ? `${sourceConcept} esta homologado a ${targetConcept}, pero no se encontro un registro equivalente para este trabajador en ${targetName}.`
+          : `${sourceConcept} no tiene un concepto destino homologado para este trabajador.`;
+        reason = `Motivo probable: concepto no informado, filtro del periodo, RUT no coincidente o regla de homologacion sin par.`;
+        rule = "Formula: existe(fila destino donde RUT y concepto homologado coinciden) debe ser verdadero.";
+      } else if (d.tipo === "trabajador_sin_par") {
+        const onlyIn = present(d.numero_empleado_a) && !present(d.numero_contrato_b) ? sourceName
+          : present(d.numero_contrato_b) && !present(d.numero_empleado_a) ? targetName : "uno de los libros";
+        analysis = `El trabajador ${d.rut || d.nombre_trabajador || "sin identificador"} aparece solo en ${onlyIn}; no fue posible comparar sus conceptos.`;
+        reason = "Motivo probable: alta, baja, periodo distinto, RUT con formato diferente o trabajador no incluido en el otro libro.";
+        rule = "Formula: existe(RUT en origen) != existe(RUT en destino) indica trabajador sin par.";
+      } else if (d.tipo === "dato_trabajador") {
+        const field = focusFieldLabel(d.campo_diferente);
+        analysis = `${field} difiere para ${d.nombre_trabajador || d.rut}: ${sourceName} informa “${d.valor_campo_a || "-"}” y ${targetName} informa “${d.valor_campo_b || "-"}”.`;
+        reason = "Motivo probable: dato maestro desactualizado, formato distinto o diferencia de origen entre ambos sistemas.";
+        rule = "Formula: normalizar(campo origen) != normalizar(campo destino) para el mismo RUT.";
+      } else {
+        analysis = "Se detecto una diferencia que requiere revision del registro comparado.";
+        reason = "Motivo probable: revisar el detalle del trabajador, concepto y valores informados.";
+        rule = "Comparacion directa de los registros normalizados.";
+      }
+
+      return {
+        analysis,
+        reason,
+        rule,
+        mappingRule: mappingParts.join(" · ") || "No aplica una regla de homologacion de conceptos."
+      };
+    }
+
+    function ensureDifferenceAnalysis(d) {
+      const generated = buildDifferenceAnalysis(d);
+      if (!d.analisis_automatico) d.analisis_automatico = generated.analysis;
+      if (!d.motivo_probable) d.motivo_probable = generated.reason;
+      if (!d.regla_comparacion) d.regla_comparacion = generated.rule;
+      if (!d.regla_mapeo) d.regla_mapeo = generated.mappingRule;
+      return {
+        analysis: d.analisis_automatico,
+        reason: d.motivo_probable,
+        rule: d.regla_comparacion,
+        mappingRule: d.regla_mapeo
+      };
+    }
+
+    function differenceAnalysisMarkup(d, compact = false) {
+      const info = ensureDifferenceAnalysis(d);
+      return `<div class="analysis-cell${compact ? " compact" : ""}">
+        <strong>${esc(info.analysis)}</strong>
+        <span class="analysis-reason"><b>Motivo:</b> ${esc(info.reason)}</span>
+        <details><summary>Ver regla / formula y homologacion</summary><span class="analysis-rule"><b>Regla / formula:</b> ${esc(info.rule)}</span><span class="analysis-rule"><b>Mapeo:</b> ${esc(info.mappingRule)}</span></details>
+      </div>`;
     }
 
     function render() {
@@ -26492,7 +26595,7 @@ window.__xlsxLoadStatus="loaded";
         <div class="stack">
           <div>
             <h2>Resultados</h2>
-            <p class="subtle">Diferencias enfocadas en los campos definidos y en los conceptos de haberes, descuentos y aportes.</p>
+            <p class="subtle">Diferencias enfocadas en los campos definidos y en los conceptos de haberes, descuentos y aportes. Cada registro incluye un analisis automatico, motivo probable y regla aplicada.</p>
           </div>
           ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
           <section class="kpi-grid">
@@ -26607,7 +26710,7 @@ window.__xlsxLoadStatus="loaded";
         ${diffs.length > DISPLAY_LIMIT ? `<div class="banner warn" style="margin-bottom:12px">Mostrando ${DISPLAY_LIMIT.toLocaleString("es-CL")} de ${diffs.length.toLocaleString("es-CL")} diferencias filtradas. La exportacion incluye el detalle completo.</div>` : ""}
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Tipo</th><th>Persona</th><th>Concepto origen</th><th>Concepto destino</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Diferencia</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Tipo</th><th>Persona</th><th>Concepto origen</th><th>Concepto destino</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Diferencia</th><th>Analisis / motivo</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>${shown.map(diffRow).join("")}</tbody>
           </table>
         </div>
@@ -26625,6 +26728,7 @@ window.__xlsxLoadStatus="loaded";
           <td>${valueA(d)}</td>
           <td>${valueB(d)}</td>
           <td class="num">${money(d.diferencia_absoluta)}</td>
+          <td>${differenceAnalysisMarkup(d)}</td>
           <td>${statusBadge(d.estado_revision)}</td>
           <td><div class="inline-actions"><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div></td>
         </tr>
@@ -26636,7 +26740,7 @@ window.__xlsxLoadStatus="loaded";
         <article class="record">
           <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
           ${statusBadge(d.estado_revision)}
-          <dl><dt>Tipo</dt><dd>${esc(TYPE_LABELS[d.tipo])}</dd><dt>Origen</dt><dd>${esc(conceptSourceText(d))}</dd><dt>Destino</dt><dd>${esc(conceptTargetText(d))}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd></dl>
+          <dl><dt>Tipo</dt><dd>${esc(TYPE_LABELS[d.tipo])}</dd><dt>Origen</dt><dd>${esc(conceptSourceText(d))}</dd><dt>Destino</dt><dd>${esc(conceptTargetText(d))}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl>
         </article>
       `;
     }
@@ -26717,13 +26821,14 @@ window.__xlsxLoadStatus="loaded";
       return `
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Persona</th><th>Origen ${esc(profile.sourceName)}</th><th>Destino ${esc(profile.targetName)}</th><th>Valores comparados</th><th>Justificacion</th><th>Accion</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Origen ${esc(profile.sourceName)}</th><th>Destino ${esc(profile.targetName)}</th><th>Valores comparados</th><th>Analisis automatico</th><th>Justificacion</th><th>Accion</th></tr></thead>
             <tbody>${diffs.map(d => `
               <tr>
                 <td><strong>${esc(d.nombre_trabajador || d.rut)}</strong><br><span class="subtle">${esc(d.rut)} · ${esc(TYPE_LABELS[d.tipo])}</span></td>
                 <td><strong>${esc(conceptSourceText(d))}</strong><br><span class="subtle">Id: ${esc(d.numero_empleado_a || "-")}</span></td>
                 <td><strong>${esc(conceptTargetText(d))}</strong><br><span class="subtle">Id: ${esc(d.numero_contrato_b || "-")}</span></td>
                 <td><div><span class="subtle">${esc(profile.sourceName)}:</span> ${valueA(d)}</div><div><span class="subtle">${esc(profile.targetName)}:</span> ${valueB(d)}</div><div><span class="subtle">Diferencia:</span> ${money(d.diferencia_absoluta)}</div></td>
+                <td>${differenceAnalysisMarkup(d, true)}</td>
                 <td><select data-just-cat="${esc(d.id)}">${state.config.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select><textarea data-just-comment="${esc(d.id)}" placeholder="Justifica respecto del destino"></textarea></td>
                 <td><button class="btn secondary" data-action="save-justification" data-id="${esc(d.id)}">Guardar</button></td>
               </tr>
@@ -26734,7 +26839,7 @@ window.__xlsxLoadStatus="loaded";
           <article class="record">
             <strong>${esc(d.nombre_trabajador || d.rut)}</strong>
             <p class="subtle">${esc(TYPE_LABELS[d.tipo])} · ${esc(conceptSourceText(d))} → ${esc(conceptTargetText(d))}</p>
-            <dl><dt>${esc(profile.sourceName)}</dt><dd>${valueA(d)}</dd><dt>${esc(profile.targetName)}</dt><dd>${valueB(d)}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd></dl>
+            <dl><dt>${esc(profile.sourceName)}</dt><dd>${valueA(d)}</dd><dt>${esc(profile.targetName)}</dt><dd>${valueB(d)}</dd><dt>Diferencia</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl>
           </article>
         `).join("")}</div>
       `;
@@ -28006,6 +28111,7 @@ window.__xlsxLoadStatus="loaded";
         }
       }
 
+      diffs.forEach(ensureDifferenceAnalysis);
       reportProgress(100, "Comparacion terminada. Preparando resultados...");
       await yieldToBrowser();
       state.differences = diffs;
@@ -28219,7 +28325,9 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function rowsForExport(diffs, profile = activeProfile()) {
-      return diffs.map(d => ({
+      return diffs.map(d => {
+        const analysis = ensureDifferenceAnalysis(d);
+        return {
         tipo: TYPE_LABELS[d.tipo] || d.tipo,
         rut: d.rut,
         nombre: d.nombre_trabajador,
@@ -28239,11 +28347,17 @@ window.__xlsxLoadStatus="loaded";
         campo_diferente_key: d.campo_diferente,
         [`Valor campo ${profile.sourceName}`]: d.valor_campo_a,
         [`Valor campo ${profile.targetName}`]: d.valor_campo_b,
+        analisis_automatico: analysis.analysis,
+        motivo_probable: analysis.reason,
+        regla_comparacion: analysis.rule,
+        formula_regla_aplicada: analysis.rule,
+        regla_mapeo: analysis.mappingRule,
         estado_revision: d.estado_revision,
         categoria_justificacion: d.categoria_justificacion,
         comentario_justificacion: d.comentario_justificacion,
         fecha_justificacion: d.fecha_justificacion
-      }));
+        };
+      });
     }
 
     function downloadBlob(content, filename, type) {
