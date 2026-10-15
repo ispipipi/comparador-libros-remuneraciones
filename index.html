@@ -28075,6 +28075,9 @@ window.__xlsxLoadStatus="loaded";
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
+      // REX+ exports the net salary as a wide monetary column, not as a long-format concept.
+      // Keep this target total available so the SUELDO GANADO mapping can compare it.
+      if (system === "rex" && ["sueldo liquido", "liquido", "alcance liquido"].includes(key)) return true;
       if (!key || WIDE_EXCLUDED.has(key)) return false;
       if (NON_CONCEPT_WIDE_HEADERS.has(key)) return false;
       if (key.includes(" orig") || key.includes(" original")) return false;
