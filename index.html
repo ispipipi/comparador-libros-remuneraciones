@@ -25476,6 +25476,145 @@ window.__xlsxLoadStatus="loaded";
       margin-bottom: 16px;
     }
 
+    .net-match-hero {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.5fr) repeat(2, minmax(150px, .7fr));
+      gap: 18px;
+      align-items: stretch;
+      border-color: #8bd6c4;
+      background: #f0fbf7;
+    }
+
+    .net-match-main {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 150px;
+    }
+
+    .net-match-label {
+      color: var(--primary-dark);
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .net-match-percent {
+      display: block;
+      margin: 5px 0;
+      color: var(--primary-dark);
+      font-size: 82px;
+      line-height: .95;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .net-match-main p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .net-match-stat {
+      display: flex;
+      min-height: 118px;
+      flex-direction: column;
+      justify-content: center;
+      padding: 16px;
+      border-left: 1px solid #bde8dc;
+    }
+
+    .net-match-stat span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .net-match-stat strong {
+      margin-top: 6px;
+      color: var(--ink);
+      font-size: 30px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .numeric-groups {
+      border-left: 4px solid var(--warn);
+    }
+
+    .numeric-group-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .numeric-group-button {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .numeric-group-button:hover,
+    .numeric-group-button.active {
+      border-color: var(--primary);
+      background: #f3fcf8;
+    }
+
+    .numeric-group-title {
+      display: block;
+      font-weight: 800;
+    }
+
+    .numeric-group-subtitle {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .numeric-group-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px 14px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .numeric-group-detail {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .numeric-group-detail-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .numeric-group-detail-head h4 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+
+    .numeric-group-detail-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
     .priority-stat {
       padding: 13px 14px;
       border: 1px solid #ccebe3;
@@ -25566,6 +25705,12 @@ window.__xlsxLoadStatus="loaded";
 
     @media (max-width: 760px) {
       .result-priority-grid { grid-template-columns: 1fr; }
+      .net-match-hero { grid-template-columns: 1fr; gap: 0; }
+      .net-match-percent { font-size: 52px; }
+      .net-match-stat { min-height: 0; border-top: 1px solid #bde8dc; border-left: 0; }
+      .numeric-group-button { grid-template-columns: 1fr; }
+      .numeric-group-metrics { justify-content: flex-start; text-align: left; }
+      .numeric-group-detail-head { flex-direction: column; }
     }
 
     .tree {
@@ -26054,6 +26199,7 @@ window.__xlsxLoadStatus="loaded";
       homologations: [],
       differences: [],
       selectedNode: "todos",
+      selectedNumericGroup: "",
       filters: { type: "todos", status: "todos", q: "" },
       justificationPage: 0,
       exportDone: false,
@@ -26859,6 +27005,8 @@ window.__xlsxLoadStatus="loaded";
             <p class="subtle">Diferencias enfocadas en los campos definidos y en los conceptos de haberes, descuentos y aportes. Cada registro incluye un analisis automatico, motivo probable y regla aplicada.</p>
           </div>
           ${state.differences.length > 15 ? `<div class="banner danger">Se detectaron ${state.differences.length} diferencias. Revisa el detalle antes de exportar.</div>` : `<div class="banner ok">Comparacion completada. Se detectaron ${state.differences.length} diferencias.</div>`}
+          ${netSalaryMatchMarkup(netSalaryComparisonSummary())}
+          ${numericDifferenceGroupsMarkup()}
           <section class="kpi-grid">
             ${kpi("Total diferencias", state.differences.length, "Resultado completo")}
             ${kpi("Datos contractuales", contractual.length, `${unique(contractual.map(d => d.rut || d.nombre_trabajador)).length.toLocaleString("es-CL")} trabajadores afectados`)}
@@ -26866,7 +27014,6 @@ window.__xlsxLoadStatus="loaded";
             ${kpi("Sueldo liquido", netPay.length, netPay.length ? `${unique(netPay.map(d => d.rut || d.nombre_trabajador)).length.toLocaleString("es-CL")} trabajadores afectados` : "Sin diferencias detectadas")}
           </section>
           <div class="progress" aria-label="Cumplimiento revision"><span style="--w:${compliance}%"></span></div>
-          ${resultPriorityMarkup(netPay)}
           <div class="result-groups">
             ${contractualSummaryMarkup(contractual)}
             ${conceptSummaryMarkup(remunerational)}
@@ -26902,22 +27049,173 @@ window.__xlsxLoadStatus="loaded";
       `;
     }
 
+    function isNetSalaryConceptValue(value, side = "") {
+      const key = normalizeText(value);
+      if (!key || key === "sueldo ganado") return false;
+      if (key === "liquido" || key === "totalesempl" || key === "totales empl") return true;
+      return [
+        "sueldo liquido",
+        "total liquido",
+        "liquido a pagar",
+        "neto a pagar",
+        "total a pagar",
+        "alcance liquido"
+      ].some(alias => key === alias || key.includes(alias));
+    }
+
+    function netSalaryRowsByRut(rows, side) {
+      const totals = new Map();
+      rows.filter(row => isNetSalaryConceptValue(row.concepto, side)).forEach(row => {
+        const rut = cleanRut(row.rut);
+        const amount = toNumber(row.monto);
+        if (!rut || !Number.isFinite(amount)) return;
+        totals.set(rut, (totals.get(rut) || 0) + amount);
+      });
+      return totals;
+    }
+
+    function netSalaryComparisonSummary() {
+      const sourceByRut = netSalaryRowsByRut(state.rows.visma, "visma");
+      const targetByRut = netSalaryRowsByRut(state.rows.rex, "rex");
+      const ruts = unique([...sourceByRut.keys(), ...targetByRut.keys()]);
+      const netDifferenceRuts = new Set(state.differences
+        .filter(isNetSalaryDifference)
+        .map(d => cleanRut(d.rut))
+        .filter(rut => rut && ruts.includes(rut)));
+      const exact = Math.max(0, ruts.length - netDifferenceRuts.size);
+      const total = ruts.length;
+      return {
+        total,
+        exact,
+        differences: total - exact,
+        percentage: total ? exact / total * 100 : 0
+      };
+    }
+
+    function formatPercent(value) {
+      return `${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(value)}%`;
+    }
+
+    function netSalaryMatchMarkup(summary) {
+      const hasData = summary.total > 0;
+      return `
+        <section class="panel net-match-hero">
+          <div class="net-match-main">
+            <span class="net-match-label">Exactitud del sueldo liquido</span>
+            <strong class="net-match-percent">${hasData ? formatPercent(summary.percentage) : "-"}</strong>
+            <p>${hasData ? `${summary.exact.toLocaleString("es-CL")} de ${summary.total.toLocaleString("es-CL")} trabajadores cuadran exactamente.` : "No se detectaron filas de sueldo liquido en ambos libros."}</p>
+          </div>
+          <div class="net-match-stat"><span>Cuadrados exactos</span><strong>${summary.exact.toLocaleString("es-CL")}</strong></div>
+          <div class="net-match-stat"><span>Con descuadre</span><strong>${summary.differences.toLocaleString("es-CL")}</strong></div>
+        </section>
+      `;
+    }
+
+    function numericDifferenceGroups(diffs = state.differences) {
+      const grouped = new Map();
+      diffs.filter(d => d.tipo === "monto").forEach(d => {
+        const source = conceptSourceText(d);
+        const target = conceptTargetText(d);
+        const key = `${source}|||${target}`;
+        if (!grouped.has(key)) grouped.set(key, {
+          key,
+          source,
+          target,
+          rows: [],
+          affected: new Set(),
+          totalAbs: 0
+        });
+        const group = grouped.get(key);
+        group.rows.push(d);
+        group.affected.add(d.rut || d.nombre_trabajador || "sin-identificador");
+        group.totalAbs += Math.abs(Number(d.diferencia_absoluta || 0));
+      });
+      return [...grouped.values()].sort((a, b) => b.rows.length - a.rows.length || b.totalAbs - a.totalAbs || a.source.localeCompare(b.source));
+    }
+
+    function numericDifferenceGroupsMarkup(diffs = state.differences) {
+      const groups = numericDifferenceGroups(diffs);
+      if (!groups.length) {
+        state.selectedNumericGroup = "";
+        return `
+          <section class="panel numeric-groups">
+            <div class="panel-head"><div><h3>Descuadres numéricos</h3><p class="subtle">Agrupados por concepto de origen y destino.</p></div><span class="badge reviewed">Sin descuadres</span></div>
+            <div class="panel-body">${empty("No hay descuadres numéricos.", "Los conceptos con diferencias de estructura se revisan en los grupos inferiores.")}</div>
+          </section>
+        `;
+      }
+      const selected = groups.find(group => group.key === state.selectedNumericGroup) || groups[0];
+      state.selectedNumericGroup = selected.key;
+      const shown = selected.rows.slice(0, DISPLAY_LIMIT);
+      return `
+        <section class="panel numeric-groups">
+          <div class="panel-head">
+            <div><h3>Descuadres numéricos por grupo</h3><p class="subtle">Selecciona un grupo para revisar el detalle y el análisis automático de cada diferencia.</p></div>
+            <span class="badge pending">${groups.length.toLocaleString("es-CL")} grupos · ${diffs.filter(d => d.tipo === "monto").length.toLocaleString("es-CL")} diferencias</span>
+          </div>
+          <div class="panel-body">
+            <div class="numeric-group-list">
+              ${groups.map(group => `
+                <button class="numeric-group-button ${selected.key === group.key ? "active" : ""}" data-action="select-numeric-group" data-group-key="${esc(encodeURIComponent(group.key))}">
+                  <span><span class="numeric-group-title">${esc(group.source)} <span class="subtle">→</span> ${esc(group.target)}</span><span class="numeric-group-subtitle">${group.rows.length.toLocaleString("es-CL")} ${group.rows.length === 1 ? "diferencia numérica" : "diferencias numéricas"}</span></span>
+                  <span class="numeric-group-metrics"><span>${group.affected.size.toLocaleString("es-CL")} ${group.affected.size === 1 ? "trabajador" : "trabajadores"}</span><strong>${money(group.totalAbs)}</strong></span>
+                </button>
+              `).join("")}
+            </div>
+            <div class="numeric-group-detail" id="numeric-group-detail">
+              <div class="numeric-group-detail-head">
+                <div><h4>Detalle: ${esc(selected.source)} → ${esc(selected.target)}</h4><p>${selected.affected.size.toLocaleString("es-CL")} ${selected.affected.size === 1 ? "trabajador afectado" : "trabajadores afectados"} · brecha acumulada ${money(selected.totalAbs)}</p></div>
+                <span class="badge pending">${selected.rows.length.toLocaleString("es-CL")} ${selected.rows.length === 1 ? "diferencia" : "diferencias"}</span>
+              </div>
+              <div class="table-wrap"><table>
+                <thead><tr><th>Trabajador</th><th>${esc(activeProfile().sourceName)}</th><th>${esc(activeProfile().targetName)}</th><th>Descuadre</th><th>Analisis / motivo</th><th>Acciones</th></tr></thead>
+                <tbody>${shown.map(numericDifferenceDetailRow).join("")}</tbody>
+              </table></div>
+              <div class="mobile-list">${shown.map(numericDifferenceDetailCard).join("")}</div>
+              ${selected.rows.length > shown.length ? `<p class="subtle">Mostrando ${shown.length.toLocaleString("es-CL")} de ${selected.rows.length.toLocaleString("es-CL")} diferencias del grupo. El detalle completo queda disponible en la exportación.</p>` : ""}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function numericDifferenceDetailRow(d) {
+      return `
+        <tr>
+          <td><strong>${esc(d.nombre_trabajador || d.rut || "-")}</strong><br><span class="subtle">${esc(d.rut || "")}</span></td>
+          <td class="num">${valueA(d)}</td>
+          <td class="num">${valueB(d)}</td>
+          <td class="num">${money(d.diferencia_absoluta)}</td>
+          <td>${differenceAnalysisMarkup(d, true)}</td>
+          <td><div class="inline-actions"><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div></td>
+        </tr>
+      `;
+    }
+
+    function numericDifferenceDetailCard(d) {
+      return `
+        <article class="record">
+          <strong>${esc(d.nombre_trabajador || d.rut || "-")}</strong>
+          ${statusBadge(d.estado_revision)}
+          <dl><dt>Origen</dt><dd>${valueA(d)}</dd><dt>Destino</dt><dd>${valueB(d)}</dd><dt>Descuadre</dt><dd>${money(d.diferencia_absoluta)}</dd><dt>Analisis</dt><dd>${differenceAnalysisMarkup(d, true)}</dd></dl>
+          <div class="inline-actions"><button class="link-btn" data-action="review" data-id="${esc(d.id)}">Revisar</button><button class="link-btn" data-action="justify-one" data-id="${esc(d.id)}">Justificar</button></div>
+        </article>
+      `;
+    }
+
+    function selectNumericGroup(encodedKey) {
+      let key = "";
+      try { key = decodeURIComponent(encodedKey || ""); } catch (error) { key = encodedKey || ""; }
+      if (!key) return;
+      state.selectedNumericGroup = key;
+      render();
+      setTimeout(() => document.getElementById("numeric-group-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    }
+
     function isNetSalaryDifference(d) {
-      const values = [
-        d.concepto_a,
-        d.concepto_b,
-        d.campo_diferente
-      ].map(normalizeText).filter(Boolean);
-      return values.some(value =>
-        value === "liquido" ||
-        value === "totalesempl" ||
-        value.includes("sueldo liquido") ||
-        value.includes("total liquido") ||
-        value.includes("alcance liquido") ||
-        value.includes("liquido a pagar") ||
-        value.includes("neto a pagar") ||
-        value.includes("total a pagar")
-      );
+      return isNetSalaryConceptValue(d.concepto_a, "visma") ||
+        isNetSalaryConceptValue(d.concepto_b, "rex") ||
+        isNetSalaryConceptValue(d.campo_diferente);
     }
 
     function isRemunerationalDifference(d) {
@@ -27517,6 +27815,7 @@ window.__xlsxLoadStatus="loaded";
       if (action === "filter-concept") return filterConcept(data.concept);
       if (action === "filter-field") return filterField(data.field);
       if (action === "filter-net-pay") return filterNetSalary();
+      if (action === "select-numeric-group") return selectNumericGroup(data.groupKey);
       if (action === "no-pair") return setNoPair(data.id);
       if (action === "exclude-concept") return excludeConcept(data.id);
       if (action === "review") return markReviewed(data.id);
@@ -27564,6 +27863,7 @@ window.__xlsxLoadStatus="loaded";
       state.validations = null;
       state.homologations = [];
       state.differences = [];
+      state.selectedNumericGroup = "";
       state.exportDone = false;
       render();
       toast(`Dupla activa: ${activeProfile().label}.`);
@@ -27587,6 +27887,7 @@ window.__xlsxLoadStatus="loaded";
       state.homologations = [];
       state.differences = [];
       state.selectedNode = "todos";
+      state.selectedNumericGroup = "";
       state.filters = { type: "todos", status: "todos", q: "" };
       state.exportDone = false;
       state.view = andStart ? "wizard" : state.view;
@@ -28612,6 +28913,7 @@ window.__xlsxLoadStatus="loaded";
       state.differences = diffs;
       state.step = 3;
       state.selectedNode = "todos";
+      state.selectedNumericGroup = "";
       state.justificationPage = 0;
       render();
       saveCurrentComparison(false);
