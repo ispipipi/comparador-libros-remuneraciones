@@ -25711,7 +25711,7 @@ window.__xlsxLoadStatus="loaded";
 
     const ALIASES = {
       rut: ["rut", "run", "documento", "id trabajador", "identificador", "ci"],
-      nombre: ["nombre", "trabajador", "nombre trabajador", "empleado", "colaborador", "apellido y nombre"],
+      nombre: ["apellido y nombre", "nombre", "trabajador", "nombre trabajador", "empleado", "colaborador"],
       sede: ["sede", "ubicacion", "ubicacion workday", "local", "centro", "centro costo", "centro de costo", "nombre c costo", "nombre c. costo"],
       area: ["area", "departamento", "unidad", "unidad de negocios", "division", "centro costo", "centro de costo"],
       cargo: ["cargo", "puesto", "rol", "funcion", "posicion", "job code"],
@@ -27799,9 +27799,13 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function valueByAliases(source, key) {
-      const wanted = new Set([key, ...ALIASES[key]].map(normalizeText));
-      const found = Object.keys(source).find(k => wanted.has(normalizeText(k)));
-      return found ? source[found] : "";
+      const aliases = [key, ...(ALIASES[key] || [])].map(normalizeText);
+      const sourceKeys = Object.keys(source || {});
+      for (const alias of aliases) {
+        const found = sourceKeys.find(k => normalizeText(k) === alias);
+        if (found) return source[found];
+      }
+      return "";
     }
 
     function focusSnapshot(source, canonical = {}) {
