@@ -27078,9 +27078,7 @@ window.__xlsxLoadStatus="loaded";
     function stepContent() {
       if (state.step === 1) return stepUpload();
       if (state.step === 2) return stepHomologation();
-      if (state.step === 3) return stepResults();
-      if (state.step === 4) return stepJustify();
-      return stepExport();
+      return stepResults();
     }
 
     function stepUpload() {
@@ -27388,7 +27386,6 @@ window.__xlsxLoadStatus="loaded";
           ${workerDetailMarkup(state.selectedWorkerRut)}
           <div class="actions">
             <button class="btn secondary" data-action="prev">Volver</button>
-            <button class="btn" data-action="go-justify">Continuar</button>
           </div>
         </div>
       `;
