@@ -26591,12 +26591,39 @@ window.__xlsxLoadStatus="loaded";
       if (!Array.isArray(state.config.homologaciones)) state.config.homologaciones = [];
       const pairId = "visma_rex_rauda";
       const current = state.config.homologaciones.filter(item => item.par_sistemas === pairId);
-      if (current.length) return;
-      state.config.homologaciones = [
-        ...state.config.homologaciones.filter(item => item.par_sistemas !== pairId),
-        ...DEFAULT_RAUDA_HOMOLOGACIONES.map(item => ({ ...item, id: uid() }))
-      ];
-      saveJson(STORE.config, state.config);
+      if (!current.length) {
+        state.config.homologaciones = [
+          ...state.config.homologaciones.filter(item => item.par_sistemas !== pairId),
+          ...DEFAULT_RAUDA_HOMOLOGACIONES.map(item => ({ ...item, id: uid() }))
+        ];
+      }
+      const rules = state.config.homologaciones.filter(item => item.par_sistemas === pairId);
+      const healthRule = rules.find(item => normalizeText(item.concepto_a) === "adicional salud");
+      let saludRule = rules.find(item => normalizeText(item.concepto_a) === "salud");
+      let changed = false;
+      if (!saludRule) {
+        saludRule = {
+          id: uid(),
+          par_sistemas: pairId,
+          empresa: "Rauda",
+          concepto_a: "SALUD",
+          concepto_b: healthRule?.concepto_b || "isapre",
+          concepto_b_label: healthRule?.concepto_b_label || "Cotizacion SALUD",
+          tipo_concepto: healthRule?.tipo_concepto || "descuento",
+          estado: "activo",
+          origen: healthRule?.origen || "Mapa Visma a REX+ Rauda (precargado)"
+        };
+        state.config.homologaciones.push(saludRule);
+        changed = true;
+      } else if (!saludRule.concepto_b) {
+        saludRule.concepto_b = healthRule?.concepto_b || "isapre";
+        saludRule.concepto_b_label = healthRule?.concepto_b_label || "Cotizacion SALUD";
+        saludRule.tipo_concepto = healthRule?.tipo_concepto || "descuento";
+        saludRule.estado = "activo";
+        saludRule.origen = healthRule?.origen || "Mapa Visma a REX+ Rauda (precargado)";
+        changed = true;
+      }
+      if (changed || !current.length) saveJson(STORE.config, state.config);
     }
 
     function ensureProfileMappingDefaults() {
@@ -28941,6 +28968,7 @@ window.__xlsxLoadStatus="loaded";
         ...catalog.flatMap(item => [item.concepto, item.nombre]),
         ...normalized.map(item => item.concepto_b_label || item.concepto_b)
       ]).sort((a, b) => a.localeCompare(b));
+      ensureProfileMappingDefaults();
       saveJson(STORE.config, state.config);
     }
 
@@ -29564,7 +29592,9 @@ window.__xlsxLoadStatus="loaded";
         if ((rutIndex + 1) % 25 === 0) await yieldToBrowser();
       }
 
-      let sourceIndex = 0;
+      // Comparacion agrupada por destino homologado.
+      if (false) {
+        let sourceIndex = 0;
       for (const aMatches of rowsAByConcept.values()) {
         sourceIndex += 1;
         if (sourceIndex % 250 === 0 || sourceIndex === rowsAByConcept.size) {
@@ -29591,6 +29621,72 @@ window.__xlsxLoadStatus="loaded";
         const bFirst = bMatches[0];
         if (Math.round(aTotal) !== Math.round(bTotal)) {
           diffs.push(diff("monto", a.rut, a.nombre, a.sede, a.area, a.cargo, a.concepto, hom.concepto_b_label || hom.concepto_b, aTotal, bTotal, a.numero_empleado_a, bFirst.numero_contrato_b));
+        }
+      }
+      }
+
+      const conceptGroups = new Map();
+      state.homologations.forEach(hom => {
+        const sourceKey = normalizeText(hom.concepto_a);
+        if (!sourceKey || !selectedConcepts.has(sourceKey) || hom.estado === "excluido") return;
+        const hasTarget = Boolean(hom.concepto_b);
+        const targetLabel = hasTarget ? (hom.concepto_b_label || hom.concepto_b) : "";
+        const groupKey = hasTarget ? `mapped:${normalizeText(targetLabel)}` : `missing:${sourceKey}`;
+        let group = conceptGroups.get(groupKey);
+        if (!group) {
+          group = { sourceConcepts: [], sourceLabels: [], mappings: [], targetLabel, byRut: new Map() };
+          conceptGroups.set(groupKey, group);
+        }
+        group.sourceConcepts.push(sourceKey);
+        group.sourceLabels.push(hom.concepto_a);
+        if (hasTarget) group.mappings.push(hom);
+      });
+
+      const groupBySourceConcept = new Map();
+      conceptGroups.forEach(group => group.sourceConcepts.forEach(sourceKey => groupBySourceConcept.set(sourceKey, group)));
+      rowsAByConcept.forEach((aMatches, indexKey) => {
+        const separator = indexKey.indexOf("|");
+        if (separator < 0) return;
+        const rut = indexKey.slice(0, separator);
+        const sourceKey = indexKey.slice(separator + 1);
+        const group = groupBySourceConcept.get(sourceKey);
+        if (!group) return;
+        if (!group.byRut.has(rut)) group.byRut.set(rut, []);
+        group.byRut.get(rut).push(...aMatches);
+      });
+
+      let conceptComparisons = 0;
+      const totalConceptComparisons = Math.max(
+        [...conceptGroups.values()].reduce((total, group) => total + group.byRut.size, 0),
+        1
+      );
+      for (const group of conceptGroups.values()) {
+        const sourceLabel = group.sourceLabels.join(" + ");
+        for (const [rut, aMatches] of group.byRut.entries()) {
+          conceptComparisons += 1;
+          if (conceptComparisons % 100 === 0 || conceptComparisons === totalConceptComparisons) {
+            const progress = 78 + (conceptComparisons / totalConceptComparisons) * 10;
+            reportProgress(progress, `Conceptos ${activeProfile().sourceName}: ${conceptComparisons.toLocaleString("es-CL")} de ${totalConceptComparisons.toLocaleString("es-CL")} trabajadores`);
+            await yieldToBrowser();
+          }
+          if (!rutsB.has(rut)) continue;
+          const a = aMatches[0];
+          const hom = group.mappings[0];
+          const aTotal = sumRows(aMatches);
+          if (!hom) {
+            diffs.push(diff("concepto_faltante", rut, a.nombre, a.sede, a.area, a.cargo, sourceLabel, "", aTotal, 0, a.numero_empleado_a, ""));
+            continue;
+          }
+          const bMatches = targetMatchesForHomologation(rut, hom, rowsBByConcept);
+          if (!bMatches.length) {
+            diffs.push(diff("concepto_faltante", rut, a.nombre, a.sede, a.area, a.cargo, sourceLabel, group.targetLabel, aTotal, 0, a.numero_empleado_a, ""));
+            continue;
+          }
+          const bTotal = sumRows(bMatches);
+          const bFirst = bMatches[0];
+          if (Math.round(aTotal) !== Math.round(bTotal)) {
+            diffs.push(diff("monto", rut, a.nombre, a.sede, a.area, a.cargo, sourceLabel, group.targetLabel, aTotal, bTotal, a.numero_empleado_a, bFirst.numero_contrato_b));
+          }
         }
       }
 
