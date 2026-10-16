@@ -26262,6 +26262,306 @@ window.__xlsxLoadStatus="loaded";
         margin: 0;
       }
     }
+
+    /* Operative results refresh: hierarchy, scanability and direct drill-down. */
+    .simple-shell {
+      width: min(100%, 1680px);
+      max-width: 1680px;
+    }
+
+    .simple-header {
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 18px 22px;
+      border: 1px solid #185e57;
+      border-radius: 12px;
+      background: #173c38;
+      color: #fff;
+      box-shadow: 0 10px 26px rgba(22, 32, 29, 0.1);
+    }
+
+    .simple-header h1 {
+      margin: 0 0 4px;
+      font-size: clamp(22px, 2.5vw, 32px);
+      letter-spacing: -0.02em;
+    }
+
+    .simple-header .subtle { color: #c7dfd9; }
+
+    .simple-header .btn.secondary {
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    .simple-header .btn.secondary:hover { background: rgba(255, 255, 255, 0.16); }
+
+    .flow-strip {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      min-width: 0;
+      margin-bottom: 14px;
+      padding: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 4px 14px rgba(22, 32, 29, 0.05);
+    }
+
+    .flow-step {
+      min-width: 150px;
+      flex: 1 0 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      color: var(--muted);
+    }
+
+    button.flow-step { cursor: pointer; text-align: left; }
+    button.flow-step:hover { background: #f4faf8; color: var(--text); }
+
+    .flow-step.current {
+      background: var(--primary-soft);
+      color: var(--text);
+    }
+
+    .flow-step-index {
+      width: 26px;
+      height: 26px;
+      flex: 0 0 26px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #e8efed;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .flow-step.current .flow-step-index {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .flow-step.done .flow-step-index {
+      background: var(--ok);
+      color: #fff;
+      font-size: 9px;
+    }
+
+    .flow-step-copy { min-width: 0; display: grid; gap: 2px; }
+    .flow-step-copy strong { color: inherit; font-size: 12px; line-height: 1.2; }
+    .flow-step-copy small { color: var(--muted); font-size: 10px; line-height: 1.2; }
+    .flow-step.current .flow-step-copy small { color: #4b6a64; }
+
+    .flow-step-connector {
+      align-self: center;
+      width: 16px;
+      height: 1px;
+      flex: 0 0 16px;
+      background: var(--line-strong);
+    }
+
+    .simple-panel {
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(22, 32, 29, 0.06);
+    }
+
+    .results-screen {
+      display: grid;
+      gap: 12px;
+    }
+
+    .results-command-bar {
+      position: sticky;
+      top: 10px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px 20px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 8px 24px rgba(22, 32, 29, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .results-command-copy { min-width: 0; }
+    .results-command-copy h2 { margin: 3px 0 3px; font-size: clamp(22px, 2.4vw, 30px); letter-spacing: -0.02em; }
+    .results-command-copy p { margin: 0; }
+    .results-command-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+    .eyebrow {
+      display: block;
+      color: var(--primary-dark);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .results-status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+      padding: 0 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 3px var(--ok-soft);
+    }
+
+    .status-separator { color: var(--line-strong); }
+
+    .quadrature-dashboard {
+      gap: 18px;
+      padding: 22px;
+      border-top: 0;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(22, 32, 29, 0.07);
+    }
+
+    .quadrature-dashboard-head { align-items: center; }
+    .quadrature-dashboard-head h3,
+    .quadrature-subsection-head h3 { margin: 3px 0 3px; font-size: 18px; }
+    .comparison-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f8fbfa;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .comparison-pill .status-dot { width: 6px; height: 6px; flex-basis: 6px; box-shadow: none; }
+    .comparison-pill b { color: var(--primary); }
+
+    .liquid-focus-card {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.55fr) minmax(110px, 0.55fr) minmax(110px, 0.55fr) minmax(250px, 1fr);
+      align-items: stretch;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid #8ccfc2;
+      border-left: 5px solid var(--primary);
+      border-radius: 10px;
+      background: #f5fcfa;
+      color: var(--text);
+      text-align: left;
+      box-shadow: 0 4px 14px rgba(15, 118, 110, 0.08);
+    }
+
+    .liquid-focus-card:hover,
+    .liquid-focus-card.active {
+      background: #edf9f5;
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    }
+
+    .liquid-focus-main,
+    .liquid-focus-stat,
+    .liquid-focus-values { padding: 18px; }
+    .liquid-focus-main h3 { margin: 3px 0 3px; font-size: 20px; }
+    .liquid-focus-percent { display: block; margin: 7px 0 2px; color: var(--primary-dark); font-size: clamp(42px, 5vw, 68px); line-height: 0.95; letter-spacing: -0.04em; }
+    .liquid-focus-main p { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+    .liquid-focus-stat { display: grid; align-content: center; gap: 3px; border-left: 1px solid #cfe8e2; }
+    .liquid-focus-stat span, .liquid-focus-stat small { color: var(--muted); font-size: 11px; }
+    .liquid-focus-stat strong { font-size: 28px; line-height: 1; }
+    .liquid-focus-stat.warning strong { color: var(--warn); }
+    .liquid-focus-values { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 12px; border-left: 1px solid #cfe8e2; }
+    .liquid-focus-values span:not(.liquid-focus-arrow) { display: grid; gap: 3px; color: var(--muted); font-size: 11px; }
+    .liquid-focus-values strong { color: var(--text); font-size: 14px; overflow-wrap: anywhere; }
+    .liquid-focus-arrow { color: var(--primary); font-size: 22px; font-weight: 900; }
+
+    .quadrature-subsection-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-top: 3px; }
+    .secondary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .quadrature-kpi.compact { min-height: 150px; padding: 16px; border-radius: 9px; box-shadow: none; }
+    .quadrature-kpi.compact:hover, .quadrature-kpi.compact.active { box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.1); }
+    .quadrature-kpi.compact .quadrature-kpi-percent { font-size: 34px; }
+    .quadrature-kpi.compact .quadrature-kpi-values { margin-top: auto; }
+
+    .quadrature-detail {
+      border-left: 0;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(22, 32, 29, 0.06);
+    }
+
+    .quadrature-detail .panel-head { padding: 18px 22px; }
+    .quadrature-detail .panel-body { padding: 0 22px 22px; }
+    .quadrature-detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+    .detail-result-count { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .detail-search { position: relative; width: min(360px, 100%); }
+    .detail-search input { width: 100%; padding-right: 38px; }
+    .clear-search { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; border-radius: 6px; background: transparent; color: var(--muted); font-size: 19px; line-height: 1; }
+    .clear-search:hover { background: var(--primary-soft); color: var(--primary-dark); }
+    .quadrature-detail .table-wrap { max-height: calc(100vh - 310px); overflow: auto; }
+    .quadrature-detail-table thead th { position: sticky; top: 0; z-index: 1; background: #edf5f3; }
+    .quadrature-detail-table tbody tr:hover td { background: #f6fbfa; }
+    .quadrature-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .quadrature-pagination > div { display: flex; align-items: center; gap: 8px; }
+    .quadrature-pagination .btn { min-height: 32px; padding: 6px 10px; font-size: 12px; }
+    .quadrature-page-label { min-width: 104px; text-align: center; font-weight: 750; }
+
+    .results-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 2px 12px; }
+    .results-footer-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+    @media (max-width: 1180px) {
+      .secondary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .liquid-focus-card { grid-template-columns: minmax(230px, 1.5fr) repeat(2, minmax(100px, 0.6fr)); }
+      .liquid-focus-values { grid-column: 1 / -1; border-top: 1px solid #cfe8e2; border-left: 0; }
+    }
+
+    @media (max-width: 760px) {
+      .simple-header { align-items: stretch; flex-direction: column; padding: 16px; }
+      .flow-strip { margin-right: -18px; border-radius: 10px 0 0 10px; }
+      .flow-step { min-width: 136px; }
+      .simple-panel { padding: 16px; }
+      .results-command-bar { position: static; align-items: stretch; flex-direction: column; padding: 16px; }
+      .results-command-actions { justify-content: stretch; }
+      .results-command-actions .btn { flex: 1 1 auto; }
+      .quadrature-dashboard { padding: 16px; }
+      .quadrature-dashboard-head, .quadrature-subsection-head { align-items: flex-start; flex-direction: column; }
+      .comparison-pill { align-self: flex-start; }
+      .liquid-focus-card { grid-template-columns: 1fr 1fr; }
+      .liquid-focus-main { grid-column: 1 / -1; }
+      .liquid-focus-stat { border-top: 1px solid #cfe8e2; border-left: 0; }
+      .liquid-focus-stat + .liquid-focus-stat { border-left: 1px solid #cfe8e2; }
+      .liquid-focus-values { grid-column: 1 / -1; }
+      .secondary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .quadrature-detail .panel-head, .quadrature-detail .panel-body { padding-left: 16px; padding-right: 16px; }
+      .quadrature-detail-toolbar { align-items: stretch; flex-direction: column; }
+      .detail-search { width: 100%; }
+      .quadrature-pagination { align-items: stretch; flex-direction: column; }
+      .quadrature-pagination > div { justify-content: space-between; }
+      .results-footer { align-items: stretch; flex-direction: column; }
+      .results-footer-actions { justify-content: stretch; }
+      .results-footer-actions .btn { flex: 1 1 auto; }
+    }
+
+    @media (max-width: 520px) {
+      .secondary-grid { grid-template-columns: 1fr; }
+      .liquid-focus-values { grid-template-columns: 1fr 1fr; }
+      .liquid-focus-arrow { display: none; }
+      .results-status-line { align-items: flex-start; flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>
@@ -26910,6 +27210,8 @@ window.__xlsxLoadStatus="loaded";
       selectedNode: "todos",
       selectedNumericGroup: "",
       selectedQuadratureMetric: "",
+      quadratureQuery: "",
+      quadraturePage: 0,
       selectedWorkerRut: "",
       quadratureCache: {},
       filters: { type: "todos", status: "todos", q: "" },
@@ -27489,10 +27791,26 @@ window.__xlsxLoadStatus="loaded";
               <button class="btn secondary" data-nav="dashboard">Volver</button>
             </div>
           </div>
+          ${flowStripMarkup()}
           <div class="panel simple-panel">
             ${state.step === 1 ? stepUpload() : stepContent()}
           </div>
         </section>
+      `;
+    }
+
+    function flowStripMarkup() {
+      return `
+        <nav class="flow-strip" aria-label="Etapas del comparador">
+          ${STEPS.map((data, index) => {
+            const step = index + 1;
+            const current = step === state.step;
+            const done = step < state.step;
+            const classes = `flow-step${current ? " current" : ""}${done ? " done" : ""}`;
+            const body = `<span class="flow-step-index">${done ? "OK" : step}</span><span class="flow-step-copy"><strong>${esc(data[0])}</strong><small>${esc(data[1])}</small></span>`;
+            return done ? `<button class="${classes}" type="button" data-step-nav="${step}">${body}</button>` : `<div class="${classes}">${body}</div>`;
+          }).join('<span class="flow-step-connector" aria-hidden="true"></span>')}
+        </nav>
       `;
     }
 
@@ -27813,19 +28131,26 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function stepResults() {
+      const profile = activeProfile();
       return `
-        <div class="stack">
-          <div>
-            <h2>Resultados</h2>
-            <p class="subtle">Revisa las cuadraturas principales por trabajador y abre las dos liquidaciones desde cualquier KPI.</p>
-          </div>
-          <div class="banner ok">Comparacion completada. Selecciona una cuadratura para revisar a los trabajadores afectados.</div>
+        <div class="results-screen">
+          <header class="results-command-bar">
+            <div class="results-command-copy">
+              <span class="eyebrow">Comparación terminada · ${esc(state.period)}</span>
+              <h2>Centro de diferencias</h2>
+              <p class="subtle">${esc(profile.sourceName)} → ${esc(profile.targetName)} · ${esc(profile.subtitle)}</p>
+            </div>
+            <div class="results-command-actions">
+              <button class="btn secondary" data-action="prev">Homologación</button>
+              <button class="btn secondary" data-action="go-justify">Justificar</button>
+              <button class="btn" data-action="go-export">Exportar</button>
+            </div>
+          </header>
+          <div class="results-status-line"><span class="status-dot"></span><span>Resultado listo para revisión</span><span class="status-separator">·</span><span>${state.differences.length.toLocaleString("es-CL")} diferencias registradas</span></div>
           ${quadratureDashboardMarkup()}
           ${quadratureMetricDetailMarkup(state.selectedQuadratureMetric)}
           ${workerDetailMarkup(state.selectedWorkerRut)}
-          <div class="actions">
-            <button class="btn secondary" data-action="prev">Volver</button>
-          </div>
+          <footer class="results-footer"><button class="btn secondary" data-action="prev">Volver a la homologación</button><div class="results-footer-actions"><button class="btn secondary" data-action="go-justify">Revisar justificaciones</button><button class="btn" data-action="go-export">Descargar reporte</button></div></footer>
         </div>
       `;
     }
@@ -28039,25 +28364,38 @@ window.__xlsxLoadStatus="loaded";
 
     function quadratureDashboardMarkup() {
       const profile = activeProfile();
+      const metrics = quadratureMetrics();
+      const liquid = metrics.find(metric => metric.key === "sueldo_liquido");
+      const secondary = metrics.filter(metric => metric.key !== "sueldo_liquido");
+      const metricButton = (metric, compact = false) => {
+        const summary = quadratureComparison(metric);
+        const hasData = summary.total > 0;
+        const comparable = summary.sourcePresent > 0 && summary.targetPresent > 0;
+        const status = summary.affected ? (comparable ? quadratureAffectedLabel(summary.affected) : "Falta dato") : hasData ? "Cuadra" : "Sin datos";
+        return `<button class="quadrature-kpi ${compact ? "compact" : ""} ${state.selectedQuadratureMetric === metric.key ? "active" : ""}" data-action="select-quadrature" data-metric="${esc(metric.key)}">
+          <div class="quadrature-kpi-head"><span class="quadrature-kpi-label">${esc(metric.label)}</span><span class="badge ${summary.affected ? "pending" : "reviewed"}">${esc(status)}</span></div>
+          <strong class="quadrature-kpi-percent">${comparable ? formatPercent(summary.percentage) : "-"}</strong>
+          <span class="quadrature-kpi-subtitle">${esc(metric.subtitle)}</span>
+          <div class="quadrature-kpi-values"><span>${esc(profile.sourceName)}<strong>${quadratureTotalLabel(metric, summary.sourceTotal, summary.sourcePresent)}</strong></span><span>${esc(profile.targetName)}<strong>${quadratureTotalLabel(metric, summary.targetTotal, summary.targetPresent)}</strong></span></div>
+        </button>`;
+      };
+      const liquidSummary = liquid ? quadratureComparison(liquid) : null;
+      const liquidComparable = liquidSummary && liquidSummary.sourcePresent > 0 && liquidSummary.targetPresent > 0;
       return `
         <section class="panel quadrature-dashboard">
           <div class="quadrature-dashboard-head">
-            <div><h3>Cuadratura principal</h3><p class="subtle">Selecciona una metrica para ver los trabajadores afectados. Desde cada persona puedes abrir ambas liquidaciones.</p></div>
-            <span class="badge reviewed">${esc(profile.sourceName)} → ${esc(profile.targetName)}</span>
+            <div><span class="eyebrow">01 · Cuadratura ejecutiva</span><h3>¿Qué está descuadrado?</h3><p class="subtle">Las métricas están ordenadas por prioridad operativa. Elige una para abrir su población afectada.</p></div>
+            <span class="comparison-pill"><span class="status-dot"></span>${esc(profile.sourceName)} <b>→</b> ${esc(profile.targetName)}</span>
           </div>
-          <div class="quadrature-grid">
-            ${quadratureMetrics().map(metric => {
-              const summary = quadratureComparison(metric);
-              const hasData = summary.total > 0;
-              const comparable = summary.sourcePresent > 0 && summary.targetPresent > 0;
-              const status = summary.affected ? (comparable ? quadratureAffectedLabel(summary.affected) : "Falta dato") : hasData ? "Cuadratura exacta" : "Sin datos";
-              return `<button class="quadrature-kpi ${state.selectedQuadratureMetric === metric.key ? "active" : ""}" data-action="select-quadrature" data-metric="${esc(metric.key)}">
-                <div class="quadrature-kpi-head"><span class="quadrature-kpi-label">${esc(metric.label)}</span><span class="badge ${summary.affected ? "pending" : "reviewed"}">${esc(status)}</span></div>
-                <strong class="quadrature-kpi-percent">${comparable ? formatPercent(summary.percentage) : "-"}</strong>
-                <span class="quadrature-kpi-subtitle">${esc(metric.subtitle)}</span>
-                <div class="quadrature-kpi-values"><span>${esc(profile.sourceName)}<strong>${quadratureTotalLabel(metric, summary.sourceTotal, summary.sourcePresent)}</strong></span><span>${esc(profile.targetName)}<strong>${quadratureTotalLabel(metric, summary.targetTotal, summary.targetPresent)}</strong></span></div>
-              </button>`;
-            }).join("")}
+          ${liquid && liquidSummary ? `<button class="liquid-focus-card ${state.selectedQuadratureMetric === liquid.key ? "active" : ""}" data-action="select-quadrature" data-metric="${esc(liquid.key)}">
+            <div class="liquid-focus-main"><span class="eyebrow">Prioridad 01</span><h3>Sueldo líquido</h3><strong class="liquid-focus-percent">${liquidComparable ? formatPercent(liquidSummary.percentage) : "-"}</strong><p>${liquidSummary.total ? `${liquidSummary.exact.toLocaleString("es-CL")} de ${liquidSummary.total.toLocaleString("es-CL")} trabajadores cuadran exactamente` : "Sin datos comparables"}</p></div>
+            <div class="liquid-focus-stat"><span>Cuadrados</span><strong>${liquidSummary.exact.toLocaleString("es-CL")}</strong><small>trabajadores</small></div>
+            <div class="liquid-focus-stat warning"><span>Revisar</span><strong>${liquidSummary.affected.toLocaleString("es-CL")}</strong><small>trabajadores afectados</small></div>
+            <div class="liquid-focus-values"><span>${esc(profile.sourceName)}<strong>${quadratureTotalLabel(liquid, liquidSummary.sourceTotal, liquidSummary.sourcePresent)}</strong></span><span>${esc(profile.targetName)}<strong>${quadratureTotalLabel(liquid, liquidSummary.targetTotal, liquidSummary.targetPresent)}</strong></span><span class="liquid-focus-arrow" aria-hidden="true">→</span></div>
+          </button>` : ""}
+          <div class="quadrature-subsection-head"><div><span class="eyebrow">02 · Cuadraturas de remuneraciones</span><h3>Totales que explican el resultado</h3></div><span class="subtle">${secondary.length} métricas</span></div>
+          <div class="quadrature-grid secondary-grid">
+            ${secondary.map(metric => metricButton(metric, true)).join("")}
           </div>
         </section>
       `;
@@ -28088,14 +28426,25 @@ window.__xlsxLoadStatus="loaded";
       if (!metric) return "";
       const summary = quadratureComparison(metric);
       const profile = activeProfile();
+      const query = normalizeText(state.quadratureQuery || "");
+      const rows = query
+        ? summary.rows.filter(row => normalizeText(`${row.name} ${row.rut}`).includes(query))
+        : summary.rows;
+      const pageSize = 100;
+      const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+      const page = Math.min(Math.max(Number(state.quadraturePage) || 0, 0), pageCount - 1);
+      const pageStart = rows.length ? page * pageSize : 0;
+      const visibleRows = rows.slice(pageStart, pageStart + pageSize);
+      const pageLabel = rows.length ? `${(pageStart + 1).toLocaleString("es-CL")}–${Math.min(pageStart + pageSize, rows.length).toLocaleString("es-CL")} de ${rows.length.toLocaleString("es-CL")}` : "0 resultados";
       return `
         <section class="panel quadrature-detail" id="quadrature-detail">
           <div class="panel-head">
-            <div><h3>${esc(metric.label)}: trabajadores afectados</h3><p class="subtle">${summary.affected ? `Se muestran ${quadratureAffectedLabel(summary.affected)} con diferencias o sin par. Haz clic en la persona para abrir ambas liquidaciones.` : "No hay trabajadores afectados en esta cuadratura."}</p></div>
-            <span class="badge ${summary.affected ? "pending" : "reviewed"}">${summary.affected ? `${summary.affected.toLocaleString("es-CL")} descuadraturas` : "Cuadra"}</span>
+            <div><span class="eyebrow">03 · Población afectada</span><h3>${esc(metric.label)}</h3><p class="subtle">${summary.affected ? `${summary.affected.toLocaleString("es-CL")} trabajadores requieren revisión.` : "No hay trabajadores afectados en esta cuadratura."}</p></div>
+            <span class="badge ${summary.affected ? "pending" : "reviewed"}">${summary.affected ? `${summary.affected.toLocaleString("es-CL")} afectados` : "Cuadra"}</span>
           </div>
           <div class="panel-body">
-            ${summary.rows.length ? `<div class="table-wrap"><table class="quadrature-detail-table"><thead><tr><th>Trabajador / RUT</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Descuadre / estado</th><th>Accion</th></tr></thead><tbody>${summary.rows.map(row => quadratureDetailRow(metric, row, profile)).join("")}</tbody></table></div><div class="mobile-list">${summary.rows.map(row => quadratureDetailCard(metric, row, profile)).join("")}</div>` : empty("Cuadratura exacta", "No se encontraron diferencias para esta metrica.")}
+            <div class="quadrature-detail-toolbar"><div class="detail-result-count">${pageLabel} · ${summary.affected.toLocaleString("es-CL")} afectados en total</div><div class="detail-search"><input id="quadrature-query" type="search" value="${esc(state.quadratureQuery || "")}" placeholder="Buscar por trabajador o RUT" aria-label="Buscar por trabajador o RUT">${state.quadratureQuery ? `<button class="clear-search" type="button" data-action="clear-quadrature-query" aria-label="Limpiar búsqueda">×</button>` : ""}</div></div>
+            ${rows.length ? `<div class="table-wrap"><table class="quadrature-detail-table"><thead><tr><th>Trabajador / RUT</th><th>${esc(profile.sourceName)}</th><th>${esc(profile.targetName)}</th><th>Descuadre / estado</th><th>Accion</th></tr></thead><tbody>${visibleRows.map(row => quadratureDetailRow(metric, row, profile)).join("")}</tbody></table></div><div class="mobile-list">${visibleRows.map(row => quadratureDetailCard(metric, row, profile)).join("")}</div><div class="quadrature-pagination"><span>Mostrando ${pageLabel}</span><div><button class="btn secondary" type="button" data-action="quadrature-page" data-page="${page - 1}" ${page <= 0 ? "disabled" : ""}>Anterior</button><span class="quadrature-page-label">Página ${(page + 1).toLocaleString("es-CL")} de ${pageCount.toLocaleString("es-CL")}</span><button class="btn secondary" type="button" data-action="quadrature-page" data-page="${page + 1}" ${page >= pageCount - 1 ? "disabled" : ""}>Siguiente</button></div></div>` : empty(state.quadratureQuery ? "Sin coincidencias" : "Cuadratura exacta", state.quadratureQuery ? "Prueba con otro nombre o RUT." : "No se encontraron diferencias para esta métrica.")}
           </div>
         </section>
       `;
@@ -28396,7 +28745,21 @@ window.__xlsxLoadStatus="loaded";
     function selectQuadratureMetric(metricKey) {
       if (!quadratureMetrics().some(metric => metric.key === metricKey)) return;
       state.selectedQuadratureMetric = state.selectedQuadratureMetric === metricKey ? "" : metricKey;
+      state.quadratureQuery = "";
+      state.quadraturePage = 0;
       state.selectedWorkerRut = "";
+      render();
+      setTimeout(() => document.getElementById("quadrature-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    }
+
+    function setQuadraturePage(page) {
+      const metric = quadratureMetrics().find(item => item.key === state.selectedQuadratureMetric);
+      if (!metric) return;
+      const summary = quadratureComparison(metric);
+      const query = normalizeText(state.quadratureQuery || "");
+      const total = query ? summary.rows.filter(row => normalizeText(`${row.name} ${row.rut}`).includes(query)).length : summary.affected;
+      const pageCount = Math.max(1, Math.ceil(total / 100));
+      state.quadraturePage = Math.min(Math.max(Number(page) || 0, 0), pageCount - 1);
       render();
       setTimeout(() => document.getElementById("quadrature-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     }
@@ -28928,6 +29291,8 @@ window.__xlsxLoadStatus="loaded";
       if (status) status.addEventListener("change", e => { state.filters.status = e.target.value; render(); });
       const q = document.getElementById("filter-q");
       if (q) q.addEventListener("input", e => { state.filters.q = e.target.value; render(); });
+      const quadratureQuery = document.getElementById("quadrature-query");
+      if (quadratureQuery) quadratureQuery.addEventListener("input", e => { state.quadratureQuery = e.target.value; state.quadraturePage = 0; render(); });
       document.querySelectorAll("[data-tree]").forEach(btn => {
         btn.addEventListener("click", () => { state.selectedNode = btn.dataset.tree; render(); });
       });
@@ -29018,6 +29383,13 @@ window.__xlsxLoadStatus="loaded";
       if (action === "filter-net-pay") return filterNetSalary();
       if (action === "select-numeric-group") return selectNumericGroup(data.groupKey);
       if (action === "select-quadrature") return selectQuadratureMetric(data.metric);
+      if (action === "quadrature-page") return setQuadraturePage(data.page);
+      if (action === "clear-quadrature-query") {
+        state.quadratureQuery = "";
+        state.quadraturePage = 0;
+        render();
+        return;
+      }
       if (action === "worker-detail") return showWorkerDetail(data.rut);
       if (action === "close-worker-detail") return closeWorkerDetail();
       if (action === "no-pair") return setNoPair(data.id);
@@ -29069,6 +29441,8 @@ window.__xlsxLoadStatus="loaded";
       state.differences = [];
       state.selectedNumericGroup = "";
       state.selectedQuadratureMetric = "";
+      state.quadratureQuery = "";
+      state.quadraturePage = 0;
       state.selectedWorkerRut = "";
       state.quadratureCache = {};
       state.exportDone = false;
@@ -29096,6 +29470,8 @@ window.__xlsxLoadStatus="loaded";
       state.selectedNode = "todos";
       state.selectedNumericGroup = "";
       state.selectedQuadratureMetric = "";
+      state.quadratureQuery = "";
+      state.quadraturePage = 0;
       state.selectedWorkerRut = "";
       state.quadratureCache = {};
       state.filters = { type: "todos", status: "todos", q: "" };
@@ -30226,6 +30602,8 @@ window.__xlsxLoadStatus="loaded";
       state.selectedNode = "todos";
       state.selectedNumericGroup = "";
       state.selectedQuadratureMetric = "";
+      state.quadratureQuery = "";
+      state.quadraturePage = 0;
       state.selectedWorkerRut = "";
       state.quadratureCache = {};
       state.justificationPage = 0;
