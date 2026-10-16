@@ -26341,12 +26341,27 @@ window.__xlsxLoadStatus="loaded";
         sourceIdLabel: "Numero empleado Visma",
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Rauda"
+      },
+      visma_rex_sumitomo: {
+        id: "visma_rex_sumitomo",
+        label: "Visma -> REX+",
+        subtitle: "Sumitomo",
+        companyKey: "sumitomo",
+        companyLabel: "Sumitomo",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Sumitomo"
       }
     };
 
     const COMPANY_OPTIONS = {
       finning: { id: "finning", label: "Finning", profileId: "meta4_rex_finning" },
       rauda: { id: "rauda", label: "Rauda", profileId: "visma_rex_rauda" },
+      sumitomo: { id: "sumitomo", label: "Sumitomo", profileId: "visma_rex_sumitomo" },
       otra: { id: "otra", label: "Otra empresa", profileId: "visma_rex" }
     };
 
@@ -26509,6 +26524,20 @@ window.__xlsxLoadStatus="loaded";
         ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
         ["afp cap ind previred", "Aporte AFP Empleador"],
         ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"]
+      ]),
+      visma_rex_sumitomo: new Map([
+        ["gratificacion", "Gratificación"],
+        ["horas extras normales al 50", "Horas Extras 50%"],
+        ["colacion mes", "Colación"],
+        ["apv t", "APVI Ahorro voluntario mensual"],
+        ["liquido", "Sueldo Líquido"],
+        ["aporte patronal mutual", "Mutual"],
+        ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
+        ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
+        ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
+        ["afp cap ind previred", "Aporte AFP Empleador"],
+        ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"],
+        ["ss rent protegida", "Aporte FAPP Beneficio años cotizados"]
       ])
     };
 
@@ -26672,7 +26701,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function forcedVismaRexMapping(concept) {
-      if (!["visma_rex", "visma_rex_rauda"].includes(activeProfile().id)) return null;
+      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo"].includes(activeProfile().id)) return null;
       const rules = {
         "a f p": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
         "afp": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
@@ -26700,6 +26729,7 @@ window.__xlsxLoadStatus="loaded";
       const key = normalizeText(value).replace(/\s+/g, "_");
       if (["finning", "finning_chile"].includes(key)) return "finning";
       if (key === "rauda") return "rauda";
+      if (["sumitomo", "sumitomo_mitsui", "sumitomo_mitsui_banking"].includes(key)) return "sumitomo";
       if (["otra", "otras", "general", "visma"].includes(key)) return "otra";
       return "";
     }
@@ -26728,6 +26758,9 @@ window.__xlsxLoadStatus="loaded";
       if (activeProfile().id === "visma_rex_rauda") {
         return { name: "Mapa Visma a REX+ Rauda (precargado)", bundled: true };
       }
+      if (activeProfile().id === "visma_rex_sumitomo") {
+        return { name: "Mapa Visma a REX+ Sumitomo (precargado)", bundled: true };
+      }
       return null;
     }
 
@@ -26737,9 +26770,9 @@ window.__xlsxLoadStatus="loaded";
 
     function mappingRuleCount() {
       if (state.files.mapping?.bundled) {
-        return activeProfile().id === "visma_rex_rauda"
-          ? DEFAULT_RAUDA_HOMOLOGACIONES.length
-          : DEFAULT_FINNING_HOMOLOGACIONES.length;
+        if (activeProfile().id === "visma_rex_rauda") return DEFAULT_RAUDA_HOMOLOGACIONES.length;
+        if (activeProfile().id === "visma_rex_sumitomo") return conceptPairPresets().size + 5;
+        return DEFAULT_FINNING_HOMOLOGACIONES.length;
       }
       return mappingCatalog().length;
     }
@@ -29207,7 +29240,7 @@ window.__xlsxLoadStatus="loaded";
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
-      if (system === "visma" && activeProfile().id === "visma_rex_rauda" && key === "liquido") return true;
+      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo"].includes(activeProfile().id) && key === "liquido") return true;
       // REX+ exports the net salary as a wide monetary column, not as a long-format concept.
       // Keep this target total available for the dedicated net salary comparison.
       if (system === "rex" && ["sueldo liquido", "liquido", "alcance liquido"].includes(key)) return true;
@@ -29226,7 +29259,15 @@ window.__xlsxLoadStatus="loaded";
         if (["cotizacion", "seguro de cesantia", "impuesto", "credito", "descuento", "cuota", "prestamo", "ahorro", "apv", "anticipo"].some(token => key.includes(token))) return "descuento";
         return "haber";
       }
-      if (key.startsWith("aporte") || key.startsWith("sis ") || key.includes("solidario") || key.includes("prov idem") || key.includes("expect de vida")) return "aporte_patronal";
+      if (
+        key.startsWith("aporte") ||
+        key.startsWith("sis ") ||
+        key.includes("solidario") ||
+        key.includes("prov idem") ||
+        key.includes("expect de vida") ||
+        key.includes("rent protegida") ||
+        key.includes("afp cap ind")
+      ) return "aporte_patronal";
       if (["a f p", "salud", "pension", "seguro de cesantia", "desc", "ahorro", "cotizacion", "otros descuentos", "apv", "cuota", "prestamo", "impuesto"].some(token => key.includes(token))) return "descuento";
       return "haber";
     }
@@ -29364,7 +29405,7 @@ window.__xlsxLoadStatus="loaded";
 
     function sourceConceptsForComparison() {
       const concepts = conceptCatalog("visma");
-      if (activeProfile().id !== "visma_rex_rauda") return concepts;
+      if (!["visma_rex_rauda", "visma_rex_sumitomo"].includes(activeProfile().id)) return concepts;
       return concepts.filter(concept => normalizeText(concept) !== "sueldo ganado");
     }
 
@@ -29397,6 +29438,18 @@ window.__xlsxLoadStatus="loaded";
             origen: "Regla sueldo liquido"
           };
         }
+      }
+      const presetTarget = conceptPairPresets().get(wanted);
+      if (presetTarget) {
+        const target = conceptCatalog("rex").find(item => normalizeText(item) === normalizeText(presetTarget)) || presetTarget;
+        return {
+          concepto_a: concept,
+          concepto_b: target,
+          concepto_b_label: target,
+          tipo_concepto: conceptType(concept, state.rows.visma),
+          estado: "automatico",
+          origen: "Mapa precargado"
+        };
       }
       return null;
     }
