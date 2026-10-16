@@ -26355,6 +26355,20 @@ window.__xlsxLoadStatus="loaded";
         sourceIdLabel: "Numero empleado Visma",
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Sumitomo"
+      },
+      visma_rex_greenvic: {
+        id: "visma_rex_greenvic",
+        label: "Visma -> REX+",
+        subtitle: "Greenvic",
+        companyKey: "greenvic",
+        companyLabel: "Greenvic",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Greenvic"
       }
     };
 
@@ -26362,6 +26376,7 @@ window.__xlsxLoadStatus="loaded";
       finning: { id: "finning", label: "Finning", profileId: "meta4_rex_finning" },
       rauda: { id: "rauda", label: "Rauda", profileId: "visma_rex_rauda" },
       sumitomo: { id: "sumitomo", label: "Sumitomo", profileId: "visma_rex_sumitomo" },
+      greenvic: { id: "greenvic", label: "Greenvic", profileId: "visma_rex_greenvic" },
       otra: { id: "otra", label: "Otra empresa", profileId: "visma_rex" }
     };
 
@@ -26538,6 +26553,29 @@ window.__xlsxLoadStatus="loaded";
         ["afp cap ind previred", "Aporte AFP Empleador"],
         ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"],
         ["ss rent protegida", "Aporte FAPP Beneficio años cotizados"]
+      ]),
+      visma_rex_greenvic: new Map([
+        ["anticipo gratificacion", "Gratificación"],
+        ["colacion mes", "Colación"],
+        ["movilizacion", "Movilización"],
+        ["liquido", "Sueldo Líquido"],
+        ["descuento telefonico", "Descuentos Varios"],
+        ["anticipo de sueldo", "Anticipo"],
+        ["ahorro cuenta 2", "Ahorro en CCAF"],
+        ["descto varios bienestar", "Descuentos Varios"],
+        ["otros descuentos", "Descuentos Varios"],
+        ["fundacion arturo lopez", "Fundación Arturo Lopez"],
+        ["prestamo empresa", "Préstamo Empresa"],
+        ["prestamo ccaf los andes", "Creditos personales CCAF"],
+        ["seguro ccaf los andes", "Seguro en CCAF"],
+        ["seguro salud metlife", "SEGURO SALUD METLIFE"],
+        ["aporte patronal mutual", "Mutual"],
+        ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
+        ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
+        ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
+        ["afp cap ind previred", "Aporte AFP Empleador"],
+        ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"],
+        ["ss rent protegida", "Aporte FAPP Beneficio años cotizados"]
       ])
     };
 
@@ -26701,7 +26739,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function forcedVismaRexMapping(concept) {
-      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo"].includes(activeProfile().id)) return null;
+      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic"].includes(activeProfile().id)) return null;
       const rules = {
         "a f p": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
         "afp": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
@@ -26730,6 +26768,7 @@ window.__xlsxLoadStatus="loaded";
       if (["finning", "finning_chile"].includes(key)) return "finning";
       if (key === "rauda") return "rauda";
       if (["sumitomo", "sumitomo_mitsui", "sumitomo_mitsui_banking"].includes(key)) return "sumitomo";
+      if (["greenvic", "greenvic_spa"].includes(key)) return "greenvic";
       if (["otra", "otras", "general", "visma"].includes(key)) return "otra";
       return "";
     }
@@ -26761,6 +26800,9 @@ window.__xlsxLoadStatus="loaded";
       if (activeProfile().id === "visma_rex_sumitomo") {
         return { name: "Mapa Visma a REX+ Sumitomo (precargado)", bundled: true };
       }
+      if (activeProfile().id === "visma_rex_greenvic") {
+        return { name: "Mapa Visma a REX+ Greenvic (precargado)", bundled: true };
+      }
       return null;
     }
 
@@ -26772,6 +26814,7 @@ window.__xlsxLoadStatus="loaded";
       if (state.files.mapping?.bundled) {
         if (activeProfile().id === "visma_rex_rauda") return DEFAULT_RAUDA_HOMOLOGACIONES.length;
         if (activeProfile().id === "visma_rex_sumitomo") return conceptPairPresets().size + 5;
+        if (activeProfile().id === "visma_rex_greenvic") return conceptPairPresets().size + 5;
         return DEFAULT_FINNING_HOMOLOGACIONES.length;
       }
       return mappingCatalog().length;
@@ -29240,7 +29283,7 @@ window.__xlsxLoadStatus="loaded";
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
-      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo"].includes(activeProfile().id) && key === "liquido") return true;
+      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic"].includes(activeProfile().id) && key === "liquido") return true;
       // REX+ exports the net salary as a wide monetary column, not as a long-format concept.
       // Keep this target total available for the dedicated net salary comparison.
       if (system === "rex" && ["sueldo liquido", "liquido", "alcance liquido"].includes(key)) return true;
@@ -29268,7 +29311,7 @@ window.__xlsxLoadStatus="loaded";
         key.includes("rent protegida") ||
         key.includes("afp cap ind")
       ) return "aporte_patronal";
-      if (["a f p", "salud", "pension", "seguro de cesantia", "desc", "ahorro", "cotizacion", "otros descuentos", "apv", "cuota", "prestamo", "impuesto"].some(token => key.includes(token))) return "descuento";
+      if (["a f p", "salud", "pension", "seguro", "desc", "ahorro", "cotizacion", "otros descuentos", "apv", "cuota", "prestamo", "anticipo", "fundacion", "impuesto"].some(token => key.includes(token))) return "descuento";
       return "haber";
     }
 
@@ -29405,7 +29448,7 @@ window.__xlsxLoadStatus="loaded";
 
     function sourceConceptsForComparison() {
       const concepts = conceptCatalog("visma");
-      if (!["visma_rex_rauda", "visma_rex_sumitomo"].includes(activeProfile().id)) return concepts;
+      if (!["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic"].includes(activeProfile().id)) return concepts;
       return concepts.filter(concept => normalizeText(concept) !== "sueldo ganado");
     }
 
