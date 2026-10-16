@@ -28190,7 +28190,24 @@ window.__xlsxLoadStatus="loaded";
       "fondo solidario",
       "seguro de cesantia solidario",
       "seguro cesantia solidario",
-      "cesantia solidario"
+      "cesantia solidario",
+      "seguro de cesantia ci",
+      "seguro cesantia ci",
+      "cesantia ci",
+      "prov idem seg ces",
+      "sis aporte empleador",
+      "afp cap ind previred"
+    ];
+
+    const CANONICAL_EARNING_CONCEPTS = [
+      "anticipo gratificacion"
+    ];
+
+    const CANONICAL_DISCOUNT_CONCEPTS = [
+      "seguro salud metlife",
+      "seguro en ccaf",
+      "seguro ccaf los andes",
+      "seguro chilena consolidada"
     ];
 
     function isEmployerContributionConcept(value) {
@@ -28198,13 +28215,25 @@ window.__xlsxLoadStatus="loaded";
       return EMPLOYER_CONTRIBUTION_CONCEPTS.some(alias => concept === alias || concept.includes(alias));
     }
 
+    function isCanonicalEarningConcept(value) {
+      const concept = normalizeText(typeof value === "object" ? value?.concepto : value);
+      return CANONICAL_EARNING_CONCEPTS.some(alias => concept === alias || concept.includes(alias));
+    }
+
+    function isCanonicalDiscountConcept(value) {
+      const concept = normalizeText(typeof value === "object" ? value?.concepto : value);
+      return CANONICAL_DISCOUNT_CONCEPTS.some(alias => concept === alias || concept.includes(alias));
+    }
+
     function isDiscountDetailRow(row) {
       if (!row) return false;
       const concept = normalizeText(row.concepto);
       if (!concept || DISCOUNT_TOTAL_CONCEPTS.has(concept) || isNetSalaryConceptValue(concept)) return false;
-      if (isEmployerContributionConcept(row.concepto)) return false;
+      if (isCanonicalEarningConcept(row.concepto) || isEmployerContributionConcept(row.concepto)) return false;
+      if (isCanonicalDiscountConcept(row.concepto)) return true;
       const type = normalizeText(row.tipo_concepto);
       if (type.includes("descuento") || type.includes("retencion")) return true;
+      if (type.includes("aporte") || type.includes("patronal") || type.includes("ley social")) return false;
       return [
         "a f p",
         "afp",
@@ -28726,9 +28755,13 @@ window.__xlsxLoadStatus="loaded";
           return;
         }
         const type = normalizeText(row.tipo_concepto);
-        const category = isEmployerContributionConcept(row.concepto)
-          ? "aportes"
-          : type.includes("aporte") || type.includes("patronal") ? "aportes" : type.includes("descuento") ? "descuentos" : "haberes";
+        const category = isCanonicalEarningConcept(row.concepto)
+          ? "haberes"
+          : isEmployerContributionConcept(row.concepto)
+            ? "aportes"
+            : isCanonicalDiscountConcept(row.concepto)
+              ? "descuentos"
+              : type.includes("aporte") || type.includes("patronal") ? "aportes" : type.includes("descuento") ? "descuentos" : "haberes";
         if (aggregateNames[category].has(concept)) aggregate[category] = amount;
         if (concept.includes("imponible") || concept.includes("topeado") || aggregateNames[category].has(concept)) return;
         summary[category] += amount;
@@ -30007,7 +30040,9 @@ window.__xlsxLoadStatus="loaded";
         out.cargo = String(out.cargo || "Sin cargo").trim();
         out.concepto = String(out.concepto || "").trim();
         out.tipo_concepto = String(out.tipo_concepto || (toNumber(out.monto) < 0 ? "descuento" : "haber")).trim().toLowerCase();
-        if (isEmployerContributionConcept(out.concepto)) out.tipo_concepto = "aporte_patronal";
+        if (isCanonicalEarningConcept(out.concepto)) out.tipo_concepto = "haber";
+        else if (isEmployerContributionConcept(out.concepto)) out.tipo_concepto = "aporte_patronal";
+        else if (isCanonicalDiscountConcept(out.concepto)) out.tipo_concepto = "descuento";
         out.monto = present(out.monto) ? toNumber(out.monto) : NaN;
         out.focus = focusSnapshot(source, out);
         return out;
@@ -30073,10 +30108,14 @@ window.__xlsxLoadStatus="loaded";
     function inferConceptType(system, header) {
       const key = normalizeText(header);
       if (system === "rex") {
-        if (key.includes("aporte") || key === "mutual" || key.includes("sobrevivencia") || key.includes("solidario")) return "aporte_patronal";
+        if (isCanonicalEarningConcept(header)) return "haber";
+        if (isCanonicalDiscountConcept(header)) return "descuento";
+        if (isEmployerContributionConcept(header) || key.includes("aporte") || key === "mutual" || key.includes("sobrevivencia") || key.includes("solidario")) return "aporte_patronal";
         if (["cotizacion", "seguro de cesantia", "impuesto", "credito", "descuento", "cuota", "prestamo", "ahorro", "apv", "anticipo"].some(token => key.includes(token))) return "descuento";
         return "haber";
       }
+      if (isCanonicalEarningConcept(header)) return "haber";
+      if (isCanonicalDiscountConcept(header)) return "descuento";
       if (["visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_nutrien", "visma_rex_icon"].includes(activeProfile().id) && key === "aporte bienestar") return "descuento";
       if (
         key.startsWith("aporte") ||
