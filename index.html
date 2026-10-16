@@ -26370,6 +26370,20 @@ window.__xlsxLoadStatus="loaded";
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Greenvic"
       },
+      visma_rex_nutrien: {
+        id: "visma_rex_nutrien",
+        label: "Visma -> REX+",
+        subtitle: "Nutrien",
+        companyKey: "nutrien",
+        companyLabel: "Nutrien",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Nutrien"
+      },
       visma_rex_consorcio: {
         id: "visma_rex_consorcio",
         label: "Visma -> REX+",
@@ -26437,6 +26451,7 @@ window.__xlsxLoadStatus="loaded";
       rauda: { id: "rauda", label: "Rauda", group: "Ola 1", profileId: "visma_rex_rauda" },
       sumitomo: { id: "sumitomo", label: "Sumitomo", group: "Ola 1", profileId: "visma_rex_sumitomo" },
       greenvic: { id: "greenvic", label: "Greenvic", group: "Ola 1", profileId: "visma_rex_greenvic" },
+      nutrien: { id: "nutrien", label: "Nutrien", group: "Ola 1", profileId: "visma_rex_nutrien" },
       consorcio: { id: "consorcio", label: "Seguros Generales", group: "URL", profileId: "visma_rex_consorcio" },
       consorcio_corredora: { id: "consorcio_corredora", label: "Corredora de bolsa", group: "URL", profileId: "visma_rex_consorcio_corredora" },
       consorcio_financiero: { id: "consorcio_financiero", label: "Financiero", group: "URL", profileId: "visma_rex_consorcio_financiero" },
@@ -26486,7 +26501,7 @@ window.__xlsxLoadStatus="loaded";
       { key: "haberes", label: "Haberes", aliases: ["haberes", "total haberes", "total de haberes", "suma haberes", "total ingresos"] },
       { key: "descuentos", label: "Descuentos", aliases: ["descuentos", "total descuentos", "total de descuentos", "total rebajas"] },
       { key: "aportes", label: "Aportes", aliases: ["aportes", "total aportes", "aportes patronales", "total aportes patronales"] },
-      { key: "total_imponible", label: "Total imponible", aliases: ["total imponible", "total de imponible", "imponible total", "total imponible sin tope", "imponible"] },
+      { key: "total_imponible", label: "Total imponible", aliases: ["total imponible", "total de imponible", "imponible total", "total imponible sin tope", "imponible sin tope", "imponible"] },
       { key: "imponible_afp", label: "Imponible afecto AFP", aliases: ["total imponible topado", "total imponible afecto afp", "imponible afecto afp", "imponible con tope", "imponible topeado", "afecto afp"] },
       { key: "tributable", label: "Total afecto impuesto", aliases: ["tributable", "total tributable", "total afecto impuesto", "base tributable", "afecto impuesto"] }
     ];
@@ -26633,6 +26648,32 @@ window.__xlsxLoadStatus="loaded";
         ["prestamo ccaf los andes", "Creditos personales CCAF"],
         ["seguro ccaf los andes", "Seguro en CCAF"],
         ["seguro salud metlife", "SEGURO SALUD METLIFE"],
+        ["aporte patronal mutual", "Mutual"],
+        ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
+        ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
+        ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
+        ["afp cap ind previred", "Aporte AFP Empleador"],
+        ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"],
+        ["ss rent protegida", "Aporte FAPP Beneficio años cotizados"]
+      ]),
+      visma_rex_nutrien: new Map([
+        ["sueldo base", "Sueldo Base"],
+        ["horas extras normales al 50", "Horas Extras 50%"],
+        ["gratificacion", "Gratificación"],
+        ["aguinaldo fiestas patrias mens", "Aguinaldo Fiestas Patrias"],
+        ["asignacion familiar", "Cargas Familiares Simples"],
+        ["colacion mes", "Colación"],
+        ["movilizacion teletrabajo", "Movilización Teletrabajo"],
+        ["imponible sin tope", "Total imponible sin tope"],
+        ["liquido", "Alcance Líquido"],
+        ["retencion judicial", "Retencion Judicial"],
+        ["ahorro afp", "Ahorro AFP"],
+        ["ahorro ccaf", "Ahorro en CCAF Los Andes"],
+        ["anticipo", "Anticipo"],
+        ["cotizacion voluntaria t", "APVI Ahorro voluntario mensual"],
+        ["impuesto unico", "Impuesto"],
+        ["prestamo ccaf los andes", "Créditos personales CCAF Los Andes"],
+        ["prestamo fonasa", "Préstamo Fonasa"],
         ["aporte patronal mutual", "Mutual"],
         ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
         ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
@@ -26946,7 +26987,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function forcedVismaRexMapping(concept) {
-      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id)) return null;
+      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id)) return null;
       const rules = {
         "a f p": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
         "afp": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
@@ -26976,6 +27017,7 @@ window.__xlsxLoadStatus="loaded";
       if (key === "rauda") return "rauda";
       if (["sumitomo", "sumitomo_mitsui", "sumitomo_mitsui_banking"].includes(key)) return "sumitomo";
       if (["greenvic", "greenvic_spa"].includes(key)) return "greenvic";
+      if (["nutrien", "nutrien_ag", "nutrien_ag_solutions"].includes(key)) return "nutrien";
       if (["consorcio", "consorcio_nacional", "consorcio_seguros"].includes(key)) return "consorcio";
       if (["consorcio_corredora", "corredora", "corredora_de_bolsa", "consorcio_corredores"].includes(key)) return "consorcio_corredora";
       if (["consorcio_financiero", "financiero", "consorcio_finanzas"].includes(key)) return "consorcio_financiero";
@@ -27014,6 +27056,9 @@ window.__xlsxLoadStatus="loaded";
       if (activeProfile().id === "visma_rex_greenvic") {
         return { name: "Mapa Visma a REX+ Greenvic (precargado)", bundled: true };
       }
+      if (activeProfile().id === "visma_rex_nutrien") {
+        return { name: "Mapa Visma a REX+ Nutrien (precargado) · Ola 1", bundled: true };
+      }
       if (activeProfile().id === "visma_rex_consorcio") {
         return { name: "Mapa Visma a REX+ Seguros Generales (precargado) · Grupo URL", bundled: true };
       }
@@ -27038,6 +27083,7 @@ window.__xlsxLoadStatus="loaded";
         if (activeProfile().id === "visma_rex_rauda") return DEFAULT_RAUDA_HOMOLOGACIONES.length;
         if (activeProfile().id === "visma_rex_sumitomo") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_greenvic") return conceptPairPresets().size + 5;
+        if (activeProfile().id === "visma_rex_nutrien") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_corredora") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_financiero") return conceptPairPresets().size + 5;
@@ -29518,7 +29564,7 @@ window.__xlsxLoadStatus="loaded";
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
-      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id) && key === "liquido") return true;
+      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id) && key === "liquido") return true;
       // REX+ exports the net salary as a wide monetary column, not as a long-format concept.
       // Keep this target total available for the dedicated net salary comparison.
       if (system === "rex" && ["sueldo liquido", "liquido", "alcance liquido"].includes(key)) return true;
@@ -29537,7 +29583,7 @@ window.__xlsxLoadStatus="loaded";
         if (["cotizacion", "seguro de cesantia", "impuesto", "credito", "descuento", "cuota", "prestamo", "ahorro", "apv", "anticipo"].some(token => key.includes(token))) return "descuento";
         return "haber";
       }
-      if (["visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id) && key === "aporte bienestar") return "descuento";
+      if (["visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_nutrien"].includes(activeProfile().id) && key === "aporte bienestar") return "descuento";
       if (
         key.startsWith("aporte") ||
         key.startsWith("sis ") ||
