@@ -26373,10 +26373,10 @@ window.__xlsxLoadStatus="loaded";
       visma_rex_consorcio: {
         id: "visma_rex_consorcio",
         label: "Visma -> REX+",
-        subtitle: "Consorcio",
+        subtitle: "Seguros Generales",
         groupLabel: "URL",
         companyKey: "consorcio",
-        companyLabel: "Consorcio",
+        companyLabel: "Seguros Generales",
         sourceName: "Visma",
         targetName: "REX+",
         sourceFileLabel: "Libro Visma",
@@ -26384,6 +26384,21 @@ window.__xlsxLoadStatus="loaded";
         sourceIdLabel: "Numero empleado Visma",
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Consorcio"
+      },
+      visma_rex_consorcio_corredora: {
+        id: "visma_rex_consorcio_corredora",
+        label: "Visma -> REX+",
+        subtitle: "Corredora de bolsa",
+        groupLabel: "URL",
+        companyKey: "consorcio_corredora",
+        companyLabel: "Corredora de bolsa",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Corredora de bolsa"
       }
     };
 
@@ -26392,7 +26407,8 @@ window.__xlsxLoadStatus="loaded";
       rauda: { id: "rauda", label: "Rauda", group: "Ola 1", profileId: "visma_rex_rauda" },
       sumitomo: { id: "sumitomo", label: "Sumitomo", group: "Ola 1", profileId: "visma_rex_sumitomo" },
       greenvic: { id: "greenvic", label: "Greenvic", group: "Ola 1", profileId: "visma_rex_greenvic" },
-      consorcio: { id: "consorcio", label: "Consorcio", group: "URL", profileId: "visma_rex_consorcio" },
+      consorcio: { id: "consorcio", label: "Seguros Generales", group: "URL", profileId: "visma_rex_consorcio" },
+      consorcio_corredora: { id: "consorcio_corredora", label: "Corredora de bolsa", group: "URL", profileId: "visma_rex_consorcio_corredora" },
       otra: { id: "otra", label: "Otra empresa", group: "Otra", profileId: "visma_rex" }
     };
 
@@ -26629,6 +26645,34 @@ window.__xlsxLoadStatus="loaded";
         ["afp cap ind previred", "Aporte AFP Empleador"],
         ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"],
         ["ss rent protegida", "Aporte FAPP Beneficio años cotizados"]
+      ]),
+      visma_rex_consorcio_corredora: new Map([
+        ["sueldo ganado", "Sueldo Base"],
+        ["gratificacion", "Gratificación"],
+        ["aguinaldo i", "Aguinaldo MI"],
+        ["movilizacion", "MOVILIZACION"],
+        ["asignacion telefono", "ASIGNACION TELEFONO"],
+        ["asignacion familiar extra", "ASIGNACION FAMILIAR EXTRA"],
+        ["liquido", "Alcance Líquido"],
+        ["descuento aguinaldo quincenal", "Anticipo Aguinaldo"],
+        ["dsto aguinaldo i", "Anticipo Aguinaldo"],
+        ["aporte bienestar", "APORTE BIENESTAR"],
+        ["descuento celular 1", "DESCUENTO CELULAR"],
+        ["descuento gimnasio", "DESCUENTO GIMNASIO"],
+        ["descuento movilizacion", "DESCUENTO MOVILIZACION"],
+        ["prestamo auxiliar 1", "PRESTAMO AUXILIAR 1"],
+        ["prestamo senior", "PRESTAMO SENIOR"],
+        ["prestamo senior 2", "PRESTAMO SENIOR"],
+        ["campana 1+1", "CAMPAÑA 1mas 1"],
+        ["seguro catastrofico", "SEGURO CATASTROFICO"],
+        ["seguro de vida colectivo", "SEGURO DE VIDA COLECTIVO"],
+        ["aporte patronal mutual", "Mutual"],
+        ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
+        ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
+        ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
+        ["afp cap ind previred", "Aporte AFP Empleador"],
+        ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"],
+        ["ss rent protegida", "Aporte FAPP Beneficio años cotizados"]
       ])
     };
 
@@ -26792,7 +26836,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function forcedVismaRexMapping(concept) {
-      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio"].includes(activeProfile().id)) return null;
+      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio", "visma_rex_consorcio_corredora"].includes(activeProfile().id)) return null;
       const rules = {
         "a f p": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
         "afp": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
@@ -26823,6 +26867,7 @@ window.__xlsxLoadStatus="loaded";
       if (["sumitomo", "sumitomo_mitsui", "sumitomo_mitsui_banking"].includes(key)) return "sumitomo";
       if (["greenvic", "greenvic_spa"].includes(key)) return "greenvic";
       if (["consorcio", "consorcio_nacional", "consorcio_seguros"].includes(key)) return "consorcio";
+      if (["consorcio_corredora", "corredora", "corredora_de_bolsa", "consorcio_corredores"].includes(key)) return "consorcio_corredora";
       if (["otra", "otras", "general", "visma"].includes(key)) return "otra";
       return "";
     }
@@ -26858,7 +26903,10 @@ window.__xlsxLoadStatus="loaded";
         return { name: "Mapa Visma a REX+ Greenvic (precargado)", bundled: true };
       }
       if (activeProfile().id === "visma_rex_consorcio") {
-        return { name: "Mapa Visma a REX+ Consorcio (precargado) · Grupo URL", bundled: true };
+        return { name: "Mapa Visma a REX+ Seguros Generales (precargado) · Grupo URL", bundled: true };
+      }
+      if (activeProfile().id === "visma_rex_consorcio_corredora") {
+        return { name: "Mapa Visma a REX+ Corredora de bolsa (precargado) · Grupo URL", bundled: true };
       }
       return null;
     }
@@ -26873,6 +26921,7 @@ window.__xlsxLoadStatus="loaded";
         if (activeProfile().id === "visma_rex_sumitomo") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_greenvic") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio") return conceptPairPresets().size + 5;
+        if (activeProfile().id === "visma_rex_consorcio_corredora") return conceptPairPresets().size + 5;
         return DEFAULT_FINNING_HOMOLOGACIONES.length;
       }
       return mappingCatalog().length;
@@ -29349,7 +29398,7 @@ window.__xlsxLoadStatus="loaded";
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
-      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio"].includes(activeProfile().id) && key === "liquido") return true;
+      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio", "visma_rex_consorcio_corredora"].includes(activeProfile().id) && key === "liquido") return true;
       // REX+ exports the net salary as a wide monetary column, not as a long-format concept.
       // Keep this target total available for the dedicated net salary comparison.
       if (system === "rex" && ["sueldo liquido", "liquido", "alcance liquido"].includes(key)) return true;
@@ -29368,7 +29417,7 @@ window.__xlsxLoadStatus="loaded";
         if (["cotizacion", "seguro de cesantia", "impuesto", "credito", "descuento", "cuota", "prestamo", "ahorro", "apv", "anticipo"].some(token => key.includes(token))) return "descuento";
         return "haber";
       }
-      if (activeProfile().id === "visma_rex_consorcio" && key === "aporte bienestar") return "descuento";
+      if (["visma_rex_consorcio", "visma_rex_consorcio_corredora"].includes(activeProfile().id) && key === "aporte bienestar") return "descuento";
       if (
         key.startsWith("aporte") ||
         key.startsWith("sis ") ||
@@ -29515,7 +29564,6 @@ window.__xlsxLoadStatus="loaded";
 
     function sourceConceptsForComparison() {
       const concepts = conceptCatalog("visma");
-      if (!["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio"].includes(activeProfile().id)) return concepts;
       return concepts.filter(concept => normalizeText(concept) !== "sueldo ganado");
     }
 
@@ -29594,7 +29642,7 @@ window.__xlsxLoadStatus="loaded";
           type: comparisonType(mapping?.tipo_concepto || conceptType(source, state.rows.visma)),
           mapped: Boolean(mapping)
         };
-      }).filter(option => option.key);
+      }).filter(option => option.key && option.key !== "sueldo ganado");
     }
 
     function syncConceptSelection() {
