@@ -26414,6 +26414,21 @@ window.__xlsxLoadStatus="loaded";
         sourceIdLabel: "Numero empleado Visma",
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Financiero"
+      },
+      visma_rex_consorcio_banco: {
+        id: "visma_rex_consorcio_banco",
+        label: "Visma -> REX+",
+        subtitle: "Banco Consorcio",
+        groupLabel: "URL",
+        companyKey: "consorcio_banco",
+        companyLabel: "Banco Consorcio",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Banco Consorcio"
       }
     };
 
@@ -26425,6 +26440,7 @@ window.__xlsxLoadStatus="loaded";
       consorcio: { id: "consorcio", label: "Seguros Generales", group: "URL", profileId: "visma_rex_consorcio" },
       consorcio_corredora: { id: "consorcio_corredora", label: "Corredora de bolsa", group: "URL", profileId: "visma_rex_consorcio_corredora" },
       consorcio_financiero: { id: "consorcio_financiero", label: "Financiero", group: "URL", profileId: "visma_rex_consorcio_financiero" },
+      consorcio_banco: { id: "consorcio_banco", label: "Banco Consorcio", group: "URL", profileId: "visma_rex_consorcio_banco" },
       otra: { id: "otra", label: "Otra empresa", group: "Otra", profileId: "visma_rex" }
     };
 
@@ -26723,6 +26739,50 @@ window.__xlsxLoadStatus="loaded";
         ["afp cap ind previred", "Aporte AFP Empleador"],
         ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"],
         ["ss rent protegida", "Aporte FAPP Beneficio años cotizados"]
+      ]),
+      visma_rex_consorcio_banco: new Map([
+        ["bono voluntario de licencia", "BONO VOLUNTARIO DE LICENCIA"],
+        ["bono especial", "BONO ESPECIAL"],
+        ["gratificacion", "Gratificación"],
+        ["aguinaldo i", "Aguinaldo MI"],
+        ["movilizacion", "MOVILIZACION"],
+        ["asignacion telefono", "ASIGNACION TELEFONO"],
+        ["estacionamiento exento", "ESTACIONAMIENTO EXENTO"],
+        ["asignacion familiar extra", "ASIGNACION FAMILIAR EXTRA"],
+        ["liquido", "Alcance Líquido"],
+        ["ahorro cuenta 2", "Ahorro AFP"],
+        ["descuento aguinaldo quincenal", "Anticipo Aguinaldo"],
+        ["convenio falp", "CONVENIO FALP"],
+        ["aporte bienestar", "APORTE BIENESTAR"],
+        ["descuento celular 1", "DESCUENTO CELULAR"],
+        ["descuento celular 2", "DESCUENTO CELULAR"],
+        ["descuento celular 3", "DESCUENTO CELULAR"],
+        ["descuento celular 4", "DESCUENTO CELULAR"],
+        ["descuento celular 5", "DESCUENTO CELULAR"],
+        ["descuento celular 6", "DESCUENTO CELULAR"],
+        ["descuento celular 7", "DESCUENTO CELULAR"],
+        ["descuento equipo celular", "DESCUENTO CELULAR"],
+        ["descuento estacionamiento", "DESCUENTO ESTACIONAMIENTO"],
+        ["descuento gimnasio", "DESCUENTO GIMNASIO"],
+        ["prestamo senior", "PRESTAMO SENIOR"],
+        ["campana 1+1", "CAMPAÑA 1mas 1"],
+        ["prestamo auxiliar 1", "PRESTAMO AUXILIAR 1"],
+        ["prestamo super senior", "PRESTAMO SUPER SENIOR"],
+        ["prestamo de consumo", "PRESTAMO DE CONSUMO"],
+        ["prestamo ccaf la araucana", "Creditos personales CCAF"],
+        ["prestamo ccaf la araucana 2", "Creditos personales CCAF"],
+        ["descuento anticipo sueldos", "DESCUENTO ANTICIPO SUELDO"],
+        ["seguro catastrofico", "SEGURO CATASTROFICO"],
+        ["seguro de vida colectivo", "SEGURO DE VIDA COLECTIVO"],
+        ["descuento movilizacion", "DESCUENTO MOVILIZACION"],
+        ["impuesto unico reliquidado", "Impuesto"],
+        ["aporte patronal mutual", "Mutual"],
+        ["sis aporte empleador", "Seguro Invalidez y Sobrevivencia"],
+        ["fdo solidario 0 8 y 0 2 sc", "Seguro de Cesantia Solidario"],
+        ["prov idem seg ces 1 6 y 2 8", "Seguro de Cesantia CI"],
+        ["afp cap ind previred", "Aporte AFP Empleador"],
+        ["ss expect de vida", "Aporte FAPP Compensación Expectativa de Vida"],
+        ["ss rent protegida", "Aporte FAPP Beneficio años cotizados"]
       ])
     };
 
@@ -26886,7 +26946,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function forcedVismaRexMapping(concept) {
-      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero"].includes(activeProfile().id)) return null;
+      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id)) return null;
       const rules = {
         "a f p": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
         "afp": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
@@ -26919,6 +26979,7 @@ window.__xlsxLoadStatus="loaded";
       if (["consorcio", "consorcio_nacional", "consorcio_seguros"].includes(key)) return "consorcio";
       if (["consorcio_corredora", "corredora", "corredora_de_bolsa", "consorcio_corredores"].includes(key)) return "consorcio_corredora";
       if (["consorcio_financiero", "financiero", "consorcio_finanzas"].includes(key)) return "consorcio_financiero";
+      if (["consorcio_banco", "banco_consorcio", "banco"].includes(key)) return "consorcio_banco";
       if (["otra", "otras", "general", "visma"].includes(key)) return "otra";
       return "";
     }
@@ -26962,6 +27023,9 @@ window.__xlsxLoadStatus="loaded";
       if (activeProfile().id === "visma_rex_consorcio_financiero") {
         return { name: "Mapa Visma a REX+ Financiero (precargado) · Grupo URL", bundled: true };
       }
+      if (activeProfile().id === "visma_rex_consorcio_banco") {
+        return { name: "Mapa Visma a REX+ Banco Consorcio (precargado) · Grupo URL", bundled: true };
+      }
       return null;
     }
 
@@ -26977,6 +27041,7 @@ window.__xlsxLoadStatus="loaded";
         if (activeProfile().id === "visma_rex_consorcio") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_corredora") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_financiero") return conceptPairPresets().size + 5;
+        if (activeProfile().id === "visma_rex_consorcio_banco") return conceptPairPresets().size + 5;
         return DEFAULT_FINNING_HOMOLOGACIONES.length;
       }
       return mappingCatalog().length;
@@ -29453,7 +29518,7 @@ window.__xlsxLoadStatus="loaded";
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
-      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero"].includes(activeProfile().id) && key === "liquido") return true;
+      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id) && key === "liquido") return true;
       // REX+ exports the net salary as a wide monetary column, not as a long-format concept.
       // Keep this target total available for the dedicated net salary comparison.
       if (system === "rex" && ["sueldo liquido", "liquido", "alcance liquido"].includes(key)) return true;
@@ -29472,7 +29537,7 @@ window.__xlsxLoadStatus="loaded";
         if (["cotizacion", "seguro de cesantia", "impuesto", "credito", "descuento", "cuota", "prestamo", "ahorro", "apv", "anticipo"].some(token => key.includes(token))) return "descuento";
         return "haber";
       }
-      if (["visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero"].includes(activeProfile().id) && key === "aporte bienestar") return "descuento";
+      if (["visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id) && key === "aporte bienestar") return "descuento";
       if (
         key.startsWith("aporte") ||
         key.startsWith("sis ") ||
