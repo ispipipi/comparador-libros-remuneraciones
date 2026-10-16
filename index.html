@@ -30093,7 +30093,7 @@ window.__xlsxLoadStatus="loaded";
 
     function isWideConceptColumn(system, header) {
       const key = normalizeText(header);
-      if (system === "visma" && ["visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_icon", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id) && key === "liquido") return true;
+      if (system === "visma" && key === "liquido") return true;
       // REX+ exports the net salary as a wide monetary column, not as a long-format concept.
       // Keep this target total available for the dedicated net salary comparison.
       if (system === "rex" && ["sueldo liquido", "liquido", "alcance liquido"].includes(key)) return true;
