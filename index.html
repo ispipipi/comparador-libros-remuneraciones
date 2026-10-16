@@ -26952,7 +26952,7 @@ window.__xlsxLoadStatus="loaded";
         ["anticipo gratificacion", "Gratificación"],
         ["colacion mes", "Colación"],
         ["movilizacion", "Movilización"],
-        ["liquido", "Alcance Líquido"],
+        ["liquido", "Sueldo Líquido"],
         ["descuento telefonico", "Descuentos Varios"],
         ["anticipo de sueldo", "Anticipo"],
         ["ahorro cuenta 2", "Ahorro en CCAF"],
@@ -26980,7 +26980,7 @@ window.__xlsxLoadStatus="loaded";
         ["colacion mes", "Colación"],
         ["movilizacion teletrabajo", "Movilización Teletrabajo"],
         ["imponible sin tope", "Total imponible sin tope"],
-        ["liquido", "Alcance Líquido"],
+        ["liquido", "Sueldo Líquido"],
         ["retencion judicial", "Retencion Judicial"],
         ["ahorro afp", "Ahorro AFP"],
         ["ahorro ccaf", "Ahorro en CCAF Los Andes"],
@@ -27007,7 +27007,7 @@ window.__xlsxLoadStatus="loaded";
         ["devolucion descuento erroneo", "Devolución Descuento Erróneo"],
         ["dev descuento erroneo", "Devolución Descuento Erróneo"],
         ["dev, descuento erroneo", "Devolución Descuento Erróneo"],
-        ["liquido", "Alcance Líquido"],
+        ["liquido", "Sueldo Líquido"],
         ["ret jud pesos2", "Retencion Judicial"],
         ["salary advance", "Cash Advance"],
         ["impuesto unico", "Impuesto"],
@@ -27027,7 +27027,7 @@ window.__xlsxLoadStatus="loaded";
         ["movilizacion", "MOVILIZACION"],
         ["asignacion telefono", "ASIGNACION TELEFONO"],
         ["asignacion familiar extra", "ASIGNACION FAMILIAR EXTRA"],
-        ["liquido", "Alcance Líquido"],
+        ["liquido", "Sueldo Líquido"],
         ["desc anticipo quincenal", "DESCUENTO ANTICIPO SUELDO"],
         ["ahorro cuenta 2", "Ahorro AFP"],
         ["descuento aguinaldo quincenal", "Anticipo Aguinaldo"],
@@ -27065,7 +27065,7 @@ window.__xlsxLoadStatus="loaded";
         ["movilizacion", "MOVILIZACION"],
         ["asignacion telefono", "ASIGNACION TELEFONO"],
         ["asignacion familiar extra", "ASIGNACION FAMILIAR EXTRA"],
-        ["liquido", "Alcance Líquido"],
+        ["liquido", "Sueldo Líquido"],
         ["descuento aguinaldo quincenal", "Anticipo Aguinaldo"],
         ["dsto aguinaldo i", "Anticipo Aguinaldo"],
         ["aporte bienestar", "APORTE BIENESTAR"],
@@ -27095,7 +27095,7 @@ window.__xlsxLoadStatus="loaded";
         ["asignacion telefono", "ASIGNACION TELEFONO"],
         ["asignacion familiar extra", "ASIGNACION FAMILIAR EXTRA"],
         ["banda ancha", "Banda Ancha"],
-        ["liquido", "Alcance Líquido"],
+        ["liquido", "Sueldo Líquido"],
         ["descuento aguinaldo quincenal", "Anticipo Aguinaldo"],
         ["aporte bienestar", "APORTE BIENESTAR"],
         ["descuento celular 1", "DESCUENTO CELULAR"],
@@ -27129,7 +27129,7 @@ window.__xlsxLoadStatus="loaded";
         ["asignacion telefono", "ASIGNACION TELEFONO"],
         ["estacionamiento exento", "ESTACIONAMIENTO EXENTO"],
         ["asignacion familiar extra", "ASIGNACION FAMILIAR EXTRA"],
-        ["liquido", "Alcance Líquido"],
+        ["liquido", "Sueldo Líquido"],
         ["ahorro cuenta 2", "Ahorro AFP"],
         ["descuento aguinaldo quincenal", "Anticipo Aguinaldo"],
         ["convenio falp", "CONVENIO FALP"],
@@ -28204,6 +28204,7 @@ window.__xlsxLoadStatus="loaded";
     ];
 
     const CANONICAL_DISCOUNT_CONCEPTS = [
+      "fundacion arturo lopez",
       "seguro salud metlife",
       "seguro en ccaf",
       "seguro ccaf los andes",
@@ -28708,7 +28709,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function workerBookMarkup(label, rows) {
-      const shown = rows.slice(0, 500);
+      const shown = rows.filter(row => normalizeText(row.concepto) !== "alcance liquido").slice(0, 500);
       const summary = workerBookSummary(rows);
       const rowTable = row => `<tr><td>${esc(row.concepto || "-")}</td><td class="num">${money(row.monto)}</td><td>${esc(conceptTypeLabel(row.tipo_concepto))}</td></tr>`;
       const rowCard = row => `<article class="record"><strong>${esc(row.concepto || "-")}</strong><dl><dt>Monto</dt><dd>${money(row.monto)}</dd><dt>Tipo</dt><dd>${esc(conceptTypeLabel(row.tipo_concepto))}</dd></dl></article>`;
