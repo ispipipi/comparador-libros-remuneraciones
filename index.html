@@ -27266,13 +27266,14 @@ window.__xlsxLoadStatus="loaded";
       const profile = activeProfile();
       const sourceName = profile.sourceName;
       const targetName = profile.targetName;
-      const mapping = d.concepto_a ? mappingForConcept(d.concepto_a) : null;
       const sourceConcept = conceptSourceText(d);
       const targetConcept = conceptTargetText(d);
-      const mappingTarget = mapping ? (mapping.concepto_b_label || mapping.concepto_b || "") : "";
+      const sourceParts = sourceConcept.split(/\s+\+\s+/).map(part => part.trim()).filter(Boolean);
+      const mappings = unique(sourceParts.map(part => mappingForConcept(part)).filter(Boolean));
+      const mapping = mappings[0] || null;
       const mappingParts = [];
-      if (mapping) {
-        mappingParts.push(`${mapping.concepto_a} -> ${mappingTarget || "sin destino"}`);
+      if (mappings.length) {
+        mappingParts.push(mappings.map(item => `${item.concepto_a} -> ${item.concepto_b_label || item.concepto_b || "sin destino"}`).join(" + "));
         if (mapping.clasificacion && mapping.clasificacion !== "-") mappingParts.push(`clasificacion: ${mapping.clasificacion}`);
         if (mapping.carga_historica && mapping.carga_historica !== "-") mappingParts.push(`carga historica: ${mapping.carga_historica}`);
         if (mapping.comentario && mapping.comentario !== "-") mappingParts.push(`nota: ${mapping.comentario}`);
@@ -27852,6 +27853,52 @@ window.__xlsxLoadStatus="loaded";
       return result;
     }
 
+    const DISCOUNT_TOTAL_CONCEPTS = new Set([
+      "descuentos",
+      "total descuentos",
+      "total de descuentos",
+      "total rebajas"
+    ]);
+
+    function isDiscountDetailRow(row) {
+      if (!row) return false;
+      const concept = normalizeText(row.concepto);
+      if (!concept || DISCOUNT_TOTAL_CONCEPTS.has(concept) || isNetSalaryConceptValue(concept)) return false;
+      const type = normalizeText(row.tipo_concepto);
+      if (type.includes("descuento") || type.includes("retencion")) return true;
+      return [
+        "a f p",
+        "afp",
+        "salud",
+        "adicional salud",
+        "cotizacion salud",
+        "seguro de cesantia",
+        "impuesto",
+        "credito",
+        "descuento",
+        "cuota",
+        "prestamo",
+        "ahorro",
+        "apv",
+        "anticipo"
+      ].some(token => concept === token || concept.includes(token));
+    }
+
+    function discountAmountsByRut(rows) {
+      const result = new Map();
+      rows.forEach(row => {
+        const rut = cleanRut(row.rut);
+        const amount = toNumber(row.monto);
+        if (!rut || !Number.isFinite(amount) || !isDiscountDetailRow(row)) return;
+        const current = result.get(rut) || { value: 0, count: 0, name: row.nombre || rut };
+        current.value += amount;
+        current.count += 1;
+        if (!current.name && row.nombre) current.name = row.nombre;
+        result.set(rut, current);
+      });
+      return result;
+    }
+
     function conceptAmountsByRut(rows, aliases) {
       const wanted = new Set((aliases || []).map(normalizeText));
       const result = new Map();
@@ -27894,10 +27941,17 @@ window.__xlsxLoadStatus="loaded";
       }
 
       const fallback = conceptAmountsByRut(rows, metric.fallbackConcepts);
+      const discountDetails = metric.key === "descuentos" ? discountAmountsByRut(rows) : null;
       first.forEach((row, rut) => {
         const focused = metric.focusKey ? toNumber(focusValue(row, metric.focusKey)) : NaN;
-        const sourceValue = Number.isFinite(focused) ? focused : fallback.get(rut)?.value;
+        const detail = discountDetails?.get(rut);
+        const sourceValue = detail?.count
+          ? detail.value
+          : Number.isFinite(focused) ? focused : fallback.get(rut)?.value;
         if (Number.isFinite(sourceValue)) result.set(rut, { value: normalizeQuadratureValue(metric, sourceValue), name: rowDisplayName(row, rut) });
+      });
+      discountDetails?.forEach((item, rut) => {
+        if (!result.has(rut) && item.count) result.set(rut, { value: normalizeQuadratureValue(metric, item.value), name: item.name || rut });
       });
       fallback.forEach((item, rut) => {
         if (!result.has(rut)) result.set(rut, { ...item, value: normalizeQuadratureValue(metric, item.value) });
@@ -28287,6 +28341,7 @@ window.__xlsxLoadStatus="loaded";
     function workerBookSummary(rows) {
       const summary = { net: null, haberes: 0, descuentos: 0, aportes: 0 };
       const aggregate = { haberes: null, descuentos: null, aportes: null };
+      const discountDetails = discountAmountsByRut(rows);
       let netRank = -1;
       const aggregateNames = {
         haberes: new Set(["haberes", "total haberes"]),
@@ -28316,6 +28371,8 @@ window.__xlsxLoadStatus="loaded";
       Object.keys(aggregate).forEach(category => {
         if (aggregate[category] !== null) summary[category] = aggregate[category];
       });
+      const detailDiscountTotal = [...discountDetails.values()].reduce((total, item) => total + item.value, 0);
+      if (discountDetails.size) summary.descuentos = detailDiscountTotal;
       return summary;
     }
 
@@ -30100,7 +30157,9 @@ window.__xlsxLoadStatus="loaded";
         if (!sourceKey || !selectedConcepts.has(sourceKey) || hom.estado === "excluido") return;
         const hasTarget = Boolean(hom.concepto_b);
         const targetLabel = hasTarget ? (hom.concepto_b_label || hom.concepto_b) : "";
-        const groupKey = hasTarget ? `mapped:${normalizeText(targetLabel)}` : `missing:${sourceKey}`;
+        // Agrupa por codigo destino para que SALUD y ADICIONAL SALUD se comparen como un solo total contra REX+.
+        const targetKey = hasTarget ? normalizeText(hom.concepto_b) || normalizeText(targetLabel) : "";
+        const groupKey = hasTarget ? `mapped:${targetKey}` : `missing:${sourceKey}`;
         let group = conceptGroups.get(groupKey);
         if (!group) {
           group = { sourceConcepts: [], sourceLabels: [], mappings: [], targetLabel, byRut: new Map() };
