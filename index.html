@@ -28232,7 +28232,7 @@ window.__xlsxLoadStatus="loaded";
         { key: "imponible_afp", label: "Imponible afecto AFP", subtitle: "Imponible con tope en Visma", kind: "money", focusKey: "imponible_afp", fallbackConcepts: ["total imponible topado", "total imponible afecto afp", "imponible afecto afp", "imponible con tope", "imponible topeado", "afecto afp"] },
         { key: "tributable", label: "Total afecto impuesto", subtitle: "Tributable", kind: "money", focusKey: "tributable", fallbackConcepts: ["tributable", "total tributable", "total afecto impuesto", "base tributable", "afecto impuesto"] },
         { key: "descuentos", label: "Total descuentos", subtitle: "Retenciones y descuentos", kind: "money", focusKey: "descuentos", fallbackConcepts: ["descuentos", "total descuentos"] },
-        { key: "sueldo_base", label: "Sueldo base", subtitle: "Base contractual / concepto sueldo base", kind: "money", focusKey: "sueldo_base_contractual", fallbackConcepts: ["sueldo base", "sueldo base contractual"] }
+        { key: "sueldo_base", label: "Sueldo base", subtitle: "Sueldo ganado / sueldo base pagado", kind: "money", focusKey: "sueldo_base_contractual", fallbackConcepts: ["sueldo ganado", "sueldo base", "sueldo base contractual"] }
       ];
     }
 
@@ -28353,6 +28353,19 @@ window.__xlsxLoadStatus="loaded";
       return result;
     }
 
+    function salaryBaseAmountsByRut(rows, system) {
+      const aliases = system === "visma"
+        ? ["sueldo ganado", "sueldo devengado"]
+        : ["sueldo base"];
+      const result = conceptAmountsByRut(rows, aliases);
+      firstRowsByRut(rows).forEach((row, rut) => {
+        if (result.has(rut)) return;
+        const fallback = toNumber(focusValue(row, "sueldo_base_contractual"));
+        if (Number.isFinite(fallback)) result.set(rut, { value: fallback, name: row.nombre || rut });
+      });
+      return result;
+    }
+
     function rowDisplayName(row, rut) {
       if (!row) return rut;
       return row.nombre || focusValue(row, "nombre") || rut;
@@ -28373,6 +28386,12 @@ window.__xlsxLoadStatus="loaded";
       if (metric.key === "sueldo_liquido") {
         const values = netSalaryRowsByRut(rows, system);
         values.forEach((value, rut) => result.set(rut, { value, name: rowDisplayName(first.get(rut), rut) }));
+        return result;
+      }
+      if (metric.key === "sueldo_base") {
+        salaryBaseAmountsByRut(rows, system).forEach((item, rut) => {
+          result.set(rut, { ...item, value: normalizeQuadratureValue(metric, item.value) });
+        });
         return result;
       }
 
@@ -30593,6 +30612,8 @@ window.__xlsxLoadStatus="loaded";
       const rowsBByRut = targetIndexes.byRut;
       const rowsAByConcept = sourceIndexes.byConcept;
       const rowsBByConcept = targetIndexes.byConcept;
+      const salaryBaseAByRut = salaryBaseAmountsByRut(state.rows.visma, "visma");
+      const salaryBaseBByRut = salaryBaseAmountsByRut(state.rows.rex, "rex");
       const homologationByConcept = new Map(state.homologations.map(h => [normalizeText(h.concepto_a), h]));
       const selectedConcepts = selectedConceptSet();
       reportProgress(69, "Indices listos. Revisando trabajadores...");
@@ -30617,8 +30638,12 @@ window.__xlsxLoadStatus="loaded";
           continue;
         }
         FOCUS_FIELDS.forEach(field => {
-          const valueA = focusValue(aFirst, field.key);
-          const valueB = focusValue(bFirst, field.key);
+          const valueA = field.key === "sueldo_base_contractual"
+            ? salaryBaseAByRut.get(rut)?.value ?? ""
+            : focusValue(aFirst, field.key);
+          const valueB = field.key === "sueldo_base_contractual"
+            ? salaryBaseBByRut.get(rut)?.value ?? ""
+            : focusValue(bFirst, field.key);
           if (normalizedFocusValue(field, valueA) !== normalizedFocusValue(field, valueB)) {
             diffs.push(diff("dato_trabajador", rut, aFirst.nombre || bFirst.nombre, aFirst.sede || bFirst.sede, aFirst.area || bFirst.area, aFirst.cargo || bFirst.cargo, "", "", 0, 0, aFirst.numero_empleado_a, bFirst.numero_contrato_b, field.key, valueA, valueB));
           }
