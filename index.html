@@ -28293,13 +28293,13 @@ window.__xlsxLoadStatus="loaded";
       return CANONICAL_DISCOUNT_CONCEPTS.some(alias => concept === alias || concept.includes(alias));
     }
 
-    function isDiscountDetailRow(row) {
+    function isDiscountDetailRow(row, system = "") {
       if (!row) return false;
       const concept = normalizeText(row.concepto);
       if (!concept || DISCOUNT_TOTAL_CONCEPTS.has(concept) || isNetSalaryConceptValue(concept)) return false;
       if (isCanonicalEarningConcept(row.concepto) || isEmployerContributionConcept(row.concepto)) return false;
       if (isCanonicalDiscountConcept(row.concepto)) return true;
-      const type = normalizeText(row.tipo_concepto);
+      const type = normalizeText(workerDisplayType(row, system));
       if (type.includes("descuento") || type.includes("retencion")) return true;
       if (type.includes("aporte") || type.includes("patronal") || type.includes("ley social")) return false;
       return [
@@ -28320,12 +28320,12 @@ window.__xlsxLoadStatus="loaded";
       ].some(token => concept === token || concept.includes(token));
     }
 
-    function discountAmountsByRut(rows) {
+    function discountAmountsByRut(rows, system = "") {
       const result = new Map();
       rows.forEach(row => {
         const rut = cleanRut(row.rut);
         const amount = toNumber(row.monto);
-        if (!rut || !Number.isFinite(amount) || !isDiscountDetailRow(row)) return;
+        if (!rut || !Number.isFinite(amount) || !isDiscountDetailRow(row, system)) return;
         const current = result.get(rut) || { value: 0, count: 0, name: row.nombre || rut };
         current.value += amount;
         current.count += 1;
@@ -28377,7 +28377,7 @@ window.__xlsxLoadStatus="loaded";
       }
 
       const fallback = conceptAmountsByRut(rows, metric.fallbackConcepts);
-      const discountDetails = metric.key === "descuentos" ? discountAmountsByRut(rows) : null;
+      const discountDetails = metric.key === "descuentos" ? discountAmountsByRut(rows, system) : null;
       first.forEach((row, rut) => {
         const focused = metric.focusKey ? toNumber(focusValue(row, metric.focusKey)) : NaN;
         const detail = discountDetails?.get(rut);
@@ -28761,8 +28761,8 @@ window.__xlsxLoadStatus="loaded";
               <div><span>Salud ${esc(targetProfile)}</span><strong>${esc(workerInstitutionValue(targetRows, "isapre"))}</strong></div>
             </div>
             <div class="worker-sheet-grid">
-              ${workerBookMarkup(sourceProfile, sourceRows)}
-              ${workerBookMarkup(targetProfile, targetRows)}
+              ${workerBookMarkup(sourceProfile, sourceRows, "visma")}
+              ${workerBookMarkup(targetProfile, targetRows, "rex")}
             </div>
           </div>
         </section>
@@ -28775,11 +28775,11 @@ window.__xlsxLoadStatus="loaded";
       return String(focusValue(row, key) || "No informado").trim();
     }
 
-    function workerBookMarkup(label, rows) {
+    function workerBookMarkup(label, rows, system) {
       const shown = rows.filter(row => normalizeText(row.concepto) !== "alcance liquido").slice(0, 500);
-      const summary = workerBookSummary(rows);
-      const rowTable = row => `<tr><td>${esc(row.concepto || "-")}</td><td class="num">${money(row.monto)}</td><td>${esc(conceptTypeLabel(row.tipo_concepto))}</td></tr>`;
-      const rowCard = row => `<article class="record"><strong>${esc(row.concepto || "-")}</strong><dl><dt>Monto</dt><dd>${money(row.monto)}</dd><dt>Tipo</dt><dd>${esc(conceptTypeLabel(row.tipo_concepto))}</dd></dl></article>`;
+      const summary = workerBookSummary(rows, system);
+      const rowTable = row => `<tr><td>${esc(row.concepto || "-")}</td><td class="num">${money(row.monto)}</td><td>${esc(conceptTypeLabel(workerDisplayType(row, system)))}</td></tr>`;
+      const rowCard = row => `<article class="record"><strong>${esc(row.concepto || "-")}</strong><dl><dt>Monto</dt><dd>${money(row.monto)}</dd><dt>Tipo</dt><dd>${esc(conceptTypeLabel(workerDisplayType(row, system)))}</dd></dl></article>`;
       return `
         <section class="worker-book">
           <div class="worker-book-head"><h4>${esc(label)}</h4><span class="badge excluded">${rows.length.toLocaleString("es-CL")} conceptos</span></div>
@@ -28798,10 +28798,18 @@ window.__xlsxLoadStatus="loaded";
       })[key] || value || "-";
     }
 
-    function workerBookSummary(rows) {
+    function workerDisplayType(row, system) {
+      if (system === "visma") {
+        const mapping = mappingForConcept(row?.concepto);
+        if (mapping?.tipo_concepto) return mapping.tipo_concepto;
+      }
+      return row?.tipo_concepto;
+    }
+
+    function workerBookSummary(rows, system) {
       const summary = { net: null, haberes: 0, descuentos: 0, aportes: 0 };
       const aggregate = { haberes: null, descuentos: null, aportes: null };
-      const discountDetails = discountAmountsByRut(rows);
+      const discountDetails = discountAmountsByRut(rows, system);
       let netRank = -1;
       const aggregateNames = {
         haberes: new Set(["haberes", "total haberes"]),
@@ -28822,7 +28830,7 @@ window.__xlsxLoadStatus="loaded";
           }
           return;
         }
-        const type = normalizeText(row.tipo_concepto);
+        const type = normalizeText(workerDisplayType(row, system));
         const category = isCanonicalEarningConcept(row.concepto)
           ? "haberes"
           : isEmployerContributionConcept(row.concepto)
