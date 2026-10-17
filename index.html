@@ -26805,7 +26805,7 @@ window.__xlsxLoadStatus="loaded";
     };
 
     const COMPANY_OPTIONS = {
-      finning: { id: "finning", label: "Finning", group: "Ola 1", profileId: "meta4_rex_finning" },
+      finning: { id: "finning", label: "Finning", group: "Finning", profileId: "meta4_rex_finning" },
       rauda: { id: "rauda", label: "Rauda", group: "Ola 1", profileId: "visma_rex_rauda" },
       sumitomo: { id: "sumitomo", label: "Sumitomo", group: "Ola 1", profileId: "visma_rex_sumitomo" },
       greenvic: { id: "greenvic", label: "Greenvic", group: "Ola 1", profileId: "visma_rex_greenvic" },
@@ -27900,7 +27900,7 @@ window.__xlsxLoadStatus="loaded";
             <div class="field">
               <label for="company">Empresa</label>
               <select id="company">
-                ${["Ola 1", "Consorcio", "Otra"].map(group => {
+                ${["Ola 1", "Finning", "Consorcio", "Otra"].map(group => {
                   const options = Object.values(COMPANY_OPTIONS).filter(option => option.group === group);
                   return `<optgroup label="${esc(group)}">${options.map(option => `<option value="${esc(option.id)}" ${option.id === companyForProfile(state.profile) ? "selected" : ""}>${esc(option.label)}</option>`).join("")}</optgroup>`;
                 }).join("")}
