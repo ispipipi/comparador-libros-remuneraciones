@@ -26801,6 +26801,86 @@ window.__xlsxLoadStatus="loaded";
         sourceIdLabel: "Numero empleado Visma",
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Consorcio Servicios"
+      },
+      visma_rex_enaco_tierra: {
+        id: "visma_rex_enaco_tierra",
+        label: "Visma -> REX+",
+        subtitle: "Asesorías Tierra del Fuego",
+        groupLabel: "Enaco",
+        companyKey: "enaco_tierra",
+        companyLabel: "Asesorías Tierra del Fuego",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+ consolidado",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Enaco · Asesorías Tierra del Fuego",
+        rexCompanyAliases: ["ASESORIAS TIERRA DEL FUEGO S.A."]
+      },
+      visma_rex_enaco_las_perdices: {
+        id: "visma_rex_enaco_las_perdices",
+        label: "Visma -> REX+",
+        subtitle: "Constructora Las Perdices",
+        groupLabel: "Enaco",
+        companyKey: "enaco_las_perdices",
+        companyLabel: "Constructora Las Perdices",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+ consolidado",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Enaco · Constructora Las Perdices",
+        rexCompanyAliases: ["CONSTRUCTORA LAS PERDICES S.A"]
+      },
+      visma_rex_enaco_nueva_tarapaca: {
+        id: "visma_rex_enaco_nueva_tarapaca",
+        label: "Visma -> REX+",
+        subtitle: "Constructora Nueva Tarapacá",
+        groupLabel: "Enaco",
+        companyKey: "enaco_nueva_tarapaca",
+        companyLabel: "Constructora Nueva Tarapacá",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+ consolidado",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Enaco · Constructora Nueva Tarapacá",
+        rexCompanyAliases: ["CONSTRUCTORA NUEVA TARAPACA S.A."]
+      },
+      visma_rex_enaco_puerto_esperanza: {
+        id: "visma_rex_enaco_puerto_esperanza",
+        label: "Visma -> REX+",
+        subtitle: "Puerto Esperanza",
+        groupLabel: "Enaco",
+        companyKey: "enaco_puerto_esperanza",
+        companyLabel: "Puerto Esperanza",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+ consolidado",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Enaco · Puerto Esperanza",
+        rexCompanyAliases: ["PUERTO ESPERANZA SPA"]
+      },
+      visma_rex_enaco_servicio_post: {
+        id: "visma_rex_enaco_servicio_post",
+        label: "Visma -> REX+",
+        subtitle: "Servicios Post Venta OK",
+        groupLabel: "Enaco",
+        companyKey: "enaco_servicio_post",
+        companyLabel: "Servicios Post Venta OK",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+ consolidado",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Enaco · Servicios Post Venta OK",
+        rexCompanyAliases: ["SERVICIOS POST VENTA OK HOGAR S.A."]
       }
     };
 
@@ -26818,6 +26898,11 @@ window.__xlsxLoadStatus="loaded";
       consorcio_banco: { id: "consorcio_banco", label: "Banco Consorcio", group: "Consorcio", profileId: "visma_rex_consorcio_banco" },
       consorcio_vida: { id: "consorcio_vida", label: "Consorcio Vida", group: "Consorcio", profileId: "visma_rex_consorcio_vida" },
       consorcio_servicios: { id: "consorcio_servicios", label: "Consorcio Servicios", group: "Consorcio", profileId: "visma_rex_consorcio_servicios" },
+      enaco_tierra: { id: "enaco_tierra", label: "Asesorías Tierra del Fuego", group: "Enaco", profileId: "visma_rex_enaco_tierra" },
+      enaco_las_perdices: { id: "enaco_las_perdices", label: "Constructora Las Perdices", group: "Enaco", profileId: "visma_rex_enaco_las_perdices" },
+      enaco_nueva_tarapaca: { id: "enaco_nueva_tarapaca", label: "Constructora Nueva Tarapacá", group: "Enaco", profileId: "visma_rex_enaco_nueva_tarapaca" },
+      enaco_puerto_esperanza: { id: "enaco_puerto_esperanza", label: "Puerto Esperanza", group: "Enaco", profileId: "visma_rex_enaco_puerto_esperanza" },
+      enaco_servicio_post: { id: "enaco_servicio_post", label: "Servicios Post Venta OK", group: "Enaco", profileId: "visma_rex_enaco_servicio_post" },
       otra: { id: "otra", label: "Otra empresa", group: "Otra", profileId: "visma_rex" }
     };
 
@@ -26842,7 +26927,7 @@ window.__xlsxLoadStatus="loaded";
     const FOCUS_FIELDS = [
       { key: "ci", label: "CI", aliases: ["ci", "rut", "run", "documento", "id trabajador", "identificador"] },
       { key: "nombre", label: "Nombre", aliases: ["nombre", "apellido y nombre", "nombre trabajador", "trabajador", "empleado", "colaborador"] },
-      { key: "empresa", label: "Empresa", aliases: ["empresa", "nombre empresa", "razon social", "razon social empresa"] },
+      { key: "empresa", label: "Empresa", aliases: ["nombre empresa", "empresa", "razon social", "razon social empresa"] },
       { key: "unidad_negocio", label: "Unidad de negocio", aliases: ["unidad de negocio", "unidad de negocios", "unidad negocios", "business unit", "division"] },
       { key: "sede", label: "Sede", aliases: ["sede", "ubicacion", "ubicacion workday", "local"] },
       { key: "area", label: "Area", aliases: ["area", "departamento", "unidad", "gerencia"] },
@@ -27374,8 +27459,23 @@ window.__xlsxLoadStatus="loaded";
       return activeProfile().id;
     }
 
+    function isEnacoProfile(profileId = activeProfile().id) {
+      return String(profileId).startsWith("visma_rex_enaco_");
+    }
+
+    function activeRexCompanyAliases() {
+      return (activeProfile().rexCompanyAliases || []).map(normalizeText).filter(Boolean);
+    }
+
+    function filterRowsForActiveCompany(system, rows) {
+      if (system !== "rex" || !isEnacoProfile()) return rows;
+      const aliases = activeRexCompanyAliases();
+      if (!aliases.length) return rows;
+      return rows.filter(row => aliases.includes(normalizeText(focusValue(row, "empresa"))));
+    }
+
     function forcedVismaRexMapping(concept) {
-      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_icon", "visma_rex_unilode", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_consorcio_vida", "visma_rex_consorcio_servicios"].includes(activeProfile().id)) return null;
+      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_icon", "visma_rex_unilode", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_consorcio_vida", "visma_rex_consorcio_servicios", "visma_rex_enaco_tierra", "visma_rex_enaco_las_perdices", "visma_rex_enaco_nueva_tarapaca", "visma_rex_enaco_puerto_esperanza", "visma_rex_enaco_servicio_post"].includes(activeProfile().id)) return null;
       const normalizedConcept = normalizeText(concept);
       if (["horas no trabajadas", "horas de atraso", "horas atraso"].includes(normalizedConcept)) {
         return {
@@ -27425,6 +27525,11 @@ window.__xlsxLoadStatus="loaded";
       if (["consorcio_banco", "banco_consorcio", "banco"].includes(key)) return "consorcio_banco";
       if (["consorcio_vida", "vida", "consorcio_seguro_vida"].includes(key)) return "consorcio_vida";
       if (["consorcio_servicios", "servicios", "consorcio_servicios_financieros"].includes(key)) return "consorcio_servicios";
+      if (["enaco_tierra", "asesorias_tierra", "asesorias_tierra_del_fuego", "tierra_del_fuego"].includes(key)) return "enaco_tierra";
+      if (["enaco_las_perdices", "las_perdices", "constructora_las_perdices"].includes(key)) return "enaco_las_perdices";
+      if (["enaco_nueva_tarapaca", "nueva_tarapaca", "constructora_nueva_tarapaca"].includes(key)) return "enaco_nueva_tarapaca";
+      if (["enaco_puerto_esperanza", "puerto_esperanza"].includes(key)) return "enaco_puerto_esperanza";
+      if (["enaco_servicio_post", "servicio_post", "servicios_post_venta_ok", "post_venta_ok"].includes(key)) return "enaco_servicio_post";
       if (["otra", "otras", "general", "visma"].includes(key)) return "otra";
       return "";
     }
@@ -27480,6 +27585,9 @@ window.__xlsxLoadStatus="loaded";
       if (activeProfile().id === "visma_rex_consorcio_banco") {
         return { name: "Mapa Visma a REX+ Banco Consorcio (precargado) · Grupo Consorcio", bundled: true };
       }
+      if (isEnacoProfile()) {
+        return { name: `Mapa Visma a REX+ ${activeProfile().subtitle} (precargado) · Grupo Enaco`, bundled: true };
+      }
       return null;
     }
 
@@ -27501,6 +27609,7 @@ window.__xlsxLoadStatus="loaded";
         if (activeProfile().id === "visma_rex_consorcio_banco") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_vida") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_servicios") return conceptPairPresets().size + 5;
+        if (isEnacoProfile()) return conceptPairPresets().size + 6;
         return DEFAULT_FINNING_HOMOLOGACIONES.length;
       }
       return mappingCatalog().length;
@@ -27915,7 +28024,7 @@ window.__xlsxLoadStatus="loaded";
             <div class="field">
               <label for="company">Empresa</label>
               <select id="company">
-                ${["Ola 1", "Finning", "Consorcio", "Otra"].map(group => {
+                ${["Ola 1", "Finning", "Consorcio", "Enaco", "Otra"].map(group => {
                   const options = Object.values(COMPANY_OPTIONS).filter(option => option.group === group);
                   return `<optgroup label="${esc(group)}">${options.map(option => `<option value="${esc(option.id)}" ${option.id === companyForProfile(state.profile) ? "selected" : ""}>${esc(option.label)}</option>`).join("")}</optgroup>`;
                 }).join("")}
@@ -29742,11 +29851,15 @@ window.__xlsxLoadStatus="loaded";
       state.files[system] = { name: file.name, size: file.size };
       state.rawRows[system] = parsed.rows;
       state.conceptHeaders[system] = parsed.conceptHeaders || [];
-      state.rows[system] = await normalizeRows(system, parsed.rows, parsed.conceptHeaders || []);
+      const normalizedRows = await normalizeRows(system, parsed.rows, parsed.conceptHeaders || []);
+      state.rows[system] = filterRowsForActiveCompany(system, normalizedRows);
       state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
       syncConceptSelection();
       if (state.files.visma && state.files.rex) await prepareHomologations(true);
-      toast(`${file.name} cargado.`);
+      const filterNote = system === "rex" && isEnacoProfile()
+        ? ` Se usaran solo las filas de ${activeProfile().subtitle}.`
+        : "";
+      toast(`${file.name} cargado.${filterNote}`);
     }
 
     function isPasswordError(error) {
