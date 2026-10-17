@@ -27376,6 +27376,17 @@ window.__xlsxLoadStatus="loaded";
 
     function forcedVismaRexMapping(concept) {
       if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_icon", "visma_rex_unilode", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_consorcio_vida", "visma_rex_consorcio_servicios"].includes(activeProfile().id)) return null;
+      const normalizedConcept = normalizeText(concept);
+      if (activeProfile().id === "visma_rex_unilode" && ["horas no trabajadas", "horas de atraso", "horas atraso"].includes(normalizedConcept)) {
+        return {
+          concepto_a: concept,
+          concepto_b: "minatrasos",
+          concepto_b_label: "Minutos de Atraso",
+          tipo_concepto: "haber",
+          estado: "activo",
+          origen: "Homologacion fija Unilode: atraso Visma a REX+"
+        };
+      }
       const rules = {
         "a f p": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
         "afp": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
@@ -27454,6 +27465,9 @@ window.__xlsxLoadStatus="loaded";
       if (activeProfile().id === "visma_rex_icon") {
         return { name: "Mapa Visma a REX+ ICON (precargado) · Ola 1", bundled: true };
       }
+      if (activeProfile().id === "visma_rex_unilode") {
+        return { name: "Mapa Visma a REX+ Unilode (precargado) · Ola 1", bundled: true };
+      }
       if (activeProfile().id === "visma_rex_consorcio") {
         return { name: "Mapa Visma a REX+ Seguros Generales (precargado) · Grupo Consorcio", bundled: true };
       }
@@ -27480,6 +27494,7 @@ window.__xlsxLoadStatus="loaded";
         if (activeProfile().id === "visma_rex_greenvic") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_nutrien") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_icon") return conceptPairPresets().size + 5;
+        if (activeProfile().id === "visma_rex_unilode") return conceptPairPresets().size + 6;
         if (activeProfile().id === "visma_rex_consorcio") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_corredora") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_financiero") return conceptPairPresets().size + 5;
