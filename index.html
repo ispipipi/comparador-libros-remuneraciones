@@ -26881,6 +26881,54 @@ window.__xlsxLoadStatus="loaded";
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Enaco · Servicios Post Venta OK",
         rexCompanyAliases: ["SERVICIOS POST VENTA OK HOGAR S.A."]
+      },
+      visma_rex_patria_corredores: {
+        id: "visma_rex_patria_corredores",
+        label: "Visma -> REX+",
+        subtitle: "Corredores",
+        groupLabel: "Patria",
+        companyKey: "patria_corredores",
+        companyLabel: "Corredores",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+ consolidado",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Patria · Corredores",
+        rexCompanyAliases: ["MONEDA CORREDORES DE BOLSA LTDA."]
+      },
+      visma_rex_patria_agf: {
+        id: "visma_rex_patria_agf",
+        label: "Visma -> REX+",
+        subtitle: "AGF",
+        groupLabel: "Patria",
+        companyKey: "patria_agf",
+        companyLabel: "AGF",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+ consolidado",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Patria · AGF",
+        rexCompanyAliases: ["MONEDA S.A. ADMINISTRADORA GENERAL DE FONDOS"]
+      },
+      visma_rex_patria_asset: {
+        id: "visma_rex_patria_asset",
+        label: "Visma -> REX+",
+        subtitle: "ASSET",
+        groupLabel: "Patria",
+        companyKey: "patria_asset",
+        companyLabel: "ASSET",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+ consolidado",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Patria · ASSET",
+        rexCompanyAliases: ["MONEDA ASSET MANAGEMENT"]
       }
     };
 
@@ -26903,6 +26951,9 @@ window.__xlsxLoadStatus="loaded";
       enaco_nueva_tarapaca: { id: "enaco_nueva_tarapaca", label: "Constructora Nueva Tarapacá", group: "Enaco", profileId: "visma_rex_enaco_nueva_tarapaca" },
       enaco_puerto_esperanza: { id: "enaco_puerto_esperanza", label: "Puerto Esperanza", group: "Enaco", profileId: "visma_rex_enaco_puerto_esperanza" },
       enaco_servicio_post: { id: "enaco_servicio_post", label: "Servicios Post Venta OK", group: "Enaco", profileId: "visma_rex_enaco_servicio_post" },
+      patria_corredores: { id: "patria_corredores", label: "Corredores", group: "Patria", profileId: "visma_rex_patria_corredores" },
+      patria_agf: { id: "patria_agf", label: "AGF", group: "Patria", profileId: "visma_rex_patria_agf" },
+      patria_asset: { id: "patria_asset", label: "ASSET", group: "Patria", profileId: "visma_rex_patria_asset" },
       otra: { id: "otra", label: "Otra empresa", group: "Otra", profileId: "visma_rex" }
     };
 
@@ -27463,19 +27514,23 @@ window.__xlsxLoadStatus="loaded";
       return String(profileId).startsWith("visma_rex_enaco_");
     }
 
+    function isPatriaProfile(profileId = activeProfile().id) {
+      return String(profileId).startsWith("visma_rex_patria_");
+    }
+
     function activeRexCompanyAliases() {
       return (activeProfile().rexCompanyAliases || []).map(normalizeText).filter(Boolean);
     }
 
     function filterRowsForActiveCompany(system, rows) {
-      if (system !== "rex" || !isEnacoProfile()) return rows;
+      if (system !== "rex") return rows;
       const aliases = activeRexCompanyAliases();
       if (!aliases.length) return rows;
       return rows.filter(row => aliases.includes(normalizeText(focusValue(row, "empresa"))));
     }
 
     function forcedVismaRexMapping(concept) {
-      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_icon", "visma_rex_unilode", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_consorcio_vida", "visma_rex_consorcio_servicios", "visma_rex_enaco_tierra", "visma_rex_enaco_las_perdices", "visma_rex_enaco_nueva_tarapaca", "visma_rex_enaco_puerto_esperanza", "visma_rex_enaco_servicio_post"].includes(activeProfile().id)) return null;
+      if (!String(activeProfile().id).startsWith("visma_rex")) return null;
       const normalizedConcept = normalizeText(concept);
       if (["horas no trabajadas", "horas de atraso", "horas atraso"].includes(normalizedConcept)) {
         return {
@@ -27530,6 +27585,9 @@ window.__xlsxLoadStatus="loaded";
       if (["enaco_nueva_tarapaca", "nueva_tarapaca", "constructora_nueva_tarapaca"].includes(key)) return "enaco_nueva_tarapaca";
       if (["enaco_puerto_esperanza", "puerto_esperanza"].includes(key)) return "enaco_puerto_esperanza";
       if (["enaco_servicio_post", "servicio_post", "servicios_post_venta_ok", "post_venta_ok"].includes(key)) return "enaco_servicio_post";
+      if (["patria_corredores", "corredores", "moneda_corredores"].includes(key)) return "patria_corredores";
+      if (["patria_agf", "agf", "administradora_general_de_fondos"].includes(key)) return "patria_agf";
+      if (["patria_asset", "asset", "asset_management"].includes(key)) return "patria_asset";
       if (["otra", "otras", "general", "visma"].includes(key)) return "otra";
       return "";
     }
@@ -27588,6 +27646,9 @@ window.__xlsxLoadStatus="loaded";
       if (isEnacoProfile()) {
         return { name: `Mapa Visma a REX+ ${activeProfile().subtitle} (precargado) · Grupo Enaco`, bundled: true };
       }
+      if (isPatriaProfile()) {
+        return { name: `Mapa Visma a REX+ ${activeProfile().subtitle} (precargado) · Grupo Patria`, bundled: true };
+      }
       return null;
     }
 
@@ -27610,6 +27671,7 @@ window.__xlsxLoadStatus="loaded";
         if (activeProfile().id === "visma_rex_consorcio_vida") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_servicios") return conceptPairPresets().size + 5;
         if (isEnacoProfile()) return conceptPairPresets().size + 6;
+        if (isPatriaProfile()) return conceptPairPresets().size + 5;
         return DEFAULT_FINNING_HOMOLOGACIONES.length;
       }
       return mappingCatalog().length;
@@ -28024,7 +28086,7 @@ window.__xlsxLoadStatus="loaded";
             <div class="field">
               <label for="company">Empresa</label>
               <select id="company">
-                ${["Ola 1", "Finning", "Consorcio", "Enaco", "Otra"].map(group => {
+                ${["Ola 1", "Finning", "Consorcio", "Enaco", "Patria", "Otra"].map(group => {
                   const options = Object.values(COMPANY_OPTIONS).filter(option => option.group === group);
                   return `<optgroup label="${esc(group)}">${options.map(option => `<option value="${esc(option.id)}" ${option.id === companyForProfile(state.profile) ? "selected" : ""}>${esc(option.label)}</option>`).join("")}</optgroup>`;
                 }).join("")}
@@ -29856,7 +29918,7 @@ window.__xlsxLoadStatus="loaded";
       state.availableConcepts[system] = (parsed.concepts && parsed.concepts.length ? parsed.concepts : unique(state.rows[system].map(r => r.concepto))).sort();
       syncConceptSelection();
       if (state.files.visma && state.files.rex) await prepareHomologations(true);
-      const filterNote = system === "rex" && isEnacoProfile()
+      const filterNote = system === "rex" && activeRexCompanyAliases().length
         ? ` Se usaran solo las filas de ${activeProfile().subtitle}.`
         : "";
       toast(`${file.name} cargado.${filterNote}`);
