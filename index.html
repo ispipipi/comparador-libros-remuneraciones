@@ -26698,11 +26698,25 @@ window.__xlsxLoadStatus="loaded";
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base ICON"
       },
+      visma_rex_unilode: {
+        id: "visma_rex_unilode",
+        label: "Visma -> REX+",
+        subtitle: "Unilode",
+        companyKey: "unilode",
+        companyLabel: "Unilode",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Unilode"
+      },
       visma_rex_consorcio: {
         id: "visma_rex_consorcio",
         label: "Visma -> REX+",
         subtitle: "Seguros Generales",
-        groupLabel: "URL",
+        groupLabel: "Consorcio",
         companyKey: "consorcio",
         companyLabel: "Seguros Generales",
         sourceName: "Visma",
@@ -26717,7 +26731,7 @@ window.__xlsxLoadStatus="loaded";
         id: "visma_rex_consorcio_corredora",
         label: "Visma -> REX+",
         subtitle: "Corredora de bolsa",
-        groupLabel: "URL",
+        groupLabel: "Consorcio",
         companyKey: "consorcio_corredora",
         companyLabel: "Corredora de bolsa",
         sourceName: "Visma",
@@ -26732,7 +26746,7 @@ window.__xlsxLoadStatus="loaded";
         id: "visma_rex_consorcio_financiero",
         label: "Visma -> REX+",
         subtitle: "Financiero",
-        groupLabel: "URL",
+        groupLabel: "Consorcio",
         companyKey: "consorcio_financiero",
         companyLabel: "Financiero",
         sourceName: "Visma",
@@ -26747,7 +26761,7 @@ window.__xlsxLoadStatus="loaded";
         id: "visma_rex_consorcio_banco",
         label: "Visma -> REX+",
         subtitle: "Banco Consorcio",
-        groupLabel: "URL",
+        groupLabel: "Consorcio",
         companyKey: "consorcio_banco",
         companyLabel: "Banco Consorcio",
         sourceName: "Visma",
@@ -26757,6 +26771,36 @@ window.__xlsxLoadStatus="loaded";
         sourceIdLabel: "Numero empleado Visma",
         targetIdLabel: "Numero contrato REX+",
         summaryLabel: "Base Banco Consorcio"
+      },
+      visma_rex_consorcio_vida: {
+        id: "visma_rex_consorcio_vida",
+        label: "Visma -> REX+",
+        subtitle: "Consorcio Vida",
+        groupLabel: "Consorcio",
+        companyKey: "consorcio_vida",
+        companyLabel: "Consorcio Vida",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Consorcio Vida"
+      },
+      visma_rex_consorcio_servicios: {
+        id: "visma_rex_consorcio_servicios",
+        label: "Visma -> REX+",
+        subtitle: "Consorcio Servicios",
+        groupLabel: "Consorcio",
+        companyKey: "consorcio_servicios",
+        companyLabel: "Consorcio Servicios",
+        sourceName: "Visma",
+        targetName: "REX+",
+        sourceFileLabel: "Libro Visma",
+        targetFileLabel: "Libro REX+",
+        sourceIdLabel: "Numero empleado Visma",
+        targetIdLabel: "Numero contrato REX+",
+        summaryLabel: "Base Consorcio Servicios"
       }
     };
 
@@ -26767,10 +26811,13 @@ window.__xlsxLoadStatus="loaded";
       greenvic: { id: "greenvic", label: "Greenvic", group: "Ola 1", profileId: "visma_rex_greenvic" },
       nutrien: { id: "nutrien", label: "Nutrien", group: "Ola 1", profileId: "visma_rex_nutrien" },
       icon: { id: "icon", label: "ICON", group: "Ola 1", profileId: "visma_rex_icon" },
-      consorcio: { id: "consorcio", label: "Seguros Generales", group: "URL", profileId: "visma_rex_consorcio" },
-      consorcio_corredora: { id: "consorcio_corredora", label: "Corredora de bolsa", group: "URL", profileId: "visma_rex_consorcio_corredora" },
-      consorcio_financiero: { id: "consorcio_financiero", label: "Financiero", group: "URL", profileId: "visma_rex_consorcio_financiero" },
-      consorcio_banco: { id: "consorcio_banco", label: "Banco Consorcio", group: "URL", profileId: "visma_rex_consorcio_banco" },
+      unilode: { id: "unilode", label: "Unilode", group: "Ola 1", profileId: "visma_rex_unilode" },
+      consorcio: { id: "consorcio", label: "Seguros Generales", group: "Consorcio", profileId: "visma_rex_consorcio" },
+      consorcio_corredora: { id: "consorcio_corredora", label: "Corredora de bolsa", group: "Consorcio", profileId: "visma_rex_consorcio_corredora" },
+      consorcio_financiero: { id: "consorcio_financiero", label: "Financiero", group: "Consorcio", profileId: "visma_rex_consorcio_financiero" },
+      consorcio_banco: { id: "consorcio_banco", label: "Banco Consorcio", group: "Consorcio", profileId: "visma_rex_consorcio_banco" },
+      consorcio_vida: { id: "consorcio_vida", label: "Consorcio Vida", group: "Consorcio", profileId: "visma_rex_consorcio_vida" },
+      consorcio_servicios: { id: "consorcio_servicios", label: "Consorcio Servicios", group: "Consorcio", profileId: "visma_rex_consorcio_servicios" },
       otra: { id: "otra", label: "Otra empresa", group: "Otra", profileId: "visma_rex" }
     };
 
@@ -27328,7 +27375,7 @@ window.__xlsxLoadStatus="loaded";
     }
 
     function forcedVismaRexMapping(concept) {
-      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_icon", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco"].includes(activeProfile().id)) return null;
+      if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_icon", "visma_rex_unilode", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_consorcio_vida", "visma_rex_consorcio_servicios"].includes(activeProfile().id)) return null;
       const rules = {
         "a f p": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
         "afp": { concepto_b: "afp", concepto_b_label: "Cotizacion AFP", tipo_concepto: "descuento" },
@@ -27360,10 +27407,13 @@ window.__xlsxLoadStatus="loaded";
       if (["greenvic", "greenvic_spa"].includes(key)) return "greenvic";
       if (["nutrien", "nutrien_ag", "nutrien_ag_solutions"].includes(key)) return "nutrien";
       if (["icon", "icon_chile", "icon_chile_ltda"].includes(key)) return "icon";
+      if (["unilode", "unilode_aviation", "unilode_aviation_solutions"].includes(key)) return "unilode";
       if (["consorcio", "consorcio_nacional", "consorcio_seguros"].includes(key)) return "consorcio";
       if (["consorcio_corredora", "corredora", "corredora_de_bolsa", "consorcio_corredores"].includes(key)) return "consorcio_corredora";
       if (["consorcio_financiero", "financiero", "consorcio_finanzas"].includes(key)) return "consorcio_financiero";
       if (["consorcio_banco", "banco_consorcio", "banco"].includes(key)) return "consorcio_banco";
+      if (["consorcio_vida", "vida", "consorcio_seguro_vida"].includes(key)) return "consorcio_vida";
+      if (["consorcio_servicios", "servicios", "consorcio_servicios_financieros"].includes(key)) return "consorcio_servicios";
       if (["otra", "otras", "general", "visma"].includes(key)) return "otra";
       return "";
     }
@@ -27405,16 +27455,16 @@ window.__xlsxLoadStatus="loaded";
         return { name: "Mapa Visma a REX+ ICON (precargado) · Ola 1", bundled: true };
       }
       if (activeProfile().id === "visma_rex_consorcio") {
-        return { name: "Mapa Visma a REX+ Seguros Generales (precargado) · Grupo URL", bundled: true };
+        return { name: "Mapa Visma a REX+ Seguros Generales (precargado) · Grupo Consorcio", bundled: true };
       }
       if (activeProfile().id === "visma_rex_consorcio_corredora") {
-        return { name: "Mapa Visma a REX+ Corredora de bolsa (precargado) · Grupo URL", bundled: true };
+        return { name: "Mapa Visma a REX+ Corredora de bolsa (precargado) · Grupo Consorcio", bundled: true };
       }
       if (activeProfile().id === "visma_rex_consorcio_financiero") {
-        return { name: "Mapa Visma a REX+ Financiero (precargado) · Grupo URL", bundled: true };
+        return { name: "Mapa Visma a REX+ Financiero (precargado) · Grupo Consorcio", bundled: true };
       }
       if (activeProfile().id === "visma_rex_consorcio_banco") {
-        return { name: "Mapa Visma a REX+ Banco Consorcio (precargado) · Grupo URL", bundled: true };
+        return { name: "Mapa Visma a REX+ Banco Consorcio (precargado) · Grupo Consorcio", bundled: true };
       }
       return null;
     }
@@ -27434,6 +27484,8 @@ window.__xlsxLoadStatus="loaded";
         if (activeProfile().id === "visma_rex_consorcio_corredora") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_financiero") return conceptPairPresets().size + 5;
         if (activeProfile().id === "visma_rex_consorcio_banco") return conceptPairPresets().size + 5;
+        if (activeProfile().id === "visma_rex_consorcio_vida") return conceptPairPresets().size + 5;
+        if (activeProfile().id === "visma_rex_consorcio_servicios") return conceptPairPresets().size + 5;
         return DEFAULT_FINNING_HOMOLOGACIONES.length;
       }
       return mappingCatalog().length;
@@ -27848,7 +27900,7 @@ window.__xlsxLoadStatus="loaded";
             <div class="field">
               <label for="company">Empresa</label>
               <select id="company">
-                ${["Ola 1", "URL", "Otra"].map(group => {
+                ${["Ola 1", "Consorcio", "Otra"].map(group => {
                   const options = Object.values(COMPANY_OPTIONS).filter(option => option.group === group);
                   return `<optgroup label="${esc(group)}">${options.map(option => `<option value="${esc(option.id)}" ${option.id === companyForProfile(state.profile) ? "selected" : ""}>${esc(option.label)}</option>`).join("")}</optgroup>`;
                 }).join("")}
@@ -30117,7 +30169,7 @@ window.__xlsxLoadStatus="loaded";
       }
       if (isCanonicalEarningConcept(header)) return "haber";
       if (isCanonicalDiscountConcept(header)) return "descuento";
-      if (["visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_nutrien", "visma_rex_icon"].includes(activeProfile().id) && key === "aporte bienestar") return "descuento";
+      if (["visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_consorcio_vida", "visma_rex_consorcio_servicios", "visma_rex_nutrien", "visma_rex_icon"].includes(activeProfile().id) && key === "aporte bienestar") return "descuento";
       if (
         key.startsWith("aporte") ||
         key.startsWith("sis ") ||
