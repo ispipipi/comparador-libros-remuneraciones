@@ -27377,14 +27377,14 @@ window.__xlsxLoadStatus="loaded";
     function forcedVismaRexMapping(concept) {
       if (!["visma_rex", "visma_rex_rauda", "visma_rex_sumitomo", "visma_rex_greenvic", "visma_rex_nutrien", "visma_rex_icon", "visma_rex_unilode", "visma_rex_consorcio", "visma_rex_consorcio_corredora", "visma_rex_consorcio_financiero", "visma_rex_consorcio_banco", "visma_rex_consorcio_vida", "visma_rex_consorcio_servicios"].includes(activeProfile().id)) return null;
       const normalizedConcept = normalizeText(concept);
-      if (activeProfile().id === "visma_rex_unilode" && ["horas no trabajadas", "horas de atraso", "horas atraso"].includes(normalizedConcept)) {
+      if (["horas no trabajadas", "horas de atraso", "horas atraso"].includes(normalizedConcept)) {
         return {
           concepto_a: concept,
           concepto_b: "minatrasos",
           concepto_b_label: "Minutos de Atraso",
           tipo_concepto: "haber",
           estado: "activo",
-          origen: "Homologacion fija Unilode: atraso Visma a REX+"
+          origen: "Homologacion fija Visma: atraso a REX+"
         };
       }
       const rules = {
